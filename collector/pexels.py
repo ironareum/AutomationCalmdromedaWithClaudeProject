@@ -1,13 +1,15 @@
 """
 Pexels API Video Collector
-무료 4K 자연 영상 수집
-API 키 발급: https://www.pexels.com/api/
+2026.03.26 무료 4K 자연 영상 수집
+2026.03.26 API 키 발급: https://www.pexels.com/api/
+2026.03.28 사용한 영상은 used_assets.json에 기록 → 다음 실행 시 자동 스킵
 """
 
 import time
 import logging
 import requests
 from pathlib import Path
+from collector.freesound import load_used_assets, save_used_assets
 
 log = logging.getLogger(__name__)
 
@@ -19,8 +21,10 @@ class PexelsCollector:
         self.headers = {"Authorization": api_key}
         self.video_dir = work_dir / "videos"
         self.video_dir.mkdir(parents=True, exist_ok=True)
+        self.used = load_used_assets()
+        log.info(f"Used videos so far: {len(self.used['pexels'])} IDs blocked")
 
-    def search(self, query: str, count: int = 5) -> list[dict]:
+    def search(self, query: str, count: int = 10) -> list[dict]:
         """
         Pexels에서 영상 검색
         """
@@ -39,10 +43,17 @@ class PexelsCollector:
             )
             resp.raise_for_status()
             videos = resp.json().get("videos", [])
-            log.info(f"Pexels search '{query}': {len(videos)} results")
-            return videos
+
+            # 이미 사용한 영상 필터링
+            fresh = [v for v in videos if str(v["id"]) not in self.used["pexels"]]
+            skipped = len(videos) - len(fresh)
+            if skipped:
+                log.info(f"Pexels '{query}': {len(videos)} found / {skipped} skipped (used) / {len(fresh)} fresh")
+            else:
+                log.info(f"Pexels '{query}': {len(fresh)} fresh results")
+            return fresh
         except requests.RequestException as e:
-            log.error(f"Pexels search failed for '{query}': {e}")
+            log.error(f"Pexels search failed '{query}': {e}")
             return []
 
     def get_best_file(self, video: dict, prefer_4k: bool = True) -> dict | None:
@@ -87,19 +98,19 @@ class PexelsCollector:
             log.info(f"Downloading video {video['id']} ({file_info.get('height')}p)...")
             resp = requests.get(url, timeout=120, stream=True)
             resp.raise_for_status()
-
-            total = int(resp.headers.get("content-length", 0))
-            downloaded = 0
             with open(dest, "wb") as f:
                 for chunk in resp.iter_content(chunk_size=65536):
                     f.write(chunk)
-                    downloaded += len(chunk)
 
             size_mb = dest.stat().st_size / (1024 * 1024)
             log.info(f"Downloaded: {dest.name} ({size_mb:.1f}MB)")
+
+            # 사용 완료 → 기록
+            self.used["pexels"].append(str(video["id"]))
+            save_used_assets(self.used)
             return dest
         except Exception as e:
-            log.error(f"Video download failed: {e}")
+            log.error(f"Video download failed {video['id']}: {e}")
             if dest.exists():
                 dest.unlink()
             return None
@@ -114,12 +125,13 @@ class PexelsCollector:
         queries = cfg.category_queries.get(category, [category])
 
         collected = []
-        per_query = max(1, count // len(queries) + 1)
+        per_query = max(2, count // len(queries) + 1)
 
         for query in queries:
             if len(collected) >= count:
                 break
-            results = self.search(query, count=per_query)
+            # per_page 넉넉하게 → used 필터 후에도 남도록
+            results = self.search(query, count=per_query * 3)
             for video in results:
                 if len(collected) >= count:
                     break

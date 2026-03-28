@@ -5,17 +5,39 @@
 ## 프로젝트 구조
 
 ```
-calmdromeda/
-├── pipeline.py          # 메인 실행 파일
-├── config.py            # 설정 (카테고리, API, 경로)
-├── requirements.txt
-├── .env.example         # API 키 템플릿
+AutomationCalmdromedaWithClaudeProject/
+└── assets/
+│   ├── logo.png   # Calmdromeda.PNG 파일을 여기에 logo.png로 저장
+│   └── sounds/    # Freesound 점검중일때 임시로 사용할 음원 저장
+│       ├── rain/
+│       │   ├── heavy_rain_01.mp3
+│       │   └── rain_window_01.mp3
+│       ├── ocean/
+│       ├── forest/
+│       ├── thunder/
+│       ├── cafe/
+│       └── camping/
 ├── collector/
 │   ├── freesound.py     # 사운드 수집 (Freesound API)
 │   └── pexels.py        # 영상 수집 (Pexels API)
-└── producer/
-    ├── ffmpeg_producer.py  # 영상 합성 (FFmpeg)
-    └── thumbnail.py        # 썸네일 자동 생성
+├── output/
+│   └── 20260323_222957  #생성일시
+│       ├── sounds
+│       ├── temp
+│       ├── thumbnails
+│       ├── videos
+│       └── final_file.mp4
+├──producer/
+│   ├── ffmpeg_producer.py  # 영상 합성 (FFmpeg)
+│   └── thumbnail.py        # 썸네일 자동 생성
+├── .env                 # API 키 템플릿
+├── .gitignore
+├── config.py            # 설정 (카테고리, API, 경로)
+├── history.txt          # 개발이력관리
+├── pipeline.py          # 메인 실행 파일
+├── README.md            # 프로젝트 소개
+└── requirements.txt
+
 ```
 
 ## 설치
