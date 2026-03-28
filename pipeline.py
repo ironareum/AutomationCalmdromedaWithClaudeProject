@@ -80,12 +80,15 @@ def run_pipeline(concept: dict):
         log.error("Video production failed. Aborting.")
         return None
 
-    # 4. 썸네일 생성 (로고 포함)
+    # 4. 썸네일 생성 — 수집된 영상 중 첫 번째 파일의 첫 프레임을 배경으로 사용
     log.info("Step 4: [썸네일 생성] Generating thumbnail...")
     thumb_gen = ThumbnailGenerator(work_dir)
     thumbnail = thumb_gen.generate(
         title=concept["title"],
-        category=concept["category"]
+        category=concept["category"],
+        video_path=video_files[0] if video_files else None,
+        title_sub=concept.get("title_sub", "잠잘때 듣기 좋은"),
+        subtitle_en=concept.get("subtitle_en", "Healing Music"),
     )
 
     # 5. 메타데이터 저장
@@ -158,11 +161,13 @@ Perfect for studying, working, meditation, or deep sleep.
 if __name__ == "__main__":
     # ===== 한글 콘셉트 테스트 =====
     test_concept = {
-        "title": "빗소리 ASMR | 3시간 숙면 & 집중 사운드 | 공부할 때 듣기 좋은 음악",
+        "title": "빗소리 ASMR | 1시간 숙면 & 집중 사운드 | 공부할 때 듣기 좋은 음악",
         "category": "rain",
         "sounds": ["heavy rain", "rain on window", "gentle rain"],
         "mood": "cozy rainy",
-        "duration_hours": 1, # ← 3에서 1로 변경
+        "duration_hours": 0.02,              # 1
+        "title_sub": "공부할 때 듣기 좋은",     # 썸네일 상단 부제목
+        "subtitle_en": "Rain Sounds",        # 썸네일 하단 영문
         "tags": ["빗소리", "ASMR", "수면음악", "공부음악", "백색소음", "힐링음악", "빗소리ASMR"],
         "language": "ko"
     }

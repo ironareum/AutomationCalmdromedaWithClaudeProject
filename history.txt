@@ -34,7 +34,10 @@
           ├─ 파일 부족 → Freesound API로 나머지 채우기
           └─ Freesound 다운 → 로컬 파일만으로 진행
 
-5. 워터마크, 썸네일 수정
+#######################################################
+2026.03.29 | Ver 1.2  | 업데이트 내용
+#######################################################
+1. 워터마크, 썸네일 수정
     변경 내용
     thumbnail.py
 
@@ -47,3 +50,15 @@
     video_files[0] 을 썸네일에 자동 전달
     concept에 title_sub, subtitle_en 키 추가
     duration_hours 1시간으로 변경
+
+2. 임시 파일 단계별 즉시 삭제 → 디스크 사용량 최소화
+    [디스크 사용 흐름]
+      이전: 원본영상 + normalized + video_loop + mixed_audio + merged_no_logo + 최종 = 최종x3~4배
+      이후: 원본영상 + mixed_audio(임시) + 최종 = 최종x1.1배 수준
+
+    [임시 파일 관리 전략]
+      - normalized 클립: 합성 직후 삭제
+      - video_loop: merge 완료 직후 삭제
+      - mixed_audio: merge 완료 직후 삭제
+      - merged_no_logo: 로고 적용 완료 직후 삭제
+      - temp 폴더: 파이프라인 완료 후 전체 삭제
