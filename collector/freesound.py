@@ -3,6 +3,12 @@ Freesound.org API Collector
 2026.03.26 CC0/CC BY 라이선스 자연 사운드 자동 수집
 2026.03.26 API 키 발급: https://freesound.org/apiv2/apply/
 2026.03.28 사용한 소스는 used_assets.json에 기록 → 다음 실행 시 자동 스킵
+2026.03.28 로컬 음원 폴백: assets/sounds/{category}/ 폴더 파일 우선 사용
+
+[사운드 수집 우선순위]
+1. assets/sounds/{category}/ 폴더에 파일 있으면 → 로컬 파일 우선 사용
+2. 로컬 파일 없거나 부족하면 → Freesound API로 자동 수집
+3. Freesound도 다운된 경우 → 로컬 파일만으로 진행 (없으면 실패)
 """
 
 import time
@@ -15,6 +21,24 @@ log = logging.getLogger(__name__)
 
 # 사용한 asset 관리
 USED_ASSETS_FILE = Path(__file__).parent.parent / "used_assets.json"
+
+# 로컬 음원 폴더 루트
+LOCAL_SOUNDS_DIR = Path(__file__).parent.parent / "assets" / "sounds"
+
+# 지원 음원 확장자
+SOUND_EXTENSIONS = {".mp3", ".wav", ".ogg", ".flac", ".m4a"}
+
+# category → 로컬 폴더명 매핑
+CATEGORY_TO_LOCAL_DIR = {
+    "rain":        ["rain"],
+    "rain_thunder": ["rain", "thunder"],
+    "ocean":       ["ocean"],
+    "forest":      ["forest", "birds"],
+    "birds":       ["birds", "forest"],
+    "white_noise": ["white_noise"],
+    "cafe":        ["cafe", "rain"],
+    "camping":     ["camping", "forest"],
+}
 
 
 def load_used_assets() -> dict:
@@ -29,6 +53,94 @@ def save_used_assets(data: dict):
     )
 
 
+class LocalSoundCollector:
+    """
+    assets/sounds/ 폴더에서 음원 파일을 수집
+    Freesound API 없이도 동작하는 오프라인 폴백
+    """
+
+    def __init__(self, work_dir: Path):
+        self.work_dir = work_dir
+
+    def collect_by_queries(self, queries: list[str], count_per_query: int = 3) -> list[Path]:
+        """
+        쿼리 키워드 → 카테고리 폴더 매핑으로 로컬 음원 수집
+        예: "heavy rain" → assets/sounds/rain/ 폴더
+        """
+        # 쿼리 키워드에서 카테고리 추론
+        categories = self._queries_to_categories(queries)
+        return self.collect_by_categories(categories, count_per_query)
+
+    def collect_by_categories(self, categories: list[str], count: int = 3) -> list[Path]:
+        """
+        카테고리 폴더에서 직접 음원 수집
+        """
+        collected = []
+        seen = set()
+
+        for category in categories:
+            folder = LOCAL_SOUNDS_DIR / category
+            if not folder.exists():
+                log.debug(f"Local sound folder not found: {folder}")
+                continue
+
+            files = [
+                f for f in folder.iterdir()
+                if f.suffix.lower() in SOUND_EXTENSIONS
+                and f.name not in seen
+                and f.name != "README.txt"
+            ]
+
+            if not files:
+                log.debug(f"No sound files in: {folder}")
+                continue
+
+            for f in files[:count]:
+                if f.name not in seen:
+                    collected.append(f)
+                    seen.add(f.name)
+                    log.info(f"Local sound: {f.parent.name}/{f.name}")
+
+        if collected:
+            log.info(f"Local sounds found: {len(collected)} files")
+        else:
+            log.info(f"No local sounds found in assets/sounds/")
+
+        return collected
+
+    def _queries_to_categories(self, queries: list[str]) -> list[str]:
+        """쿼리 문자열에서 카테고리 폴더명 추론"""
+        keyword_map = {
+            "rain":     "rain",
+            "thunder":  "thunder",
+            "storm":    "thunder",
+            "ocean":    "ocean",
+            "wave":     "ocean",
+            "sea":      "ocean",
+            "forest":   "forest",
+            "bird":     "birds",
+            "nature":   "forest",
+            "cafe":     "cafe",
+            "coffee":   "cafe",
+            "camp":     "camping",
+            "fire":     "camping",
+            "noise":    "white_noise",
+            "white":    "white_noise",
+        }
+        categories = []
+        for query in queries:
+            for keyword, category in keyword_map.items():
+                if keyword in query.lower() and category not in categories:
+                    categories.append(category)
+
+        # 매핑 안 되면 첫 쿼리 단어로 폴더 시도
+        if not categories and queries:
+            fallback = queries[0].split()[0].lower()
+            categories.append(fallback)
+
+        return categories
+
+
 class FreesoundCollector:
     BASE_URL = "https://freesound.org/apiv2"
 
@@ -37,12 +149,28 @@ class FreesoundCollector:
         self.sound_dir = work_dir / "sounds"
         self.sound_dir.mkdir(parents=True, exist_ok=True)
         self.used = load_used_assets()
+        self.local = LocalSoundCollector(work_dir)
         log.info(f"Used sounds so far: {len(self.used['freesound'])} IDs blocked")
 
+    def _is_api_available(self) -> bool:
+        """Freesound API 서버 상태 빠르게 체크"""
+        try:
+            resp = requests.get(
+                f"{self.BASE_URL}/search/text/",
+                params={"query": "test", "page_size": 1, "token": self.api_key},
+                timeout=5
+            )
+            # HTML 응답이면 점검 중
+            content_type = resp.headers.get("Content-Type", "")
+            if "html" in content_type or resp.text.strip().startswith("<!"):
+                log.warning("Freesound API is down (maintenance page detected)")
+                return False
+            return True
+        except Exception:
+            log.warning("Freesound API unreachable")
+            return False
+
     def search(self, query: str, page_size: int = 15) -> list[dict]:
-        """
-        쿼리로 사운드 검색, CC0/CC BY만 필터링
-        """
         params = {
             "query": query,
             "page_size": page_size,
@@ -70,7 +198,7 @@ class FreesoundCollector:
             else:
                 log.info(f"Freesound '{query}': {len(fresh)} fresh results")
             return fresh
-        except requests.RequestException as e:
+        except Exception as e:
             log.error(f"Freesound search failed '{query}': {e}")
             return []
 
@@ -116,12 +244,41 @@ class FreesoundCollector:
 
     def collect(self, queries: list[str], count_per_query: int = 3) -> list[Path]:
         """
-        여러 쿼리로 사운드 수집, 중복 제거 후 반환
+        1단계: 로컬 assets/sounds/ 폴더 확인
+        2단계: 로컬 부족하면 Freesound API 시도
+        3단계: API도 안 되면 로컬 파일만으로 진행
         """
-        collected = []
+        needed = len(queries) * count_per_query
+
+        # ── 1단계: 로컬 음원 수집 ──────────────────────────────
+        local_files = self.local.collect_by_queries(queries, count_per_query)
+
+        if len(local_files) >= needed:
+            log.info(f"Using local sounds only ({len(local_files)} files) — Freesound API skipped")
+            return local_files
+
+        if local_files:
+            log.info(f"Local sounds: {len(local_files)} files. Need {needed - len(local_files)} more from Freesound...")
+        else:
+            log.info("No local sounds. Trying Freesound API...")
+
+        # ── 2단계: Freesound API 상태 확인 ────────────────────
+        if not self._is_api_available():
+            if local_files:
+                log.warning(f"Freesound down — proceeding with {len(local_files)} local files only")
+                return local_files
+            else:
+                log.error("Freesound down AND no local sounds found.")
+                log.error(f"Please add sound files to: assets/sounds/{{category}}/")
+                return []
+
+        # ── 3단계: Freesound API로 부족분 채우기 ──────────────
+        collected = list(local_files)
         seen_ids = set()
 
         for query in queries:
+            if len(collected) >= needed:
+                break
             # page_size를 넉넉하게 잡아야 used 필터 후에도 충분히 남음
             results = self.search(query, page_size=count_per_query * 4)
             downloaded = 0
@@ -133,7 +290,6 @@ class FreesoundCollector:
                 # 최소 품질 필터: 30초 이상, 평점 있는 것
                 if sound.get("duration", 0) < 30:
                     continue
-
                 path = self.download(sound)
                 if path:
                     collected.append(path)
@@ -142,5 +298,5 @@ class FreesoundCollector:
 
                 time.sleep(0.3)  # API rate limit 방지
 
-        log.info(f"Total sounds collected: {len(collected)}")
+        log.info(f"Total sounds collected: {len(collected)} (local: {len(local_files)}, api: {len(collected) - len(local_files)})")
         return collected

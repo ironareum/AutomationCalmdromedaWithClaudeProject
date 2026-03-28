@@ -8,10 +8,10 @@
 AutomationCalmdromedaWithClaudeProject/
 └── assets/
 │   ├── logo.png   # Calmdromeda.PNG 파일을 여기에 logo.png로 저장
+│   ├── fonts/     
 │   └── sounds/    # Freesound 점검중일때 임시로 사용할 음원 저장
 │       ├── rain/
-│       │   ├── heavy_rain_01.mp3
-│       │   └── rain_window_01.mp3
+│       │   └── rain_01.mp3
 │       ├── ocean/
 │       ├── forest/
 │       ├── thunder/

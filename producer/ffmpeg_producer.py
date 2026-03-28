@@ -34,7 +34,7 @@ class VideoProducer:
         """FFmpeg 명령 실행"""
         log.info(f"FFmpeg: {desc}")
         log.debug(f"CMD: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, encoding="utf-8", errors="replace") #UnicodeDecodeError 보완. errors="replace" 가 한글 경로 때문에 생기는 디코딩 오류를 그냥 무시하고 넘어가게 해줘요.
         if result.returncode != 0:
             log.error(f"FFmpeg failed:\n{result.stderr[-800:]}") # 에러로그 출력 800자
             return False
