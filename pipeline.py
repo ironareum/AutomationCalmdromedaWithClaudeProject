@@ -165,7 +165,7 @@ if __name__ == "__main__":
         "category": "rain",
         "sounds": ["heavy rain", "rain on window", "gentle rain"],
         "mood": "cozy rainy",
-        "duration_hours": 0.02,              # 1
+        "duration_hours": 1,                 # 1시간
         "title_sub": "공부할 때 듣기 좋은",     # 썸네일 상단 부제목
         "subtitle_en": "Rain Sounds",        # 썸네일 하단 영문
         "tags": ["빗소리", "ASMR", "수면음악", "공부음악", "백색소음", "힐링음악", "빗소리ASMR"],

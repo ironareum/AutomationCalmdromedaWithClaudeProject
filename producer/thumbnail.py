@@ -30,10 +30,10 @@ from PIL import Image, ImageDraw, ImageFont
 
 log = logging.getLogger(__name__)
 
-_BASE = Path(__file__).parent.parent
+_BASE        = Path(__file__).parent.parent
 LOGO_HEADING = _BASE / "assets" / "logo_heading.png"
-LOGO_CIRCLE = _BASE / "assets" / "logo.png"
-FONTS_DIR = _BASE / "assets" / "fonts"
+LOGO_CIRCLE  = _BASE / "assets" / "logo.png"
+FONTS_DIR    = _BASE / "assets" / "fonts"
 
 
 # ── 폰트 ──────────────────────────────────────────────────────────────
@@ -49,19 +49,18 @@ def _fko(size):  return ImageFont.truetype(_resolve("RIDIBatang.otf"), size)
 
 def _fen(size, style="italic"):
     return ImageFont.truetype(_resolve({
-                                           "bold": "Bitter-Bold.ttf", "regular": "Bitter-Regular.ttf",
-                                           "italic": "Bitter-Italic.ttf"
-                                       }[style]), size)
+        "bold":"Bitter-Bold.ttf","regular":"Bitter-Regular.ttf","italic":"Bitter-Italic.ttf"
+    }[style]), size)
 
 
 # ── 로고 ──────────────────────────────────────────────────────────────
 def _rm_black(img: Image.Image, thr=45) -> Image.Image:
     img = img.convert("RGBA")
-    px = img.load()
+    px  = img.load()
     for y in range(img.height):
         for x in range(img.width):
-            r, g, b, a = px[x, y]
-            if r < thr and g < thr and b < thr: px[x, y] = (r, g, b, 0)
+            r,g,b,a = px[x,y]
+            if r<thr and g<thr and b<thr: px[x,y]=(r,g,b,0)
     return img
 
 
@@ -72,26 +71,25 @@ def _paste_logo_tl(base: Image.Image) -> Image.Image:
         return base
     W, H = base.size
     logo = _rm_black(Image.open(LOGO_HEADING))
-    tw = int(W * 0.17)
-    th = int(logo.height * tw / logo.width)
+    tw   = int(W * 0.17)
+    th   = int(logo.height * tw / logo.width)
     logo = logo.resize((tw, th), Image.LANCZOS)
-    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    layer.paste(logo, (8, 8), logo)
+    layer = Image.new("RGBA", (W,H), (0,0,0,0))
+    layer.paste(logo, (8,8), logo)
     return Image.alpha_composite(base.convert("RGBA"), layer)
-
 
 def _paste_logo_br(base: Image.Image) -> Image.Image:
     """우하단 원형 로고"""
     if not LOGO_CIRCLE.exists():
         return base
     W, H = base.size
-    logo = _rm_black(Image.open(LOGO_CIRCLE))
-    sz = 70
-    logo = logo.resize((sz, sz), Image.LANCZOS)
-    r, g, b, a = logo.split()
-    logo.putalpha(a.point(lambda v: int(v * 0.65)))
-    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    layer.paste(logo, (W - sz - 12, H - sz - 12), logo)
+    logo  = _rm_black(Image.open(LOGO_CIRCLE))
+    sz    = 70
+    logo  = logo.resize((sz,sz), Image.LANCZOS)
+    r,g,b,a = logo.split()
+    logo.putalpha(a.point(lambda v: int(v*0.65)))
+    layer = Image.new("RGBA", (W,H), (0,0,0,0))
+    layer.paste(logo, (W-sz-12, H-sz-12), logo)
     return Image.alpha_composite(base.convert("RGBA"), layer)
 
 
@@ -99,8 +97,8 @@ def _paste_logo_br(base: Image.Image) -> Image.Image:
 def _extract_frame(video: Path, out: Path, sec=3) -> bool:
     try:
         r = subprocess.run(
-            ["ffmpeg", "-y", "-ss", str(sec), "-i", str(video),
-             "-vframes", "1", "-q:v", "2", str(out)],
+            ["ffmpeg","-y","-ss",str(sec),"-i",str(video),
+             "-vframes","1","-q:v","2",str(out)],
             capture_output=True, encoding="utf-8", errors="replace", timeout=30)
         return out.exists() and out.stat().st_size > 0
     except Exception as e:
@@ -110,27 +108,27 @@ def _extract_frame(video: Path, out: Path, sec=3) -> bool:
 
 # ── Dominant → Stroke 색상 ────────────────────────────────────────────
 def _stroke_color(img: Image.Image) -> tuple:
-    W, H = img.size
-    crop = img.crop((W // 4, H // 4, W * 3 // 4, H * 3 // 4))
-    small = crop.resize((16, 16), Image.LANCZOS).convert("RGB")
+    W,H = img.size
+    crop  = img.crop((W//4, H//4, W*3//4, H*3//4))
+    small = crop.resize((16,16), Image.LANCZOS).convert("RGB")
     px = list(small.getdata())
-    r = sum(p[0] for p in px) // len(px)
-    g = sum(p[1] for p in px) // len(px)
-    b = sum(p[2] for p in px) // len(px)
-    return tuple(min(int(c * 0.22), 55) for c in (r, g, b))
+    r = sum(p[0] for p in px)//len(px)
+    g = sum(p[1] for p in px)//len(px)
+    b = sum(p[2] for p in px)//len(px)
+    return tuple(min(int(c*0.22), 55) for c in (r,g,b))
 
 
 # ── 폰트 크기 자동 조정 ────────────────────────────────────────────────
 def _fit_font_size(text: str, max_px: int,
                    max_size=100, min_size=38) -> int:
     """text가 max_px 너비 안에 들어오는 최대 폰트 크기 반환 (실제 픽셀 측정)"""
-    dummy_img = Image.new("RGB", (1, 1))
+    dummy_img  = Image.new("RGB", (1,1))
     dummy_draw = ImageDraw.Draw(dummy_img)
-    for size in range(max_size, min_size - 1, -2):
+    for size in range(max_size, min_size-1, -2):
         try:
-            fnt = _fko(size)
-            bbox = dummy_draw.textbbox((0, 0), text, font=fnt)
-            if (bbox[2] - bbox[0]) <= max_px:
+            fnt  = _fko(size)
+            bbox = dummy_draw.textbbox((0,0), text, font=fnt)
+            if (bbox[2]-bbox[0]) <= max_px:
                 return size
         except:
             pass
@@ -140,39 +138,39 @@ def _fit_font_size(text: str, max_px: int,
 # ── 타이틀 2줄 분할 ────────────────────────────────────────────────────
 def _split_two_lines(text: str):
     """공백 기준으로 중간에서 가장 가까운 위치에서 2줄 분할"""
-    text = text.strip()
-    spaces = [i for i, c in enumerate(text) if c == " "]
+    text   = text.strip()
+    spaces = [i for i,c in enumerate(text) if c==" "]
     if not spaces:
         return text, ""
-    mid = len(text) // 2
-    sp = min(spaces, key=lambda x: abs(x - mid))
+    mid = len(text)//2
+    sp  = min(spaces, key=lambda x: abs(x-mid))
     return text[:sp].strip(), text[sp:].strip()
 
 
 # ── Stroke 텍스트 렌더링 ───────────────────────────────────────────────
 def _stroke_center(draw, text, y, fnt, W,
-                   fill=(255, 255, 255), sc=(20, 20, 20), sw=5):
-    bbox = draw.textbbox((0, 0), text, font=fnt)
-    x = (W - (bbox[2] - bbox[0])) // 2
-    for dx in range(-sw, sw + 1):
-        for dy in range(-sw, sw + 1):
-            if dx == 0 and dy == 0: continue
-            if abs(dx) + abs(dy) > sw + 2: continue
-            draw.text((x + dx, y + dy), text, font=fnt, fill=(*sc, 225))
-    draw.text((x, y), text, font=fnt, fill=fill)
+                   fill=(255,255,255), sc=(20,20,20), sw=5):
+    bbox = draw.textbbox((0,0), text, font=fnt)
+    x    = (W-(bbox[2]-bbox[0]))//2
+    for dx in range(-sw, sw+1):
+        for dy in range(-sw, sw+1):
+            if dx==0 and dy==0: continue
+            if abs(dx)+abs(dy) > sw+2: continue
+            draw.text((x+dx, y+dy), text, font=fnt, fill=(*sc,225))
+    draw.text((x,y), text, font=fnt, fill=fill)
 
 
 # ── 테마 ──────────────────────────────────────────────────────────────
 THEMES = {
-    "rain": dict(ov=150, glow=(65, 118, 250), sub=(170, 205, 255), en=(115, 172, 255)),
-    "rain_thunder": dict(ov=160, glow=(100, 60, 220), sub=(190, 170, 255), en=(150, 130, 245)),
-    "ocean": dict(ov=148, glow=(50, 172, 218), sub=(145, 212, 238), en=(85, 195, 228)),
-    "forest": dict(ov=145, glow=(90, 190, 55), sub=(185, 245, 145), en=(135, 225, 95)),
-    "birds": dict(ov=140, glow=(160, 210, 80), sub=(210, 245, 160), en=(165, 225, 110)),
-    "white_noise": dict(ov=155, glow=(160, 160, 210), sub=(210, 210, 240), en=(170, 170, 230)),
-    "cafe": dict(ov=148, glow=(210, 155, 75), sub=(240, 220, 180), en=(220, 175, 105)),
-    "camping": dict(ov=150, glow=(235, 135, 55), sub=(248, 218, 175), en=(238, 165, 95)),
-    "sleep": dict(ov=150, glow=(125, 65, 215), sub=(192, 172, 255), en=(168, 132, 242)),
+    "rain":         dict(ov=150, glow=(65,118,250),  sub=(170,205,255), en=(115,172,255)),
+    "rain_thunder": dict(ov=160, glow=(100,60,220),  sub=(190,170,255), en=(150,130,245)),
+    "ocean":        dict(ov=148, glow=(50,172,218),  sub=(145,212,238), en=(85,195,228)),
+    "forest":       dict(ov=145, glow=(90,190,55),   sub=(185,245,145), en=(135,225,95)),
+    "birds":        dict(ov=140, glow=(160,210,80),  sub=(210,245,160), en=(165,225,110)),
+    "white_noise":  dict(ov=155, glow=(160,160,210), sub=(210,210,240), en=(170,170,230)),
+    "cafe":         dict(ov=148, glow=(210,155,75),  sub=(240,220,180), en=(220,175,105)),
+    "camping":      dict(ov=150, glow=(235,135,55),  sub=(248,218,175), en=(238,165,95)),
+    "sleep":        dict(ov=150, glow=(125,65,215),  sub=(192,172,255), en=(168,132,242)),
 }
 
 
@@ -180,21 +178,21 @@ class ThumbnailGenerator:
     SIZE = (1280, 720)
 
     def __init__(self, work_dir: Path):
-        self.work_dir = work_dir
+        self.work_dir  = work_dir
         self.thumb_dir = work_dir / "thumbnails"
         self.thumb_dir.mkdir(parents=True, exist_ok=True)
 
     def generate(
-            self,
-            title: str,
-            category: str,
-            video_path: Path | None = None,
-            title_sub: str = "잠잘때 듣기 좋은",
-            subtitle_en: str = "Healing Music",
-            output_name: str | None = None,
+        self,
+        title:       str,
+        category:    str,
+        video_path:  Path | None = None,
+        title_sub:   str = "잠잘때 듣기 좋은",
+        subtitle_en: str = "Healing Music",
+        output_name: str | None = None,
     ) -> Path:
         W, H = self.SIZE
-        t = THEMES.get(category, THEMES["forest"])
+        t    = THEMES.get(category, THEMES["forest"])
 
         # ── 1. 타이틀 파싱 ──────────────────────────────────────────
         # "빗소리 ASMR | 1시간 숙면 ..." → "빗소리 ASMR"
@@ -205,7 +203,7 @@ class ThumbnailGenerator:
         longer = l1 if len(l1) >= len(l2) else l2
 
         # 폰트 크기: W*82% 안에 확실히 들어오도록 실측
-        max_w = int(W * 0.82)
+        max_w     = int(W * 0.82)
         font_size = _fit_font_size(longer, max_w, max_size=100, min_size=38)
         log.info(f"타이틀: \"{display}\" → {font_size}px  ({l1!r} / {l2!r})")
 
@@ -222,78 +220,78 @@ class ThumbnailGenerator:
         if not bg:
             log.info("썸네일 배경: 그라디언트 폴백")
 
-        sc = _stroke_color(bg) if bg else (15, 15, 15)
+        sc = _stroke_color(bg) if bg else (15,15,15)
         log.info(f"Stroke 색상: RGB{sc}")
 
         # ── 3. 배경 합성 ────────────────────────────────────────────
         if bg:
-            base = bg.resize((W, H), Image.LANCZOS).convert("RGBA")
-            ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-            od = ImageDraw.Draw(ov)
+            base = bg.resize((W,H), Image.LANCZOS).convert("RGBA")
+            ov   = Image.new("RGBA",(W,H),(0,0,0,0))
+            od   = ImageDraw.Draw(ov)
             for y in range(H):
-                a = int(t["ov"] * 0.60 + t["ov"] * 0.40 * y / H)
-                od.line([(0, y), (W, y)], fill=(0, 0, 0, a))
+                a = int(t["ov"]*0.60 + t["ov"]*0.40*y/H)
+                od.line([(0,y),(W,y)], fill=(0,0,0,a))
             base = Image.alpha_composite(base, ov)
         else:
-            base = Image.new("RGBA", (W, H), (15, 35, 15, 255))
+            base = Image.new("RGBA",(W,H),(15,35,15,255))
 
         # ── 4. 글로우 ───────────────────────────────────────────────
-        gl = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        gl = Image.new("RGBA",(W,H),(0,0,0,0))
         gd = ImageDraw.Draw(gl)
-        cx, cy = W // 2, H // 2 - 10
-        for r in range(260, 0, -26):
-            a = int(14 * (1 - r / 260))
-            gd.ellipse([(cx - r * 2, cy - r), (cx + r * 2, cy + r)], fill=(*t["glow"], a))
+        cx, cy = W//2, H//2-10
+        for r in range(260,0,-26):
+            a = int(14*(1-r/260))
+            gd.ellipse([(cx-r*2,cy-r),(cx+r*2,cy+r)], fill=(*t["glow"],a))
         base = Image.alpha_composite(base.convert("RGBA"), gl)
         draw = ImageDraw.Draw(base)
 
         # ── 5. 레이아웃 계산 ────────────────────────────────────────
         # 전체 텍스트 블록 높이 계산해서 수직 중앙 정렬
-        f_sub = _fko(28)
+        f_sub  = _fko(28)
         f_main = _fko(font_size)
-        f_en = _fen(48, "italic")
+        f_en   = _fen(48, "italic")
 
-        sub_h = f_sub.getbbox("A")[3] + 8  # 부제목 높이
-        line_h = int(font_size * 1.18)  # 메인 타이틀 줄 높이
-        en_h = f_en.getbbox("A")[3] + 8  # 영문 서브 높이
-        gap = 18  # 요소 간격
+        sub_h  = f_sub.getbbox("A")[3]   + 8   # 부제목 높이
+        line_h = int(font_size * 1.18)          # 메인 타이틀 줄 높이
+        en_h   = f_en.getbbox("A")[3]    + 8    # 영문 서브 높이
+        gap    = 18                             # 요소 간격
 
         # 1줄이면 line_h 1개, 2줄이면 2개
-        n_lines = 2 if l2 else 1
-        total_h = sub_h + gap + line_h * n_lines + gap + en_h
-        y_start = (H - total_h) // 2
+        n_lines  = 2 if l2 else 1
+        total_h  = sub_h + gap + line_h*n_lines + gap + en_h
+        y_start  = (H - total_h) // 2
 
-        y_sub = y_start
-        y_l1 = y_sub + sub_h + gap
-        y_l2 = y_l1 + line_h
-        y_en = (y_l2 + line_h if l2 else y_l1 + line_h) + gap
+        y_sub  = y_start
+        y_l1   = y_sub + sub_h + gap
+        y_l2   = y_l1 + line_h
+        y_en   = (y_l2 + line_h if l2 else y_l1 + line_h) + gap
 
         # ── 6. 부제목 ────────────────────────────────────────────────
         _stroke_center(draw, title_sub, y_sub, f_sub, W,
-                       fill=(*t["sub"], 210), sc=sc, sw=3)
+                       fill=(*t["sub"],210), sc=sc, sw=3)
 
         # 구분선
-        draw.line([(W // 2 - 45, y_sub + sub_h + 4), (W // 2 + 45, y_sub + sub_h + 4)],
-                  fill=(*t["glow"], 70), width=1)
+        draw.line([(W//2-45, y_sub+sub_h+4), (W//2+45, y_sub+sub_h+4)],
+                  fill=(*t["glow"],70), width=1)
 
         # ── 7. 메인 타이틀 ───────────────────────────────────────────
         _stroke_center(draw, l1, y_l1, f_main, W,
-                       fill=(255, 255, 255), sc=sc, sw=6)
+                       fill=(255,255,255), sc=sc, sw=6)
         if l2:
             _stroke_center(draw, l2, y_l2, f_main, W,
-                           fill=(255, 255, 255), sc=sc, sw=6)
+                           fill=(255,255,255), sc=sc, sw=6)
 
         # ── 8. 영문 서브타이틀 ──────────────────────────────────────
         _stroke_center(draw, subtitle_en, y_en, f_en, W,
-                       fill=(*t["en"], 225), sc=sc, sw=4)
+                       fill=(*t["en"],225), sc=sc, sw=4)
 
         # ── 9. 로고 ─────────────────────────────────────────────────
         base = _paste_logo_tl(base)
         base = _paste_logo_br(base)
 
         # ── 10. 저장 ─────────────────────────────────────────────────
-        fname = output_name or f"thumb_{category}_{random.randint(1000, 9999)}.jpg"
-        out = self.thumb_dir / fname
+        fname = output_name or f"thumb_{category}_{random.randint(1000,9999)}.jpg"
+        out   = self.thumb_dir / fname
         base.convert("RGB").save(out, "JPEG", quality=95)
         log.info(f"Thumbnail saved: {out.name}")
         return out

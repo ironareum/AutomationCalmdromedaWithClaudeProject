@@ -3,6 +3,8 @@ FFmpeg Video Producer
 2026.03.26 사운드 레이어링 + 영상 루프 합성 → 1~3시간 유튜브 영상 생성
 2026.03.28 영상 우측 하단에 Calmdromeda 로고 워터마크 자동 삽입
 2026.03.29 임시 파일 단계별 즉시 삭제 → 디스크 사용량 최소화
+2026.03.29 오디오 -14 LUFS 정규화 (YouTube 권장)
+2026.03.29 영상 좌상단 heading 로고 + 우하단 원형 로고 동시 삽입
 
 [디스크 사용 흐름]
   이전: 원본영상 + normalized + video_loop + mixed_audio + merged_no_logo + 최종 = 최종x3~4배
@@ -26,7 +28,8 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 # 로고 파일 경로 (프로젝트 루트 기준)
-LOGO_PATH = Path(__file__).parent.parent / "assets" / "logo.png"
+LOGO_PATH         = Path(__file__).parent.parent / "assets" / "logo.png"           # 우하단 원형 로고
+LOGO_HEADING_PATH = Path(__file__).parent.parent / "assets" / "logo_heading.png"   # 좌상단 가로형 로고
 
 
 class VideoProducer:
@@ -73,6 +76,29 @@ class VideoProducer:
         except Exception as e:
             log.warning(f"Temp 폴더 삭제 실패: {e}")
 
+    def _prepare_logo_png(self, logo_path: Path,
+                          black_threshold: int = 45,
+                          opacity: float = 0.85) -> Path:
+        """
+        Pillow로 로고 PNG 전처리:
+        - 검정 배경 → 투명 처리 (black_threshold 이하 픽셀)
+        - 전체 불투명도 조정
+        저장 위치: temp/logo_heading_transparent.png
+        """
+        from PIL import Image
+        img = Image.open(logo_path).convert("RGBA")
+        px  = img.load()
+        for y in range(img.height):
+            for x in range(img.width):
+                r, g, b, a = px[x, y]
+                if r < black_threshold and g < black_threshold and b < black_threshold:
+                    px[x, y] = (r, g, b, 0)            # 검정 → 투명
+                else:
+                    px[x, y] = (r, g, b, int(a * opacity))  # 불투명도 적용
+        out = self.temp_dir / "logo_heading_transparent.png"
+        img.save(str(out), "PNG")
+        return out
+
     def get_duration(self, path: Path) -> float:
         """미디어 파일 길이(초) 반환"""
         cmd = [
@@ -90,10 +116,14 @@ class VideoProducer:
         여러 사운드 파일을 믹싱하고 목표 길이로 루프
         - 레이어링: 최대 3개 사운드 동시 재생 (볼륨 조정)
         - 루프: 짧은 파일은 target_duration까지 반복
+        - loudnorm 필터로 -14 LUFS 정규화 (YouTube 권장 레벨)
         """
-        output = self.temp_dir / "mixed_audio.mp3"
-        if output.exists():
-            output.unlink()
+        # 믹싱 결과를 raw에 먼저 저장 후 LUFS 정규화
+        raw_audio = self.temp_dir / "mixed_raw.mp3"
+        output    = self.temp_dir / "mixed_audio.mp3"
+        for f in [raw_audio, output]:
+            if f.exists():
+                f.unlink()
 
         # 최대 3개 레이어만 사용
         layers = sound_files[:3]
@@ -105,9 +135,8 @@ class VideoProducer:
                 "-stream_loop", "-1",       # 무한 루프
                 "-i", str(layers[0]),
                 "-t", str(target_duration), # 목표 길이로 자름
-                "-af", f"afade=t=out:st={target_duration - 5},d=5",  # 마지막 5초 페이드아웃?
                 "-b:a", "192k",
-                str(output)
+                str(raw_audio)
             ]
         else:
             # 멀티 레이어 믹싱
@@ -118,11 +147,10 @@ class VideoProducer:
             # 각 레이어 볼륨 설정 (첫번째가 주 사운드, 나머지는 보조)
             volumes = [1.0, 0.6, 0.4]
             amix_inputs = "".join(f"[{i}:a]volume={volumes[i]}[a{i}];" for i in range(len(layers)))
-            mix_inputs = "".join(f"[a{i}]" for i in range(len(layers)))
+            mix_inputs  = "".join(f"[a{i}]" for i in range(len(layers)))
             filter_complex = (
                 f"{amix_inputs}"
-                f"{mix_inputs}amix=inputs={len(layers)}:duration=longest,"
-                f"afade=t=out:st={target_duration - 5}:d=5"
+                f"{mix_inputs}amix=inputs={len(layers)}:duration=longest"
             )
 
             cmd = [
@@ -131,11 +159,27 @@ class VideoProducer:
                 "-filter_complex", filter_complex,
                 "-t", str(target_duration),
                 "-b:a", "192k",
-                str(output)
+                str(raw_audio)
             ]
 
-        if self._run(cmd, f"Mixing {len(layers)} sound layers → {target_duration//3600}h audio"):
-            log.info(f"Audio mixed: {output.name} ({output.stat().st_size // (1024*1024)}MB)")
+        if not self._run(cmd, f"Mixing {len(layers)} sound layers → {target_duration//3600}h audio"):
+            return None
+
+        # -14 LUFS 정규화 + 마지막 5초 페이드아웃
+        fade_start = max(0, target_duration - 5)
+        cmd_lufs = [
+            "ffmpeg", "-y",
+            "-i", str(raw_audio),
+            "-af", f"loudnorm=I=-14:TP=-1.5:LRA=11,afade=t=out:st={fade_start}:d=5",
+            "-b:a", "192k",
+            str(output)
+        ]
+
+        ok = self._run(cmd_lufs, "Normalizing audio → -14 LUFS")
+        self._delete(raw_audio)
+
+        if ok:
+            log.info(f"Audio mixed: {output.name} ({output.stat().st_size // (1024*1024)}MB) @ -14 LUFS")
             return output
         return None
 
@@ -143,7 +187,6 @@ class VideoProducer:
     def prepare_video_loop(self, video_files: list[Path], target_duration: int) -> Path | None:
         """
         영상 클립들을 이어붙이고 목표 길이로 루프
-        - 각 클립은 크로스페이드로 자연스럽게 전환
         - 1080p로 통일
         - 1080p 정규화 → concat 루프 → normalized 클립 즉시 삭제
         """
@@ -211,27 +254,60 @@ class VideoProducer:
         return video_loop if ok else None
 
     # ── 로고 오버레이 ──────────────────────────────────────────────────
-    def add_logo_overlay(self, video_path: Path, output_path: Path) -> Path | None:
+    def add_logo_overlay(self, video_path: Path, output_path: Path) -> Path:
         """
-        영상 우측 하단에 반투명 로고 워터마크 삽입
-        로고 없으면 그냥 원본 반환
+        영상 워터마크 삽입
+        - 좌상단: logo_heading.png (가로형, 영상 너비의 17%, 불투명도 85%)
+        - 우하단: logo.png (원형, 180px, 불투명도 60%)
+        둘 다 없으면 원본 그대로 반환
         """
-        if not LOGO_PATH.exists():
-            log.warning(f"Logo not found: {LOGO_PATH} — skipping overlay")
+        has_heading = LOGO_HEADING_PATH.exists()
+        has_circle  = LOGO_PATH.exists()
+
+        if not has_heading and not has_circle:
+            log.warning(f"로고 파일 없음 — 워터마크 스킵")
             return video_path
 
-        # 로고: 우측 하단, 너비 180px, 불투명도 60%
-        filter_complex = (
-            "[1:v]scale=180:-1,format=rgba,"
-            "colorchannelmixer=aa=0.6[logo];"
-            "[0:v][logo]overlay=W-w-30:H-h-30"
-        )
+        inputs = ["-i", str(video_path)]
+        filter_parts = []
+        input_idx = 1
+
+        if has_heading:
+            # 좌상단: 영상 너비의 17%, 마진 12px, 불투명도 85%
+            # 검정 배경 사전 제거: Pillow로 투명 PNG 생성 (geq 필터보다 훨씬 빠름)
+            logo_h_png = self._prepare_logo_png(
+                LOGO_HEADING_PATH, black_threshold=45, opacity=0.85
+            )
+            inputs += ["-i", str(logo_h_png)]
+            filter_parts.append(
+                f"[{input_idx}:v]scale=iw*0.17:-2,format=rgba[logo_h]"
+            )
+            filter_parts.append("[0:v][logo_h]overlay=12:12[v1]")
+            input_idx += 1
+            prev = "v1"
+        else:
+            prev = "0:v"
+
+        if has_circle:
+            inputs += ["-i", str(LOGO_PATH)]
+            # 우하단: 180px, 불투명도 60%, 마진 20px
+            filter_parts.append(
+                f"[{input_idx}:v]scale=180:-2,"
+                f"format=rgba,colorchannelmixer=aa=0.6[logo_c]"
+            )
+            filter_parts.append(f"[{prev}][logo_c]overlay=W-w-20:H-h-20[v2]")
+            final_out = "v2"
+        else:
+            final_out = prev
+
+        filter_complex = ";".join(filter_parts)
 
         cmd = [
             "ffmpeg", "-y",
-            "-i", str(video_path),
-            "-i", str(LOGO_PATH),
+            *inputs,
             "-filter_complex", filter_complex,
+            "-map", f"[{final_out}]",
+            "-map", "0:a",
             "-c:v", "libx264", "-preset", "fast", "-crf", "23",
             "-c:a", "copy",
             "-movflags", "+faststart",
@@ -242,12 +318,14 @@ class VideoProducer:
             log.info(f"Logo overlay done: {output_path.name}")
             return output_path
         else:
-            log.warning("Logo overlay failed ? returning video without logo")
+            log.warning("Logo overlay failed — returning video without logo")
             return video_path
 
     # ── 최종 merge ────────────────────────────────────────────────────
     def merge(self, video_loop: Path, audio: Path, output_path: Path) -> Path | None:
-        if LOGO_PATH.exists():
+        has_logo = LOGO_HEADING_PATH.exists() or LOGO_PATH.exists()
+
+        if has_logo:
             # 로고 있는 경우: 임시 merge → 로고 적용 → 임시 삭제
             temp_merged = self.temp_dir / "merged_no_logo.mp4"
             cmd = [
