@@ -151,3 +151,80 @@
   - 매일 오후 8시 KST 예약 공개
   - 로그/metadata에 YouTube URL 기록
 
+
+
+#######################################################
+ 2026.03.29 | Phase 2B — AI 기획 자동화 (Claude Haiku)
+#######################################################
+리포(data 브랜치): used_assets.enc  ← 암호화된 파일 (내용 못 읽음)
+GitHub Secrets:   ENCRYPTION_KEY    ← 복호화 키
+
+[설정 순서]
+0. .github 폴더 생성/ 파일 추가:
+    AutomationCalmdromedaWithClaudeProject/
+    ├── .github/          ← mkdir .github (파이참 터미널에서)
+    │   └── workflows/    ← mkdir .github\workflows
+    │       └── daily_pipeline.yml   ← 여기에 파일 넣기
+    ├── pipeline.py
+    ├── crypto_utils.py   ← 프로젝트 루트
+
+1. 암호화 키 생성 (로컬에서 한 번만)
+    pip install cryptography
+    python crypto_utils.py --generate-key  → 출력된 키 복사해두기!! (매우 중요)
+
+    1-1) ENCRYPTION_KEY 환경변수 설정 (생성한 키 값으로 교체)
+        set ENCRYPTION_KEY=[생성키]
+        cho %ENCRYPTION_KEY% (확인)
+
+    1-2) .env 파일에 추가
+        ENCRYPTION_KEY=여기에_생성한_키
+
+    1-3) 파일 암호화
+        python crypto_utils.py --encrypt used_assets.json
+        python crypto_utils.py --encrypt history.txt
+
+2. GitHub Secrets 등록 (브라우저)
+    https://github.com/areumkang87/[리포지토리명]
+    리포지토리 → Settings → Secrets and variables → Actions(클릭)→ New repository secret (아래 목록 등록)
+    ```
+    Security
+    ├──Secrets and variables
+    │   └── Actions   ← 여기 클릭
+    ```
+    [등록목록]
+        Secret             | 이름값
+        ENCRYPTION_KEY     : 위에서 생성한 키
+        FREESOUND_API_KEY  : .env의 값
+        PEXELS_API_KEY     : .env의 값
+        ANTHROPIC_API_KEY  : .env의 값
+        YOUTUBE_TOKEN_JSON : credentials/token.json 파일 전체 내용
+        GOOGLE_CLIENT_SECRET_JSO : Ncredentials/client_secret.json 파일 전체 내용
+
+3. data 브랜치 초기화 (파이참 터미널)
+    # 로컬에서 첫 암호화 & data 브랜치 생성
+        python crypto_utils.py --encrypt used_assets.json
+        python crypto_utils.py --encrypt history.txt
+
+        git checkout --orphan data
+        git rm -rf .
+        git add used_assets.enc history.enc
+        git commit -m "data: init"
+        git push origin data
+        git checkout main
+
+4. 테스트 실행
+    GitHub 리포 → Actions → Daily Calmdromeda Pipeline → Run workflow 버튼으로 수동 실행 먼저 테스트!
+
+Actions 실행 시작
+  → data 브랜치에서 used_assets.enc 다운로드
+  → ENCRYPTION_KEY로 복호화 → used_assets.json 생성
+  → pipeline 실행
+  → 완료 후 used_assets.json 다시 암호화
+  → data 브랜치에 커밋 & 푸시
+
+data 브랜치:
+  used_assets.enc   ← used_assets.json 암호화
+  history.enc       ← history.txt 암호화
+
+GitHub Secrets:
+  ENCRYPTION_KEY    ← 하나의 키로 둘 다 처리

@@ -1,0 +1,34 @@
+# created by virtualenv automatically
+
+# 환경설정
+.env
+env.example
+
+# 가상환경
+.venv/
+
+# 자격증명 (절대 커밋 금지)
+/credentials/
+
+# 암호화 유틸
+/crypto_utils.py
+
+# 암호화 데이터 (data 브랜치에서 관리)
+/used_assets.json
+/used_assets.json.enc
+/history.txt
+/history.txt.enc
+
+# 빌드/캐시
+__pycache__/
+*.pyc
+*.pyd
+
+# 출력물
+/output/
+
+# 에셋 (용량 큼)
+/assets/
+
+# 기타
+logo.PNG
