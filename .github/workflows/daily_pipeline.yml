@@ -1,0 +1,129 @@
+name: Daily Calmdromeda Pipeline
+
+on:
+  schedule:
+    # 매일 오전 9시 KST (= UTC 00:00) 실행
+    # 영상 제작 후 YouTube 오후 8시 KST 예약 공개
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # 수동 실행 버튼 (테스트용)
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # 최대 2시간 (1시간 영상 제작 기준)
+
+    steps:
+      # ── 1. 코드 체크아웃 (main 브랜치) ──────────────────────────────
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      # ── 2. data 브랜치에서 암호화 파일 가져오기 ─────────────────────
+      - name: Fetch encrypted data files
+        run: |
+          git fetch origin data 2>/dev/null || echo "data 브랜치 없음 — 첫 실행"
+          if git show origin/data:used_assets.enc > used_assets.enc 2>/dev/null; then
+            echo "used_assets.enc 복원됨"
+          else
+            echo "used_assets.enc 없음 — 새로 시작"
+          fi
+          if git show origin/data:history.enc > history.enc 2>/dev/null; then
+            echo "history.enc 복원됨"
+          else
+            echo "history.enc 없음"
+          fi
+
+      # ── 3. 암호화 파일 복호화 ────────────────────────────────────────
+      - name: Decrypt data files
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          pip install cryptography --quiet
+          if [ -f used_assets.enc ]; then
+            python crypto_utils.py --decrypt used_assets.enc
+          fi
+          if [ -f history.enc ]; then
+            python crypto_utils.py --decrypt history.enc
+          fi
+
+      # ── 4. Python 환경 설정 ──────────────────────────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # ── 5. FFmpeg 설치 ───────────────────────────────────────────────
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version | head -1
+
+      # ── 6. 자격증명 복원 ─────────────────────────────────────────────
+      - name: Restore credentials
+        env:
+          YOUTUBE_TOKEN_JSON:        ${{ secrets.YOUTUBE_TOKEN_JSON }}
+          GOOGLE_CLIENT_SECRET_JSON: ${{ secrets.GOOGLE_CLIENT_SECRET_JSON }}
+        run: |
+          mkdir -p credentials
+          echo "$YOUTUBE_TOKEN_JSON"        > credentials/token.json
+          echo "$GOOGLE_CLIENT_SECRET_JSON" > credentials/client_secret.json
+
+      # ── 7. 파이프라인 실행 ───────────────────────────────────────────
+      - name: Run pipeline
+        env:
+          FREESOUND_API_KEY:          ${{ secrets.FREESOUND_API_KEY }}
+          PEXELS_API_KEY:             ${{ secrets.PEXELS_API_KEY }}
+          ANTHROPIC_API_KEY:          ${{ secrets.ANTHROPIC_API_KEY }}
+          ENCRYPTION_KEY:             ${{ secrets.ENCRYPTION_KEY }}
+          UPLOAD_ENABLED:             "true"
+          UPLOAD_HOUR_KST:            "20"
+          YOUTUBE_TOKEN:              "credentials/token.json"
+          YOUTUBE_CLIENT_SECRET:      "credentials/client_secret.json"
+        run: python pipeline.py
+
+      # ── 8. 실행 후 암호화 & data 브랜치에 커밋 ──────────────────────
+      - name: Encrypt and commit data files
+        if: always()  # 파이프라인 실패해도 데이터 저장
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          if [ -f used_assets.json ]; then
+            python crypto_utils.py --encrypt used_assets.json
+          fi
+          if [ -f history.txt ]; then
+            python crypto_utils.py --encrypt history.txt
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # data 브랜치 체크아웃 (없으면 고아 브랜치로 생성)
+          git fetch origin data 2>/dev/null || true
+          if git ls-remote --heads origin data | grep -q data; then
+            git checkout -B data origin/data
+          else
+            git checkout --orphan data
+            git rm -rf . --quiet 2>/dev/null || true
+          fi
+
+          [ -f used_assets.enc ] && git add used_assets.enc
+          [ -f history.enc ]     && git add history.enc
+
+          TODAY=$(date -u '+%Y-%m-%d %H:%M UTC')
+          git diff --cached --quiet || git commit -m "data: ${TODAY}"
+          git push origin data
+
+      # ── 9. 민감 파일 정리 ────────────────────────────────────────────
+      - name: Cleanup sensitive files
+        if: always()
+        run: |
+          rm -rf output/
+          rm -f credentials/token.json credentials/client_secret.json
+          rm -f used_assets.json history.txt
+          echo "정리 완료"
