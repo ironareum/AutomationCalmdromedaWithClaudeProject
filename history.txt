@@ -88,6 +88,18 @@
         sound_files, video_files = produce()에 실제로 넘긴 리스트 → 이것만 "사용한 파일"로 간주
         로컬 음원 여부: LOCAL_SOUNDS_DIR in sound_path.parents 로 판별 (API 다운로드 파일은 이동 안 함)
 
+    [ffmpeg_producer.py]
+        [디스크 사용 흐름]
+          이전: 원본영상 + normalized + video_loop + mixed_audio + merged_no_logo + 최종 = 최종x3~4배
+          이후: 원본영상 + mixed_audio(임시) + 최종 = 최종x1.1배 수준
+
+        [임시 파일 관리 전략]
+          - normalized 클립: 합성 직후 삭제
+          - video_loop: merge 완료 직후 삭제
+          - mixed_audio: merge 완료 직후 삭제
+          - merged_no_logo: 로고 적용 완료 직후 삭제
+          - temp 폴더: 파이프라인 완료 후 전체 삭제
+
 5. output/{session_id}/pipeline.log 로그 파일 자동 생성
 
 6. used_asset.json 포맷 변경
@@ -118,3 +130,6 @@
     → 해당 session의 "sounds" 배열에서 파일명 삭제
     → assets/sounds/_used/{session_id}/ 에서 해당 파일을 원래 카테고리 폴더로 이동
     → pipeline.py 재실행
+
+7. metadata.json에 실 사용파일 정보 추가
+8. sound 수집 개수 판정로직 변경

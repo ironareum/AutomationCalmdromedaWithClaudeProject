@@ -5,17 +5,7 @@ FFmpeg Video Producer
 2026.03.29 임시 파일 단계별 즉시 삭제 → 디스크 사용량 최소화
 2026.03.29 오디오 -14 LUFS 정규화 (YouTube 권장)
 2026.03.29 영상 좌상단 heading 로고 + 우하단 원형 로고 동시 삽입
-
-[디스크 사용 흐름]
-  이전: 원본영상 + normalized + video_loop + mixed_audio + merged_no_logo + 최종 = 최종x3~4배
-  이후: 원본영상 + mixed_audio(임시) + 최종 = 최종x1.1배 수준
-
-[임시 파일 관리 전략]
-  - normalized 클립: 합성 직후 삭제
-  - video_loop: merge 완료 직후 삭제
-  - mixed_audio: merge 완료 직후 삭제
-  - merged_no_logo: 로고 적용 완료 직후 삭제
-  - temp 폴더: 파이프라인 완료 후 전체 삭제
+2026.03.29 video 수집 개수 판정로직 변경
 
 """
 
@@ -225,15 +215,17 @@ class VideoProducer:
         return None
 
     # ── 영상 루프 ──────────────────────────────────────────────────────
-    def prepare_video_loop(self, video_files: list[Path], target_duration: int) -> Path | None:
+    def prepare_video_loop(self, video_files: list[Path], target_duration: int) -> tuple | None:
         """
         영상 클립들을 이어붙이고 목표 길이로 루프
         - 1080p로 통일
         - 1080p 정규화 → concat 루프 → normalized 클립 즉시 삭제
+        반환: (video_loop_path, actual_video_files) 또는 None
         """
         normalized_dir = self.temp_dir / "normalized"
         normalized_dir.mkdir(exist_ok=True)
-        normalized = []
+        normalized = []    # 정규화된 temp 클립
+        source_map = {}    # norm 파일 → 원본 파일 매핑
 
         # 1. 각 클립 1080p 정규화
         for i, vf in enumerate(video_files):
@@ -252,21 +244,39 @@ class VideoProducer:
                 ]
                 if self._run(cmd, f"Normalizing clip {i+1}/{len(video_files)}"):
                     normalized.append(out)
+                    source_map[out] = vf
             else:
                 normalized.append(out)
+                source_map[out] = vf
 
         if not normalized:
             return None
 
-        # 2. 클립들 이어붙이기
+        # 2. target_duration을 채우는 데 필요한 최소 클립 집합 계산
+        clip_durations = [(v, self.get_duration(v)) for v in normalized]
+        accumulated = 0.0
+        needed_clips = []
+        for norm_clip, dur in clip_durations:
+            needed_clips.append(norm_clip)
+            accumulated += dur
+            if accumulated >= target_duration:
+                break
+        # 전체 클립을 합쳐도 target_duration보다 짧으면 전부 사용 (루프로 채움)
+        if accumulated < target_duration:
+            needed_clips = normalized
+
+        actual_videos = [source_map[c] for c in needed_clips]
+        log.info(f"실제 사용 클립: {len(needed_clips)}/{len(normalized)}개 "
+                 f"({min(accumulated, target_duration):.1f}s / {target_duration}s)")
+
+        # 3. 클립들 이어붙이기
         concat_list = self.temp_dir / "concat_list.txt"
-        # target_duration을 채울 때까지 반복
-        total_clip_duration = sum(self.get_duration(v) for v in normalized)
+        total_clip_duration = sum(d for _, d in clip_durations if _ in needed_clips)
         repeat_times = max(1, int(target_duration / max(total_clip_duration, 1)) + 2)
 
         with open(concat_list, "w") as f:
             for _ in range(repeat_times):
-                for v in normalized:
+                for v in needed_clips:
                     f.write(f"file '{v.resolve()}'\n")
 
         video_loop = self.temp_dir / "video_loop.mp4"
@@ -292,7 +302,9 @@ class VideoProducer:
         except:
             pass
 
-        return video_loop if ok else None
+        if not ok:
+            return None
+        return video_loop, actual_videos
 
     # ── 로고 오버레이 ──────────────────────────────────────────────────
     def add_logo_overlay(self, video_path: Path, output_path: Path) -> Path:
@@ -425,19 +437,18 @@ class VideoProducer:
         target_duration = duration_hours * 3600
         log.info(f"Producing {duration_hours}h video...")
 
-        actual_videos = video_files  # prepare_video_loop()에 전달되는 전체
-
         # 1. 오디오 믹싱 (유효한 파일만 레이어로 사용)
         mix_result = self.mix_sounds(sound_files, target_duration)
         if not mix_result:
             return None
         audio, actual_sounds = mix_result  # 실제 사용된 레이어 추적
 
-        # 2. 영상 루프
-        video_loop = self.prepare_video_loop(video_files, target_duration)
-        if not video_loop:
+        # 2. 영상 루프 (실제 필요한 클립만 사용)
+        loop_result = self.prepare_video_loop(video_files, target_duration)
+        if not loop_result:
             self._delete(audio)
             return None
+        video_loop, actual_videos = loop_result  # 실제 사용된 클립 추적
 
         # 3. 최종 합성
         safe_title = "".join(
