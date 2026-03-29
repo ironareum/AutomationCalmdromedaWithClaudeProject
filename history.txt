@@ -207,8 +207,8 @@ GitHub Secrets:   ENCRYPTION_KEY    ← 복호화 키
         # 그다음 브랜치 이동
 
     # 로컬에서 첫 암호화 & data 브랜치 생성
-        git checkout --orphan data
-        git rm -rf .
+        git checkout --orphan data  ← 고아 브랜치로 이동
+        (사용안함) git rm -rf .  ← 로컬 파일까지 전부 삭제 주의!!!! (master로 돌아와도 커밋 안 한 파일들은 이미 삭제됨)
         git add used_assets.enc history.enc
         git commit -m "data: init"
         git push origin data
