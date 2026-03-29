@@ -201,10 +201,12 @@ GitHub Secrets:   ENCRYPTION_KEY    ← 복호화 키
         GOOGLE_CLIENT_SECRET_JSO : Ncredentials/client_secret.json 파일 전체 내용
 
 3. data 브랜치 초기화 (파이참 터미널)
-    # 로컬에서 첫 암호화 & data 브랜치 생성
-        python crypto_utils.py --encrypt used_assets.json
-        python crypto_utils.py --encrypt history.txt
+    # 작성전 현재버전 커밋 필수
+        git add .
+        git commit -m "작업내용 메모"
+        # 그다음 브랜치 이동
 
+    # 로컬에서 첫 암호화 & data 브랜치 생성
         git checkout --orphan data
         git rm -rf .
         git add used_assets.enc history.enc
