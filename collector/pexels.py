@@ -17,9 +17,10 @@ log = logging.getLogger(__name__)
 class PexelsCollector:
     BASE_URL = "https://api.pexels.com/videos"
 
-    def __init__(self, api_key: str, work_dir: Path):
-        self.headers = {"Authorization": api_key}
-        self.video_dir = work_dir / "videos"
+    def __init__(self, api_key: str, work_dir: Path, session_id: str = ""):
+        self.headers    = {"Authorization": api_key}
+        self.session_id = session_id  # used_assets 기록에 사용
+        self.video_dir  = work_dir / "videos"
         self.video_dir.mkdir(parents=True, exist_ok=True)
         self.used = load_used_assets()
         log.info(f"Used videos so far: {len(self.used['pexels'])} IDs blocked")
@@ -45,7 +46,8 @@ class PexelsCollector:
             videos = resp.json().get("videos", [])
 
             # 이미 사용한 영상 필터링
-            fresh = [v for v in videos if str(v["id"]) not in self.used["pexels"]]
+            used_ids = {e["id"] if isinstance(e, dict) else e for e in self.used.get("pexels", [])}
+            fresh = [v for v in videos if str(v["id"]) not in used_ids]
             skipped = len(videos) - len(fresh)
             if skipped:
                 log.info(f"Pexels '{query}': {len(videos)} found / {skipped} skipped (used) / {len(fresh)} fresh")
@@ -106,7 +108,10 @@ class PexelsCollector:
             log.info(f"Downloaded: {dest.name} ({size_mb:.1f}MB)")
 
             # 사용 완료 → 기록
-            self.used["pexels"].append(str(video["id"]))
+            self.used["pexels"].append({
+                "id": str(video["id"]),
+                "session": self.session_id
+            })
             save_used_assets(self.used)
             return dest
         except Exception as e:

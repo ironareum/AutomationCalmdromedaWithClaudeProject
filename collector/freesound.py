@@ -4,6 +4,8 @@ Freesound.org API Collector
 2026.03.26 API 키 발급: https://freesound.org/apiv2/apply/
 2026.03.28 사용한 소스는 used_assets.json에 기록 → 다음 실행 시 자동 스킵
 2026.03.28 로컬 음원 폴백: assets/sounds/{category}/ 폴더 파일 우선 사용
+2026.03.29 used_assets.json에 등록일시(session_id) 포함
+2026.03.29 로컬 사용 음원 → assets/sounds/_used/ 로 자동 이동 (재사용 방지)
 
 [사운드 수집 우선순위]
 1. assets/sounds/{category}/ 폴더에 파일 있으면 → 로컬 파일 우선 사용
@@ -11,6 +13,7 @@ Freesound.org API Collector
 3. Freesound도 다운된 경우 → 로컬 파일만으로 진행 (없으면 실패)
 """
 
+import shutil
 import time
 import json
 import logging
@@ -43,7 +46,14 @@ CATEGORY_TO_LOCAL_DIR = {
 
 def load_used_assets() -> dict:
     if USED_ASSETS_FILE.exists():
-        return json.loads(USED_ASSETS_FILE.read_text(encoding="utf-8"))
+        data = json.loads(USED_ASSETS_FILE.read_text(encoding="utf-8"))
+        # 하위 호환: 기존 str 형태 → dict 형태로 마이그레이션
+        for key in ("freesound", "pexels"):
+            data[key] = [
+                {"id": e, "session": "unknown"} if isinstance(e, str) else e
+                for e in data.get(key, [])
+            ]
+        return data
     return {"freesound": [], "pexels": []}
 
 
@@ -59,8 +69,9 @@ class LocalSoundCollector:
     Freesound API 없이도 동작하는 오프라인 폴백
     """
 
-    def __init__(self, work_dir: Path):
-        self.work_dir = work_dir
+    def __init__(self, work_dir: Path, session_id: str = ""):
+        self.work_dir   = work_dir
+        self.session_id = session_id
 
     def collect_by_queries(self, queries: list[str], count_per_query: int = 3) -> list[Path]:
         """
@@ -100,6 +111,8 @@ class LocalSoundCollector:
                     collected.append(f)
                     seen.add(f.name)
                     log.info(f"Local sound: {f.parent.name}/{f.name}")
+                    # 사용한 음원 → _used/ 폴더로 이동 (재사용 방지)
+                    self._move_to_used(f)
 
         if collected:
             log.info(f"Local sounds found: {len(collected)} files")
@@ -107,6 +120,22 @@ class LocalSoundCollector:
             log.info(f"No local sounds found in assets/sounds/")
 
         return collected
+
+    def _move_to_used(self, sound_file: Path):
+        """
+        로컬 음원을 assets/sounds/_used/{session_id}/ 로 이동
+        - 재사용 방지
+        - session_id 폴더로 구분 → 어떤 영상에서 썼는지 추적 가능
+        """
+        session_label = self.session_id or "unknown"
+        dest_dir = LOCAL_SOUNDS_DIR / "_used" / session_label
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / sound_file.name
+        try:
+            shutil.move(str(sound_file), str(dest))
+            log.info(f"Moved to _used: {sound_file.name} → _used/{session_label}/")
+        except Exception as e:
+            log.warning(f"음원 이동 실패 ({sound_file.name}): {e}")
 
     def _queries_to_categories(self, queries: list[str]) -> list[str]:
         """쿼리 문자열에서 카테고리 폴더명 추론"""
@@ -144,13 +173,18 @@ class LocalSoundCollector:
 class FreesoundCollector:
     BASE_URL = "https://freesound.org/apiv2"
 
-    def __init__(self, api_key: str, work_dir: Path):
-        self.api_key = api_key
-        self.sound_dir = work_dir / "sounds"
+    def __init__(self, api_key: str, work_dir: Path, session_id: str = ""):
+        self.api_key    = api_key
+        self.session_id = session_id  # used_assets 기록에 사용
+        self.sound_dir  = work_dir / "sounds"
         self.sound_dir.mkdir(parents=True, exist_ok=True)
-        self.used = load_used_assets()
-        self.local = LocalSoundCollector(work_dir)
+        self.used  = load_used_assets()
+        self.local = LocalSoundCollector(work_dir, session_id=session_id)
         log.info(f"Used sounds so far: {len(self.used['freesound'])} IDs blocked")
+
+    def _used_ids(self, key: str) -> set:
+        """used_assets의 id 집합 반환 (dict 구조 대응)"""
+        return {e["id"] if isinstance(e, dict) else e for e in self.used.get(key, [])}
 
     def _is_api_available(self) -> bool:
         """Freesound API 서버 상태 빠르게 체크"""
@@ -191,7 +225,8 @@ class FreesoundCollector:
             results = resp.json().get("results", [])
 
             # 이미 사용한 소스 필터링
-            fresh = [r for r in results if str(r["id"]) not in self.used["freesound"]]
+            used_ids = self._used_ids("freesound")
+            fresh = [r for r in results if str(r["id"]) not in used_ids]
             skipped = len(results) - len(fresh)
             if skipped:
                 log.info(f"Freesound '{query}': {len(results)} found / {skipped} skipped (used) / {len(fresh)} fresh")
@@ -235,7 +270,10 @@ class FreesoundCollector:
             log.info(f"Downloaded: {dest.name} ({dest.stat().st_size // 1024}KB)")
 
             # 사용 완료 → 기록
-            self.used["freesound"].append(str(sound["id"]))
+            self.used["freesound"].append({
+                "id": str(sound["id"]),
+                "session": self.session_id
+            })
             save_used_assets(self.used)
             return dest
         except Exception as e:

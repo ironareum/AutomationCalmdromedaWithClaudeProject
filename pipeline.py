@@ -53,7 +53,7 @@ def run_pipeline(concept: dict):
 
     # 1. 사운드 수집 (로컬 우선 → Freesound API 폴백)
     log.info("Step 1: [사운드 수집] 로컬 폴더 확인 후 필요시 Freesound API 사용...")
-    sound_collector = FreesoundCollector(cfg.freesound_api_key, work_dir)
+    sound_collector = FreesoundCollector(cfg.freesound_api_key, work_dir, session_id=session_id)
     sound_files = sound_collector.collect(concept["sounds"], count_per_query=3)
     if not sound_files:
         log.error("사운드 파일 없음. assets/sounds/{category}/ 폴더에 음원을 넣거나 Freesound API를 확인하세요.")
@@ -61,7 +61,7 @@ def run_pipeline(concept: dict):
 
     # 2. 영상 수집
     log.info("Step 2: [영상 수집] Collecting video assets from Pexels...")
-    video_collector = PexelsCollector(cfg.pexels_api_key, work_dir)
+    video_collector = PexelsCollector(cfg.pexels_api_key, work_dir, session_id=session_id)
     video_files = video_collector.collect(concept["category"], count=5)
     if not video_files:
         log.error("No video files collected. Aborting.")
@@ -79,6 +79,14 @@ def run_pipeline(concept: dict):
     if not output_video:
         log.error("Video production failed. Aborting.")
         return None
+
+    # produce() 완료 후 실제 사용한 파일만 정리
+    _cleanup_assets(
+        used_sounds=sound_files,
+        used_videos=video_files,
+        work_dir=work_dir,
+        sound_collector=sound_collector,
+    )
 
     # 4. 썸네일 생성 — 수집된 영상 중 첫 번째 파일의 첫 프레임을 배경으로 사용
     log.info("Step 4: [썸네일 생성] Generating thumbnail...")
@@ -114,6 +122,57 @@ def run_pipeline(concept: dict):
     log.info(f"Metadata: {meta_path}")
 
     return metadata
+
+
+def _cleanup_assets(
+    used_sounds: list,
+    used_videos: list,
+    work_dir: Path,
+    sound_collector,
+):
+    """
+    produce() 완료 후 실제 사용한 파일만 남기고 정리
+
+    [로컬 음원] assets/sounds/{category}/ 에서 가져온 파일
+      → assets/sounds/_used/{session_id}/ 로 이동 (재사용 방지)
+
+    [output/sounds] 다운받았지만 실제로 안 쓴 API 음원
+      → 삭제 (used_sounds에 없는 파일)
+
+    [output/videos] 다운받았지만 실제로 안 쓴 영상
+      → 삭제 (used_videos에 없는 파일)
+    """
+    from collector.freesound import LOCAL_SOUNDS_DIR, SOUND_EXTENSIONS
+
+    used_sound_names = {f.name for f in used_sounds}
+    used_video_names = {f.name for f in used_videos}
+
+    # 1. 로컬 음원 → _used/ 이동 (assets/sounds/ 하위에서 온 파일만)
+    for sound_path in used_sounds:
+        if LOCAL_SOUNDS_DIR in sound_path.parents:
+            sound_collector.local.move_to_used(sound_path)
+
+    # 2. output/sounds/ — 실제 사용 안 한 API 다운로드 파일 삭제
+    sounds_dir = work_dir / "sounds"
+    if sounds_dir.exists():
+        for f in sounds_dir.iterdir():
+            if f.suffix.lower() in SOUND_EXTENSIONS and f.name not in used_sound_names:
+                try:
+                    f.unlink()
+                    log.info(f"Unused sound deleted: {f.name}")
+                except Exception as e:
+                    log.warning(f"삭제 실패 {f.name}: {e}")
+
+    # 3. output/videos/ — 실제 사용 안 한 영상 파일 삭제
+    videos_dir = work_dir / "videos"
+    if videos_dir.exists():
+        for f in videos_dir.iterdir():
+            if f.suffix.lower() == ".mp4" and f.name not in used_video_names:
+                try:
+                    f.unlink()
+                    log.info(f"Unused video deleted: {f.name}")
+                except Exception as e:
+                    log.warning(f"삭제 실패 {f.name}: {e}")
 
 
 def generate_description(concept: dict) -> str:
