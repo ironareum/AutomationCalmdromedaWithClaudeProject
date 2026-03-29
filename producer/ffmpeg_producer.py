@@ -110,13 +110,42 @@ class VideoProducer:
             return 0.0
         return float(json.loads(result.stdout).get("format", {}).get("duration", 0))
 
+    def _is_valid_audio(self, path: Path) -> bool:
+        """
+        ffprobe로 오디오 파일 유효성 검사
+        - 파일 존재 + 1KB 이상
+        - ffprobe가 duration을 정상적으로 읽을 수 있는지 확인
+        """
+        if not path.exists() or path.stat().st_size < 1024:
+            log.warning(f"유효하지 않은 파일 (없거나 너무 작음): {path.name}")
+            return False
+        try:
+            r = subprocess.run(
+                ["ffprobe", "-v", "error",
+                 "-show_entries", "format=duration",
+                 "-of", "default=noprint_wrappers=1",
+                 str(path)],
+                capture_output=True,
+                encoding="utf-8", errors="replace",
+                timeout=5
+            )
+            if r.returncode != 0:
+                log.warning(f"ffprobe 실패: {path.name}")
+                return False
+            return True
+        except Exception as e:
+            log.warning(f"유효성 검사 오류 ({path.name}): {e}")
+            return False
+
     # ── 오디오 믹싱 ──────────────────────────────────────────────────
-    def mix_sounds(self, sound_files: list[Path], target_duration: int) -> Path | None:
+    def mix_sounds(self, sound_files: list[Path], target_duration: int) -> tuple | None:
         """
         여러 사운드 파일을 믹싱하고 목표 길이로 루프
+        - 유효성 검사 후 통과한 파일로 최대 3개 레이어 구성
         - 레이어링: 최대 3개 사운드 동시 재생 (볼륨 조정)
         - 루프: 짧은 파일은 target_duration까지 반복
         - loudnorm 필터로 -14 LUFS 정규화 (YouTube 권장 레벨)
+        반환: (mixed_audio_path, actual_layers) 또는 None
         """
         # 믹싱 결과를 raw에 먼저 저장 후 LUFS 정규화
         raw_audio = self.temp_dir / "mixed_raw.mp3"
@@ -125,8 +154,19 @@ class VideoProducer:
             if f.exists():
                 f.unlink()
 
-        # 최대 3개 레이어만 사용
-        layers = sound_files[:3]
+        # 유효성 검사 통과한 파일로 최대 3개 레이어 구성
+        layers = []
+        for f in sound_files:
+            if self._is_valid_audio(f):
+                layers.append(f)
+            else:
+                log.warning(f"사운드 건너뜀: {f.name}")
+            if len(layers) == 3:
+                break
+
+        if not layers:
+            log.error("유효한 사운드 파일이 없습니다")
+            return None
 
         if len(layers) == 1:
             # 단일 사운드: 루프만
@@ -180,7 +220,8 @@ class VideoProducer:
 
         if ok:
             log.info(f"Audio mixed: {output.name} ({output.stat().st_size // (1024*1024)}MB) @ -14 LUFS")
-            return output
+            log.info(f"실제 사용 레이어: {[f.name for f in layers]}")
+            return output, layers
         return None
 
     # ── 영상 루프 ──────────────────────────────────────────────────────
@@ -377,17 +418,20 @@ class VideoProducer:
         video_files: list[Path],
         duration_hours: int = 1,
         title: str = "output"
-    ) -> Path | None:
+    ) -> tuple | None:  # (output_path, used_sounds, used_videos)
         """
         전체 영상 제작 파이프라인
         """
         target_duration = duration_hours * 3600
         log.info(f"Producing {duration_hours}h video...")
 
-        # 1. 오디오 믹싱
-        audio = self.mix_sounds(sound_files, target_duration)
-        if not audio:
+        actual_videos = video_files  # prepare_video_loop()에 전달되는 전체
+
+        # 1. 오디오 믹싱 (유효한 파일만 레이어로 사용)
+        mix_result = self.mix_sounds(sound_files, target_duration)
+        if not mix_result:
             return None
+        audio, actual_sounds = mix_result  # 실제 사용된 레이어 추적
 
         # 2. 영상 루프
         video_loop = self.prepare_video_loop(video_files, target_duration)
@@ -406,4 +450,7 @@ class VideoProducer:
         # 파이프라인 완료 후 temp 폴더 전체 정리
         self.cleanup_temp()
 
-        return result
+        if result is None:
+            return None
+        # (최종영상경로, 실제사용사운드, 실제사용영상) 반환
+        return result, actual_sounds, actual_videos

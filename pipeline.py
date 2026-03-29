@@ -8,6 +8,9 @@
 2026.03.29 오디오 -14 LUFS 정규화 (YouTube 권장)
 2026.03.29 디스크 사용량 최소화 - 임시 파일 단계별 즉시 삭제, 실 사용 파일만 output 적재
 2026.03.29 output/{session_id}/pipeline.log 로그 파일 자동 생성
+2026.03.29 used_assetss.json 포맷형식 변경
+2026.03.29 metadata.json에 실 사용파일 정보 추가
+2026.03.29 sound 수집 개수 판정로직 변경
 """
 
 import json
@@ -51,7 +54,7 @@ def run_pipeline(concept: dict):
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)  # 파일엔 DEBUG까지 전부 기록
     file_handler.setFormatter(logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(name)s — %(message)s"
+        "%(asctime)s [%(levelname)s] %(message)s"
     ))
     root_logger = logging.getLogger()
     root_logger.addHandler(file_handler)
@@ -80,20 +83,24 @@ def run_pipeline(concept: dict):
         # 3. 영상 제작 (로고 오버레이 포함)
         log.info("Step 3: [영상 제작] Producing video with FFmpeg...")
         producer = VideoProducer(work_dir)
-        output_video = producer.produce(
+        produce_result = producer.produce(
             sound_files=sound_files,
             video_files=video_files,
             duration_hours=concept["duration_hours"],
             title=concept["title"]
         )
-        if not output_video:
+        if not produce_result:
             log.error("Video production failed. Aborting.")
             return None
 
-        # produce() 완료 후 실제 사용한 파일만 정리
+        # produce()가 반환한 실제 사용 파일 목록으로 정리
+        output_video, used_sounds, used_videos = produce_result
+        log.info(f"실제 사용: sounds={[f.name for f in used_sounds]}, "
+                 f"videos={[f.name for f in used_videos]}")
+
         _cleanup_assets(
-            used_sounds=sound_files,
-            used_videos=video_files,
+            used_sounds=used_sounds,
+            used_videos=used_videos,
             work_dir=work_dir,
             sound_collector=sound_collector,
         )
@@ -102,8 +109,8 @@ def run_pipeline(concept: dict):
         register_used_session(
             session_id=session_id,
             title=concept["title"],
-            sound_files=sound_files,
-            video_files=video_files,
+            sound_files=used_sounds,
+            video_files=used_videos,
         )
 
         # 4. 썸네일 생성 — 수집된 영상 중 첫 번째 파일의 첫 프레임을 배경으로 사용
@@ -112,7 +119,7 @@ def run_pipeline(concept: dict):
         thumbnail = thumb_gen.generate(
             title=concept["title"],
             category=concept["category"],
-            video_path=video_files[0] if video_files else None,
+            video_path=used_videos[0] if used_videos else None,
             title_sub=concept.get("title_sub", "잠잘때 듣기 좋은"),
             subtitle_en=concept.get("subtitle_en", "Healing Music"),
         )
@@ -128,7 +135,9 @@ def run_pipeline(concept: dict):
             "language": language,
             "video_path": str(output_video),
             "thumbnail_path": str(thumbnail),
-            "created_at": datetime.now().isoformat()
+            "created_at": datetime.now().isoformat(),
+            "used_sounds": [f.name for f in used_sounds],
+            "used_videos": [f.name for f in used_videos],
         }
         meta_path = work_dir / "metadata.json"
         meta_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -251,7 +260,7 @@ if __name__ == "__main__":
         "category": "rain",
         "sounds": ["heavy rain", "rain on window", "gentle rain"],
         "mood": "cozy rainy",
-        "duration_hours": 1,                 # 1시간
+        "duration_hours": 0.001,                 # 1시간
         "title_sub": "공부할 때 듣기 좋은",     # 썸네일 상단 부제목
         "subtitle_en": "Rain Sounds",        # 썸네일 하단 영문
         "tags": ["빗소리", "ASMR", "수면음악", "공부음악", "백색소음", "힐링음악", "빗소리ASMR"],

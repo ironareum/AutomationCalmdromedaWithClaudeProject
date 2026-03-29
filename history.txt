@@ -39,18 +39,16 @@
 2026.03.29 | Ver 1.2  | 업데이트 내용
 #######################################################
 1. 워터마크, 썸네일 수정
-    변경 내용
-    thumbnail.py
+    변경 내용:
+    1-1) thumbnail.py
+        generate() 에 video_path 파라미터 추가 → 해당 영상 첫 프레임 자동 추출해서 배경으로 사용
+        배경 이미지 dominant color 기반으로 stroke 색상 자동 결정 (항상 배경과 어울리는 어두운 색조)
+        title_sub, subtitle_en 파라미터로 썸네일 부제목 커스텀 가능
 
-    generate() 에 video_path 파라미터 추가 → 해당 영상 첫 프레임 자동 추출해서 배경으로 사용
-    배경 이미지 dominant color 기반으로 stroke 색상 자동 결정 (항상 배경과 어울리는 어두운 색조)
-    title_sub, subtitle_en 파라미터로 썸네일 부제목 커스텀 가능
-
-    pipeline.py
-
-    video_files[0] 을 썸네일에 자동 전달
-    concept에 title_sub, subtitle_en 키 추가
-    duration_hours 1시간으로 변경
+    1-2) pipeline.py
+        video_files[0] 을 썸네일에 자동 전달
+        concept에 title_sub, subtitle_en 키 추가
+        duration_hours 1시간으로 변경
 
 2. 임시 파일 단계별 즉시 삭제 → 디스크 사용량 최소화
     [디스크 사용 흐름]
@@ -89,3 +87,34 @@
     판단 기준:
         sound_files, video_files = produce()에 실제로 넘긴 리스트 → 이것만 "사용한 파일"로 간주
         로컬 음원 여부: LOCAL_SOUNDS_DIR in sound_path.parents 로 판별 (API 다운로드 파일은 이동 안 함)
+
+5. output/{session_id}/pipeline.log 로그 파일 자동 생성
+
+6. used_asset.json 포맷 변경
+    e.g.)
+    {
+      "20260329_005810": {
+        "title": "빗소리 ASMR | 1시간 숙면 & 집중 사운드",
+        "created_at": "2026-03-29 00:58:10",
+        "sounds": [
+          "237729_Rain_and_Thunder_4.mp3",
+          "344430_Light_Rain.mp3"
+        ],
+        "videos": [
+          "pexels_5517022_2160p.mp4",
+          "pexels_5197762_2160p.mp4",
+          "pexels_15454042_2160p.mp4"
+        ]
+      },
+      "20260329_130953": { ... }
+    }
+    session이 key라서 output 폴더명과 1:1 매칭되고, sounds/videos 파일명만 지우면 해당 소스 재사용 가능.
+    **원하는 대로 쓰는 방법:**
+    # 소스 재사용하고 싶으면
+    → used_assets.json에서 해당 session 블록 전체 삭제
+    → pipeline.py 재실행
+
+    # 특정 음원만 재사용
+    → 해당 session의 "sounds" 배열에서 파일명 삭제
+    → assets/sounds/_used/{session_id}/ 에서 해당 파일을 원래 카테고리 폴더로 이동
+    → pipeline.py 재실행

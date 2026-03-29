@@ -4,8 +4,9 @@ Freesound.org API Collector
 2026.03.26 API 키 발급: https://freesound.org/apiv2/apply/
 2026.03.28 사용한 소스는 used_assets.json에 기록 → 다음 실행 시 자동 스킵
 2026.03.28 로컬 음원 폴백: assets/sounds/{category}/ 폴더 파일 우선 사용
-2026.03.29 used_assets.json에 등록일시(session_id) 포함
+2026.03.29 used_assets.json 구조 변경: session_id 키 기반으로 소스 파일명 관리
 2026.03.29 로컬 사용 음원 → assets/sounds/_used/ 로 자동 이동 (재사용 방지)
+2026.03.29 used_assetss.json 포맷형식 변경
 """
 
 import shutil
@@ -22,6 +23,9 @@ USED_ASSETS_FILE = Path(__file__).parent.parent / "used_assets.json"
 
 # 로컬 음원 폴더 루트
 LOCAL_SOUNDS_DIR = Path(__file__).parent.parent / "assets" / "sounds"
+
+# FFmpeg mix_sounds()에서 실제로 사용하는 최대 레이어 수
+MAX_SOUND_LAYERS = 3
 
 # 지원 음원 확장자
 SOUND_EXTENSIONS = {".mp3", ".wav", ".ogg", ".flac", ".m4a"}
@@ -40,21 +44,55 @@ CATEGORY_TO_LOCAL_DIR = {
 
 
 def load_used_assets() -> dict:
+    """
+    used_assets.json 로드
+    구조: { "20260329_005810": { "title": "...", "created_at": "...",
+                                  "sounds": [...], "videos": [...] }, ... }
+    """
     if USED_ASSETS_FILE.exists():
-        data = json.loads(USED_ASSETS_FILE.read_text(encoding="utf-8"))
-        # 하위 호환: 기존 str 형태 → dict 형태로 마이그레이션
-        for key in ("freesound", "pexels"):
-            data[key] = [
-                {"id": e, "session": "unknown"} if isinstance(e, str) else e
-                for e in data.get(key, [])
-            ]
-        return data
-    return {"freesound": [], "pexels": []}
+        return json.loads(USED_ASSETS_FILE.read_text(encoding="utf-8"))
+    return {}
 
 
 def save_used_assets(data: dict):
     USED_ASSETS_FILE.write_text(
         json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def register_used_session(session_id: str, title: str,
+                           sound_files: list, video_files: list):
+    """
+    파이프라인 완료 후 실제 사용한 소스를 used_assets.json에 등록
+    키: session_id (output 폴더명과 동일)
+
+    """
+    from datetime import datetime
+
+    data = load_used_assets()
+
+    data[session_id] = {
+        "title":      title,
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "sounds":     [f.name for f in sound_files],
+        "videos":     [f.name for f in video_files],
+    }
+    save_used_assets(data)
+    log.info(f"used_assets 등록: [{session_id}] sounds={len(sound_files)}, videos={len(video_files)}")
+
+
+def is_sound_used(filename: str) -> bool:
+    """파일명이 이미 사용된 소스인지 확인"""
+    data = load_used_assets()
+    return any(filename in entry.get("sounds", []) for entry in data.values())
+
+
+def is_video_used(video_id: str) -> bool:
+    """Pexels video ID가 이미 사용된 영상인지 확인 (파일명에 ID 포함)"""
+    data = load_used_assets()
+    return any(
+        any(video_id in fname for fname in entry.get("videos", []))
+        for entry in data.values()
     )
 
 
@@ -173,11 +211,14 @@ class FreesoundCollector:
         self.sound_dir.mkdir(parents=True, exist_ok=True)
         self.used  = load_used_assets()
         self.local = LocalSoundCollector(work_dir, session_id=session_id)
-        log.info(f"Used sounds so far: {len(self.used['freesound'])} IDs blocked")
+        log.info(f"Used sessions so far: {len(self.used)} — {list(self.used.keys())[-3:] if self.used else []}")
 
-    def _used_ids(self, key: str) -> set:
-        """used_assets의 id 집합 반환 (dict 구조 대응)"""
-        return {e["id"] if isinstance(e, dict) else e for e in self.used.get(key, [])}
+    def _used_sound_names(self) -> set:
+        """이미 사용된 사운드 파일명 집합 반환"""
+        names = set()
+        for entry in self.used.values():
+            names.update(entry.get("sounds", []))
+        return names
 
     def _is_api_available(self) -> bool:
         """Freesound API 서버 상태 빠르게 체크"""
@@ -203,23 +244,20 @@ class FreesoundCollector:
             "page_size": page_size,
             "fields": "id,name,duration,license,previews,avg_rating,num_downloads",
             "filter": 'license:"Creative Commons 0" OR license:"Attribution"',
-            "sort": "downloads_desc",  # 다운로드 많은 것 우선 (검증된 품질)
+            "sort": "downloads_desc",
             "token": self.api_key,
         }
         try:
             resp = requests.get(f"{self.BASE_URL}/search/text/", params=params, timeout=15)
             resp.raise_for_status()
-
-            """
-            # 오류발생시 원인 확인용 temp log
-            print(f"[DEBUG] Status: {resp.status_code}") 
-            print(f"[DEBUG] Response: {resp.text[:300]}")
-            """
             results = resp.json().get("results", [])
 
             # 이미 사용한 소스 필터링
-            used_ids = self._used_ids("freesound")
-            fresh = [r for r in results if str(r["id"]) not in used_ids]
+            used_names = self._used_sound_names()
+            fresh = [
+                r for r in results
+                if not any(str(r["id"]) in name for name in used_names)
+            ]
             skipped = len(results) - len(fresh)
             if skipped:
                 log.info(f"Freesound '{query}': {len(results)} found / {skipped} skipped (used) / {len(fresh)} fresh")
@@ -261,13 +299,7 @@ class FreesoundCollector:
                 for chunk in resp.iter_content(chunk_size=8192):
                     f.write(chunk)
             log.info(f"Downloaded: {dest.name} ({dest.stat().st_size // 1024}KB)")
-
-            # 사용 완료 → 기록
-            self.used["freesound"].append({
-                "id": str(sound["id"]),
-                "session": self.session_id
-            })
-            save_used_assets(self.used)
+            # 사용 기록은 pipeline._cleanup_assets() 완료 후 register_used_session()으로 일괄 등록
             return dest
         except Exception as e:
             log.error(f"Sound download failed {sound['id']}: {e}")
@@ -279,7 +311,9 @@ class FreesoundCollector:
         2단계: 로컬 부족하면 Freesound API 시도
         3단계: API도 안 되면 로컬 파일만으로 진행
         """
-        needed = len(queries) * count_per_query
+        # 실제 사용하는 레이어는 MAX_SOUND_LAYERS(3)개
+        # 유효하지 않은 파일 대비 여유분 확보 (최소 5개)
+        needed = max(MAX_SOUND_LAYERS + 2, int(MAX_SOUND_LAYERS * 1.5))
 
         # ── 1단계: 로컬 음원 수집 ──────────────────────────────
         local_files = self.local.collect_by_queries(queries, count_per_query)

@@ -3,13 +3,14 @@ Pexels API Video Collector
 2026.03.26 무료 4K 자연 영상 수집
 2026.03.26 API 키 발급: https://www.pexels.com/api/
 2026.03.28 사용한 영상은 used_assets.json에 기록 → 다음 실행 시 자동 스킵
+2026.03.29 used_assetss.json 포맷형식 변경
 """
 
 import time
 import logging
 import requests
 from pathlib import Path
-from collector.freesound import load_used_assets, save_used_assets
+from collector.freesound import load_used_assets, save_used_assets, is_video_used
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class PexelsCollector:
         self.video_dir  = work_dir / "videos"
         self.video_dir.mkdir(parents=True, exist_ok=True)
         self.used = load_used_assets()
-        log.info(f"Used videos so far: {len(self.used['pexels'])} IDs blocked")
+        log.info(f"Used sessions so far: {len(self.used)}")
 
     def search(self, query: str, count: int = 10) -> list[dict]:
         """
@@ -46,8 +47,7 @@ class PexelsCollector:
             videos = resp.json().get("videos", [])
 
             # 이미 사용한 영상 필터링
-            used_ids = {e["id"] if isinstance(e, dict) else e for e in self.used.get("pexels", [])}
-            fresh = [v for v in videos if str(v["id"]) not in used_ids]
+            fresh = [v for v in videos if not is_video_used(str(v["id"]))]
             skipped = len(videos) - len(fresh)
             if skipped:
                 log.info(f"Pexels '{query}': {len(videos)} found / {skipped} skipped (used) / {len(fresh)} fresh")
@@ -97,7 +97,7 @@ class PexelsCollector:
             return dest
 
         try:
-            log.info(f"Downloading video {video['id']} ({file_info.get('height')}p)...")
+            log.info(f"Downloading video  {video['id']}_{file_info.get('height')}...")
             resp = requests.get(url, timeout=120, stream=True)
             resp.raise_for_status()
             with open(dest, "wb") as f:
@@ -108,11 +108,7 @@ class PexelsCollector:
             log.info(f"Downloaded: {dest.name} ({size_mb:.1f}MB)")
 
             # 사용 완료 → 기록
-            self.used["pexels"].append({
-                "id": str(video["id"]),
-                "session": self.session_id
-            })
-            save_used_assets(self.used)
+            # 사용 기록은 pipeline._cleanup_assets() 완료 후 register_used_session()으로 일괄 등록
             return dest
         except Exception as e:
             log.error(f"Video download failed {video['id']}: {e}")
