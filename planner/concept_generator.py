@@ -7,6 +7,9 @@ AI 콘셉트 자동 생성기
 - 카테고리 로테이션 (최근 업로드와 중복 방지)
 - 기존 업로드 영상 제목과 겹치지 않게
 - 한국어 타겟 (제목/태그 한국어)
+
+2026.03.30 사운드 쿼리 로직 변경 - 사운드 쿼리 풀에서 AI가 콘셉트/계절에 맞는 것만 골라옴
+
 """
 
 import json
@@ -40,25 +43,84 @@ CATEGORY_KO = {
 # 카테고리별 Freesound 검색 쿼리
 # 카테고리별 기본 영상 쿼리 (Claude 프롬프트 힌트용)
 CATEGORY_VIDEO_QUERIES = {
-    "rain":         ["rain window", "rainy day", "rain drops"],
-    "rain_thunder": ["thunderstorm", "lightning rain", "dark storm"],
-    "ocean":        ["ocean waves", "beach waves", "calm sea"],
-    "forest":       ["forest nature", "misty forest", "green forest"],
-    "birds":        ["birds nature", "morning forest", "peaceful garden"],
-    "white_noise":  ["abstract calm", "minimalist nature", "soft light"],
-    "cafe":         ["cafe window", "coffee shop", "cozy interior"],
-    "camping":      ["campfire night", "tent camping", "forest night"],
+    "rain": [
+        "rain window", "rainy day", "rain drops glass",
+        "rain street", "rain nature", "spring rain window",
+        "rain forest", "rainy night city", "rain puddle"
+    ],
+    "rain_thunder": [
+        "thunderstorm", "lightning rain", "dark storm",
+        "storm clouds", "lightning sky", "dramatic storm"
+    ],
+    "ocean": [
+        "ocean waves", "beach waves", "calm sea",
+        "sunset beach waves", "coastal landscape", "sea shore",
+        "spring beach", "peaceful ocean", "ocean horizon"
+    ],
+    "forest": [
+        "forest nature", "misty forest", "green forest",
+        "forest path", "woodland morning", "forest sunlight",
+        "forest stream", "autumn forest", "spring forest"
+    ],
+    "birds": [
+        "birds nature", "morning forest", "peaceful garden",
+        "birds flying", "meadow nature", "bird wildlife"
+    ],
+    "white_noise": [
+        "abstract calm", "minimalist nature", "soft light",
+        "peaceful landscape", "calm water", "zen nature"
+    ],
+    "cafe": [
+        "cafe window", "coffee shop", "cozy interior",
+        "cafe rain", "warm interior", "coffee morning"
+    ],
+    "camping": [
+        "campfire night", "tent camping", "forest night",
+        "campfire outdoor", "starry night camping", "bonfire nature"
+    ],
 }
 
+# 카테고리별 검증된 Freesound 쿼리 풀
+# AI는 이 목록 안에서만 3개 선택 → 엉뚱한 키워드 방지
 CATEGORY_SOUNDS = {
-    "rain":        ["heavy rain", "rain on window", "gentle rain"],
-    "rain_thunder":["thunder storm", "heavy rain thunder", "lightning rain"],
-    "ocean":       ["ocean waves", "gentle waves", "beach waves"],
-    "forest":      ["forest ambience", "nature sounds", "forest birds"],
-    "birds":       ["birds chirping", "morning birds", "bird song"],
-    "white_noise": ["white noise", "brown noise", "pink noise"],
-    "cafe":        ["cafe ambience", "coffee shop", "indoor ambience"],
-    "camping":     ["campfire", "forest night", "crickets night"],
+    "rain": [
+        "heavy rain", "rain on window", "gentle rain",
+        "soft rain", "rain drops", "rain forest",
+        "rainy night", "spring rain", "light rain",
+        "rain storm", "rain roof", "rainfall nature"
+    ],
+    "rain_thunder": [
+        "thunder storm", "heavy rain thunder", "lightning rain",
+        "thunderstorm rain", "distant thunder", "storm rain night"
+    ],
+    "ocean": [
+        "ocean waves", "gentle waves", "beach waves",
+        "calm sea waves", "ocean shore", "coastal waves",
+        "soft ocean waves", "sea water", "waves sandy beach",
+        "calm ocean ambient", "ocean sounds relaxing"
+    ],
+    "forest": [
+        "forest ambience", "nature sounds", "forest birds",
+        "forest rain", "woodland nature", "forest stream",
+        "deep forest", "nature ambience", "forest morning"
+    ],
+    "birds": [
+        "birds chirping", "morning birds", "bird song",
+        "birds singing", "birdsong nature", "birds forest",
+        "dawn chorus birds", "peaceful birds", "birds meadow"
+    ],
+    "white_noise": [
+        "white noise", "brown noise", "pink noise",
+        "fan noise", "static noise", "ambient noise"
+    ],
+    "cafe": [
+        "cafe ambience", "coffee shop", "indoor ambience",
+        "cafe background", "coffee shop noise", "cafe rain window"
+    ],
+    "camping": [
+        "campfire", "forest night", "crickets night",
+        "campfire crackling", "night forest", "fire crackling outdoor"
+    ],
 }
 
 
@@ -159,10 +221,10 @@ def generate_concept(
 [최근 업로드 제목 (겹치면 안 됨)]
 {recent_titles_str}
 
-[카테고리 기본 사운드 쿼리 (참고용)]
+[사운드 쿼리 풀 — 이 중에서만 3개 선택]
 {default_sounds_str}
 
-[카테고리 기본 영상 쿼리 (참고용)]
+[영상 쿼리 풀 — 이 중에서만 3~4개 선택]
 {default_videos_str}
 
 [요구사항]
@@ -172,10 +234,10 @@ def generate_concept(
 4. 최근 업로드 제목과 겹치지 않게
 5. title_sub는 썸네일 상단에 들어갈 짧은 문구 (10자 이내)
 6. subtitle_en은 썸네일 하단 영문 (2~3단어)
-7. sounds는 Freesound.org 영어 검색 쿼리 3개 (카테고리에 맞는 자연음)
-   - 기본 쿼리를 참고해서 오늘 콘셉트/계절에 어울리게 변형 가능
-8. video_queries는 Pexels 영상 검색 쿼리 3~4개 (영어, 콘셉트와 어울리는 자연 풍경)
-   - 기본 쿼리를 참고해서 오늘 콘셉트/계절/mood에 어울리게 변형 가능
+7. sounds는 아래 [사운드 쿼리 풀] 목록에서 오늘 콘셉트/계절에 맞는 것 3개 선택
+   - 반드시 목록에 있는 것만 선택 (임의 생성 금지)
+8. video_queries는 아래 [영상 쿼리 풀] 목록에서 오늘 콘셉트/계절/mood에 맞는 것 3~4개 선택
+   - 반드시 목록에 있는 것만 선택 (임의 생성 금지)
 
 아래 JSON 형식으로만 응답해. 다른 텍스트 없이 JSON만:
 {{
