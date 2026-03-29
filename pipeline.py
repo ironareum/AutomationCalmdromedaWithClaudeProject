@@ -11,7 +11,7 @@
 2026.03.29 used_assetss.json 포맷형식 변경
 2026.03.29 YouTube 업로드
 
-2026.03.29 [Phase2] AI 기획 자동화 (Claude API)
+2026.03.29 [Phase2] AI 기획 자동화 (Claude API) + sound,video 쿼리에도 적용
 
 """
 
@@ -79,7 +79,11 @@ def run_pipeline(concept: dict):
         # 2. 영상 수집
         log.info("Step 2: [영상 수집] Collecting video assets from Pexels...")
         video_collector = PexelsCollector(cfg.pexels_api_key, work_dir, session_id=session_id)
-        video_files = video_collector.collect(concept["category"], count=5)
+        video_files = video_collector.collect(
+            concept["category"],
+            count=5,
+            queries=concept.get("video_queries"),  # AI 생성 쿼리, 없으면 config 기본값
+        )
         if not video_files:
             log.error("No video files collected. Aborting.")
             return None

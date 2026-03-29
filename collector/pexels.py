@@ -4,6 +4,8 @@ Pexels API Video Collector
 2026.03.26 API 키 발급: https://www.pexels.com/api/
 2026.03.28 사용한 영상은 used_assets.json에 기록 → 다음 실행 시 자동 스킵
 2026.03.29 used_assetss.json 포맷형식 변경
+
+2026.03.29 [Phase2] AI 기획 자동화 (Claude API) + sound,video 쿼리에도 적용
 """
 
 import time
@@ -116,14 +118,18 @@ class PexelsCollector:
                 dest.unlink()
             return None
 
-    def collect(self, category: str, count: int = 5) -> list[Path]:
+    def collect(self, category: str, count: int = 5,
+                queries: list[str] | None = None) -> list[Path]:
         """
         카테고리 기반 영상 수집
-        config.py의 category_queries 매핑 사용
+        queries가 주어지면 그걸 사용, 없으면 config.py의 category_queries 매핑 사용
         """
-        from config import Config
-        cfg = Config()
-        queries = cfg.category_queries.get(category, [category])
+        if queries:
+            log.info(f"AI 생성 video queries: {queries}")
+        else:
+            from config import Config
+            cfg = Config()
+            queries = cfg.category_queries.get(category, [category])
 
         collected = []
         per_query = max(2, count // len(queries) + 1)
