@@ -20,13 +20,13 @@ AutomationCalmdromedaWithClaudeProject/
 ├── collector/
 │   ├── freesound.py     # 사운드 수집 (Freesound API)
 │   └── pexels.py        # 영상 수집 (Pexels API)
-├── output/
-│   └── 20260323_222957  #생성일시
-│       ├── sounds
-│       ├── temp
-│       ├── thumbnails
-│       ├── videos
-│       └── final_file.mp4
+├── output/20260329_005810/
+│   ├── pipeline.log        ← 신규 (DEBUG 레벨, 전체 로그 + 스택 트레이스)
+│   ├── metadata.json
+│   ├── thumbnails/
+│   ├── sounds/             ← 실제 사용한 파일만
+│   ├── videos/             ← 실제 사용한 파일만
+│   └── 빗소리_ASMR_final.mp4
 ├──producer/
 │   ├── ffmpeg_producer.py  # 영상 합성 (FFmpeg)
 │   └── thumbnail.py        # 썸네일 자동 생성
