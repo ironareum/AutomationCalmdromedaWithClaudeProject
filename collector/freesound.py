@@ -7,6 +7,7 @@ Freesound.org API Collector
 2026.03.29 used_assets.json 구조 변경: session_id 키 기반으로 소스 파일명 관리
 2026.03.29 로컬 사용 음원 → assets/sounds/_used/ 로 자동 이동 (재사용 방지)
 2026.03.29 used_assetss.json 포맷형식 변경
+2026.03.29 수집소스 페이지네이션 (수집소스 고갈 방지)
 """
 
 import shutil
@@ -238,35 +239,63 @@ class FreesoundCollector:
             log.warning("Freesound API unreachable")
             return False
 
-    def search(self, query: str, page_size: int = 15) -> list[dict]:
-        params = {
-            "query": query,
-            "page_size": page_size,
-            "fields": "id,name,duration,license,previews,avg_rating,num_downloads",
-            "filter": 'license:"Creative Commons 0" OR license:"Attribution"',
-            "sort": "downloads_desc",
-            "token": self.api_key,
-        }
-        try:
-            resp = requests.get(f"{self.BASE_URL}/search/text/", params=params, timeout=15)
-            resp.raise_for_status()
-            results = resp.json().get("results", [])
+    def search(self, query: str, page_size: int = 15,
+               max_pages: int = 5) -> list[dict]:
+        """
+        페이지네이션으로 fresh 결과가 나올 때까지 탐색
+        - page 1이 전부 used여도 page 2, 3... 으로 자동 진행
+        - max_pages: 최대 탐색 페이지 수 (API 과호출 방지)
+        """
+        used_names = self._used_sound_names()
+        fresh_all  = []
 
-            # 이미 사용한 소스 필터링
-            used_names = self._used_sound_names()
-            fresh = [
-                r for r in results
-                if not any(str(r["id"]) in name for name in used_names)
-            ]
-            skipped = len(results) - len(fresh)
-            if skipped:
-                log.info(f"Freesound '{query}': {len(results)} found / {skipped} skipped (used) / {len(fresh)} fresh")
-            else:
-                log.info(f"Freesound '{query}': {len(fresh)} fresh results")
-            return fresh
-        except Exception as e:
-            log.error(f"Freesound search failed '{query}': {e}")
-            return []
+        for page in range(1, max_pages + 1):
+            params = {
+                "query":     query,
+                "page_size": page_size,
+                "page":      page,
+                "fields":    "id,name,duration,license,previews,avg_rating,num_downloads",
+                "filter":    'license:"Creative Commons 0" OR license:"Attribution"',
+                "sort":      "downloads_desc",
+                "token":     self.api_key,
+            }
+            try:
+                resp = requests.get(
+                    f"{self.BASE_URL}/search/text/", params=params, timeout=15
+                )
+                resp.raise_for_status()
+                data    = resp.json()
+                results = data.get("results", [])
+
+                if not results:
+                    # 더 이상 결과 없음
+                    break
+
+                fresh = [
+                    r for r in results
+                    if not any(str(r["id"]) in name for name in used_names)
+                ]
+                skipped = len(results) - len(fresh)
+
+                if page == 1 or skipped > 0 or fresh:
+                    log.info(
+                        f"Freesound '{query}' p{page}: "
+                        f"{len(results)} found / {skipped} skipped / {len(fresh)} fresh"
+                    )
+
+                fresh_all.extend(fresh)
+
+                # 충분히 모았거나 다음 페이지 없으면 중단
+                if len(fresh_all) >= page_size:
+                    break
+                if not data.get("next"):
+                    break
+
+            except Exception as e:
+                log.error(f"Freesound search failed '{query}' p{page}: {e}")
+                break
+
+        return fresh_all
 
     def download(self, sound: dict, filename: str = None) -> Path | None:
         """
@@ -281,7 +310,6 @@ class FreesoundCollector:
             previews.get("preview-lq-mp3")
         )
         if not preview_url:
-            log.warning(f"No preview URL for sound {sound['id']}")
             return None
 
         fname = filename or f"{sound['id']}_{sound['name'][:30].replace(' ', '_')}.mp3"
