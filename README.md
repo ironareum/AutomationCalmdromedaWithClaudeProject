@@ -36,6 +36,9 @@ AutomationCalmdromedaWithClaudeProject/
 │   └── concept_generator.py   ← Claude API로 콘셉트 자동 생성
 ├── .env                 # API 키 템플릿
 ├── .gitignore
+├── .github/             # GitHub Actions 
+│   └── workflows/
+│       └── daily_pipeline.yml   ← 매일 자동 실행 설정
 ├── config.py            # 설정 (카테고리, API, 경로)
 ├── history.txt          # 개발이력관리
 ├── pipeline.py          # 메인 실행 파일
@@ -157,14 +160,14 @@ concept = {
 
 
 
-## AI 기획 자동화 (Claude API)
-```
-□ pip install anthropic 설치  23.2.1
-□ .env에 ANTHROPIC_API_KEY 추가
-□ USE_AI_PLANNER = True 로 변경
-□ duration_hours = 0.001 → 1 로 변경 (실제 영상)
-□ UPLOAD_ENABLED = true 확인
-□ pipeline.py 실행
+## ✅ Phase 2B — AI 기획 자동화 (Claude Haiku)
+```bash
+  - pip install anthropic 설치  23.2.1
+  - .env에 ANTHROPIC_API_KEY 추가
+  - USE_AI_PLANNER = True 로 변경
+  - duration_hours = 0.001 → 1 로 변경 (실제 영상)
+  - UPLOAD_ENABLED = true 확인
+  - pipeline.py 실행
 
 concept_generator.py 동작 흐름
     1. 오늘 날짜 → 계절 판단 (봄/여름/가을/겨울)
@@ -178,15 +181,26 @@ concept_generator.py 동작 흐름
     없으면 → 수동 폴백 콘셉트 사용 (API 키 없어도 동작)
 
     [추후 글로벌 확장포인트]
-    # 1. concept_generator.py
-    #    language="ko" → "en" 으로 바꾸면 영어 콘셉트 생성
-    #    TODO: 글로벌 채널용 generate_concept() 별도 호출
+    1. concept_generator.py
+       language="ko" → "en" 으로 바꾸면 영어 콘셉트 생성
+       TODO: 글로벌 채널용 generate_concept() 별도 호출
     
-    # 2. pipeline.py
-    #    TODO: upload_result_global = uploader_global.upload(...)
-    #    영상은 동일, 영어 title/description/tags만 다르게
+    2. pipeline.py
+       TODO: upload_result_global = uploader_global.upload(...)
+       영상은 동일, 영어 title/description/tags만 다르게
     
-    # 3. youtube.py
-    #    TODO: YouTubeUploader(client_secret_global, token_global)
-    #    글로벌 채널 전용 OAuth 토큰
+    3. youtube.py
+       TODO: YouTubeUploader(client_secret_global, token_global)
+       글로벌 채널 전용 OAuth 토큰
 ```
+
+
+### ⬜ Phase 2C — GitHub Actions 스케줄러 (매일 자동 실행)
+```bash
+    .github/
+    └── workflows/
+        └── daily_pipeline.yml   ← 매일 자동 실행 설
+```
+
+
+### ⬜ Phase 3  — 앱 수익화
