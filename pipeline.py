@@ -4,12 +4,9 @@
 2026.03.28 중복 소스 자동 스킵 (used_assets.json)
 2026.03.28 로고 워터마크 자동 삽입
 2026.03.28 한글/영어 콘셉트 모두 지원
-2026.03.28 로컬 음원 폴백: assets/sounds/{category}/ 폴더 파일 우선 사용
-
-[사운드 수집 우선순위]
-1. assets/sounds/{category}/ 폴더에 파일 있으면 → 로컬 파일 우선 사용
-2. 로컬 파일 없거나 부족하면 → Freesound API로 자동 수집
-3. Freesound도 다운된 경우 → 로컬 파일만으로 진행 (없으면 실패)
+2026.03.29 로컬 음원 폴백: assets/sounds/{category}/ 폴더 파일 우선 사용
+2026.03.29 오디오 -14 LUFS 정규화 (YouTube 권장)
+2026.03.29 디스크 사용량 최소화 - 임시 파일 단계별 즉시 삭제, 실 사용 파일만 output 적재
 """
 
 import json
@@ -224,7 +221,7 @@ if __name__ == "__main__":
         "category": "rain",
         "sounds": ["heavy rain", "rain on window", "gentle rain"],
         "mood": "cozy rainy",
-        "duration_hours": 1,                 # 1시간
+        "duration_hours": 0.001,                 # 1시간
         "title_sub": "공부할 때 듣기 좋은",     # 썸네일 상단 부제목
         "subtitle_en": "Rain Sounds",        # 썸네일 하단 영문
         "tags": ["빗소리", "ASMR", "수면음악", "공부음악", "백색소음", "힐링음악", "빗소리ASMR"],

@@ -6,11 +6,6 @@ Freesound.org API Collector
 2026.03.28 로컬 음원 폴백: assets/sounds/{category}/ 폴더 파일 우선 사용
 2026.03.29 used_assets.json에 등록일시(session_id) 포함
 2026.03.29 로컬 사용 음원 → assets/sounds/_used/ 로 자동 이동 (재사용 방지)
-
-[사운드 수집 우선순위]
-1. assets/sounds/{category}/ 폴더에 파일 있으면 → 로컬 파일 우선 사용
-2. 로컬 파일 없거나 부족하면 → Freesound API로 자동 수집
-3. Freesound도 다운된 경우 → 로컬 파일만으로 진행 (없으면 실패)
 """
 
 import shutil
@@ -111,8 +106,6 @@ class LocalSoundCollector:
                     collected.append(f)
                     seen.add(f.name)
                     log.info(f"Local sound: {f.parent.name}/{f.name}")
-                    # 사용한 음원 → _used/ 폴더로 이동 (재사용 방지)
-                    self._move_to_used(f)
 
         if collected:
             log.info(f"Local sounds found: {len(collected)} files")
@@ -121,10 +114,10 @@ class LocalSoundCollector:
 
         return collected
 
-    def _move_to_used(self, sound_file: Path):
+    def move_to_used(self, sound_file: Path):
         """
         로컬 음원을 assets/sounds/_used/{session_id}/ 로 이동
-        - 재사용 방지
+        - pipeline에서 produce() 완료 후 실제 사용한 파일에 대해서만 호출
         - session_id 폴더로 구분 → 어떤 영상에서 썼는지 추적 가능
         """
         session_label = self.session_id or "unknown"

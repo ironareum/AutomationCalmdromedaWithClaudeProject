@@ -22,12 +22,13 @@
     맑은 고딕 폰트 자동 로드 (Windows 기본 내장).
     한글 설명/태그/더보기 텍스트 자동 생성.
 
-4. Freesound 점검중인경우 보완로직 적용
-    로직 우선순위:
-        assets/sounds/{category}/ 폴더에 파일 있으면 → 로컬 파일 우선 사용
-        없거나 부족하면 → Freesound API로 자동 수집 (폴백)
+4. 로컬 음원 폴백: assets/sounds/{category}/ 폴더 파일 우선 사용(Freesound 시스템 점검 시 보완로직)
+    사운드 수집 우선순위:
+        1. assets/sounds/{category}/ 폴더에 파일 있으면 → 로컬 파일 우선 사용
+        2. 로컬 파일 없거나 부족하면 → Freesound API로 자동 수집
+        3. Freesound도 다운된 경우 → 로컬 파일만으로 진행 (없으면 실패)
     freesound.py에 LocalSoundCollector 클래스 추가
-    동작순서 :
+    동작순서:
         (as-is) python pipeline.py 실행
         (to-be) assets/sounds/rain/ 폴더 확인
           ├─ 파일 있음 → 로컬 파일 사용 (API 호출 없음)
@@ -62,3 +63,29 @@
       - mixed_audio: merge 완료 직후 삭제
       - merged_no_logo: 로고 적용 완료 직후 삭제
       - temp 폴더: 파이프라인 완료 후 전체 삭제
+
+3. 오디오 -14 LUFS 정규화 (YouTube 권장), 영상 좌상단 heading 로고 + 우하단 원형 로고 동시 삽입
+
+4. 실 사용 파일만 output 적재  → 디스크 사용량 최소화
+    (as-is):
+        collect() → 파일 수집 → 바로 _used/ 이동 (사용 전에 이동!)
+        output/sounds/ → 다운받은 것 전부 (5개 중 3개만 써도 5개 다 남음)
+
+    (to-be):
+      collect() → 파일 수집 (이동 X)
+      produce() 완료 → 실제 사용한 파일만 _used/ 이동
+      output/sounds/ → 실제 사용한 파일만 남기고 나머지 삭제
+      output/videos/ → 실제 사용한 파일만 남기고 나머지 삭제
+
+    Step 1: collect() — 파일 수집만, 이동 없음
+    Step 2: collect() — 영상 수집만
+    Step 3: produce() — FFmpeg으로 실제 사용
+             ↓ 완료 후 _cleanup_assets() 호출
+             ├─ 로컬 음원(assets/sounds/) → _used/{session_id}/ 이동
+             ├─ output/sounds/ 미사용 파일 → 삭제
+             └─ output/videos/ 미사용 파일 → 삭제
+    Step 4: 썸네일 생성 (video_files[0] 이미 정리됐으면 안되니 썸네일이 먼저)
+
+    판단 기준:
+        sound_files, video_files = produce()에 실제로 넘긴 리스트 → 이것만 "사용한 파일"로 간주
+        로컬 음원 여부: LOCAL_SOUNDS_DIR in sound_path.parents 로 판별 (API 다운로드 파일은 이동 안 함)
