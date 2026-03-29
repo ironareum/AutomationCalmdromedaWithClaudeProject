@@ -37,13 +37,16 @@ class Config:
     thumbnail_size: tuple = (1280, 720)
     thumbnail_font_size: int = 52
 
-    # Upload schedule (Phase 2)
-    upload_days: list = ["monday", "wednesday", "friday"]  # 주 3회
-    upload_hour: int = 14  # UTC 14:00 (한국 23:00, 미국 동부 10:00)
+    # Upload 설정
+    upload_enabled: bool = os.getenv("UPLOAD_ENABLED", "true").lower() == "true"
+    upload_hour_kst: int = int(os.getenv("UPLOAD_HOUR_KST", "20"))  # 오후 8시 KST
+    youtube_token_path: str = os.getenv("YOUTUBE_TOKEN", "credentials/token.json")
 
     # Category → Pexels search query mapping
     category_queries = {
-        "rain": ["rain window", "rainy day", "rain drops glass", "storm rain"],
+        "rain": ["rain window", "rainy day", "rain drops glass", "storm rain",
+                  "heavy rain nature", "rain street", "rain forest", "raining outside",
+                  "rain puddle", "rain roof", "rain night", "rainfall", "rain drop"],
         "rain_thunder": ["thunderstorm", "dark storm", "lightning rain", "rainy night"],
         "ocean": ["ocean waves", "beach waves", "sea waves night", "calm ocean"],
         "forest": ["forest nature", "misty forest", "green forest", "forest morning"],

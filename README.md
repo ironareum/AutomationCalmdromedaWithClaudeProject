@@ -30,6 +30,8 @@ AutomationCalmdromedaWithClaudeProject/
 ├──producer/
 │   ├── ffmpeg_producer.py  # 영상 합성 (FFmpeg)
 │   └── thumbnail.py        # 썸네일 자동 생성
+├──uploader/
+│   └── youtube.py   ← YouTube Data API v3 업로드 + 예약 공개
 ├── .env                 # API 키 템플릿
 ├── .gitignore
 ├── config.py            # 설정 (카테고리, API, 경로)
@@ -117,3 +119,20 @@ concept = {
 - YouTube Data API 업로드 자동화
 - GitHub Actions로 매일 자동 실행
 - 성과 트래킹 및 포맷 최적화
+
+Phase 2 - YouTube 자동 업로드
+실행 전 준비사항
+1. API 활성화
+    https://console.cloud.google.com → 프로젝트 선택
+    API 및 서비스 → 라이브러리 → YouTube Data API v3 → 사용 설정
+
+2. OAuth 2.0 클라이언트 ID 생성
+    API 및 서비스 → 사용자 인증 정보 → + 사용자 인증 정보 만들기
+    OAuth 클라이언트 ID 선택
+    애플리케이션 유형: 데스크톱 앱
+    JSON 다운로드 → 프로젝트의 credentials/client_secret.json 으로 저장
+
+3. OAuth 동의 화면
+    테스트 사용자에 본인 Google 계정 추가
+
+4. 라이브러리 설치: pip install google-api-python-client google-auth-oauthlib google-auth-httplib2

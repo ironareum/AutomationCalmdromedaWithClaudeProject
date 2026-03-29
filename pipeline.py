@@ -9,8 +9,7 @@
 2026.03.29 디스크 사용량 최소화 - 임시 파일 단계별 즉시 삭제, 실 사용 파일만 output 적재
 2026.03.29 output/{session_id}/pipeline.log 로그 파일 자동 생성
 2026.03.29 used_assetss.json 포맷형식 변경
-2026.03.29 metadata.json에 실 사용파일 정보 추가
-2026.03.29 sound 수집 개수 판정로직 변경
+2026.03.29 YouTube 업로드
 """
 
 import json
@@ -22,6 +21,7 @@ from collector.freesound import FreesoundCollector, register_used_session
 from collector.pexels import PexelsCollector
 from producer.ffmpeg_producer import VideoProducer
 from producer.thumbnail import ThumbnailGenerator
+from uploader.youtube import YouTubeUploader
 from config import Config
 
 logging.basicConfig(
@@ -142,11 +142,44 @@ def run_pipeline(concept: dict):
         meta_path = work_dir / "metadata.json"
         meta_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
 
+        # 6. YouTube 업로드 (UPLOAD_ENABLED=true 일 때만)
+        upload_result = None
+        if cfg.upload_enabled:
+            log.info("Step 6: [YouTube 업로드] 예약 공개 업로드 시작...")
+            uploader = YouTubeUploader(
+                client_secret_path=Path(cfg.youtube_client_secret_path),
+                token_path=Path(cfg.youtube_token_path),
+            )
+            upload_result = uploader.upload(
+                video_path=output_video,
+                title=concept["title"],
+                description=metadata["description"],
+                tags=concept["tags"],
+                thumbnail_path=thumbnail,
+                language=concept.get("language", "ko"),
+                hour_kst=cfg.upload_hour_kst,
+            )
+            if upload_result:
+                metadata["youtube"] = upload_result
+                # metadata.json 업데이트 (youtube 정보 추가)
+                meta_path.write_text(
+                    json.dumps(metadata, indent=2, ensure_ascii=False),
+                    encoding="utf-8"
+                )
+                log.info(f"YouTube URL: {upload_result['url']}")
+                log.info(f"공개 예약: {upload_result['publish_at']}")
+            else:
+                log.warning("YouTube 업로드 실패 — 영상은 로컬에 저장됨")
+        else:
+            log.info("Step 6: [YouTube 업로드] UPLOAD_ENABLED=false — 스킵")
+
         log.info("=== Pipeline Complete ===")
         log.info(f"Video   : {output_video}")
         log.info(f"Thumb   : {thumbnail}")
         log.info(f"Metadata: {meta_path}")
         log.info(f"Log     : {log_file}")
+        if upload_result:
+            log.info(f"YouTube : {upload_result['url']} (공개: {upload_result['publish_at']})")
 
         return metadata
 
