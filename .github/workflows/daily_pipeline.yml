@@ -14,24 +14,24 @@ jobs:
 
     steps:
       # ── 1. 코드 체크아웃 (main 브랜치) ──────────────────────────────
-      - name: Checkout main branch
+      - name: Checkout master branch
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: master
 
       # ── 2. data 브랜치에서 암호화 파일 가져오기 ─────────────────────
       - name: Fetch encrypted data files
         run: |
           git fetch origin data 2>/dev/null || echo "data 브랜치 없음 — 첫 실행"
-          if git show origin/data:used_assets.enc > used_assets.enc 2>/dev/null; then
-            echo "used_assets.enc 복원됨"
+          if git show origin/data:used_assets.json.enc > used_assets.json.enc 2>/dev/null; then
+            echo "used_assets.json.enc 복원됨"
           else
-            echo "used_assets.enc 없음 — 새로 시작"
+            echo "used_assets.json.enc 없음 — 새로 시작"
           fi
-          if git show origin/data:history.enc > history.enc 2>/dev/null; then
-            echo "history.enc 복원됨"
+          if git show origin/data:history.txt.enc > history.txt.enc 2>/dev/null; then
+            echo "history.txt.enc 복원됨"
           else
-            echo "history.enc 없음"
+            echo "history.txt.enc 없음"
           fi
 
       # ── 3. 암호화 파일 복호화 ────────────────────────────────────────
@@ -40,11 +40,11 @@ jobs:
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: |
           pip install cryptography --quiet
-          if [ -f used_assets.enc ]; then
-            python crypto_utils.py --decrypt used_assets.enc
+          if [ -f used_assets.json.enc ]; then
+            python crypto_utils.py --decrypt used_assets.json.enc
           fi
-          if [ -f history.enc ]; then
-            python crypto_utils.py --decrypt history.enc
+          if [ -f history.txt.enc ]; then
+            python crypto_utils.py --decrypt history.txt.enc
           fi
 
       # ── 4. Python 환경 설정 ──────────────────────────────────────────
@@ -112,8 +112,8 @@ jobs:
             git rm -rf . --quiet 2>/dev/null || true
           fi
 
-          [ -f used_assets.enc ] && git add used_assets.enc
-          [ -f history.enc ]     && git add history.enc
+          [ -f used_assets.json.enc ] && git add used_assets.json.enc
+          [ -f history.txt.enc ]     && git add history.txt.enc
 
           TODAY=$(date -u '+%Y-%m-%d %H:%M UTC')
           git diff --cached --quiet || git commit -m "data: ${TODAY}"
