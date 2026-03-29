@@ -1,0 +1,267 @@
+"""
+AI 콘셉트 자동 생성기
+2026.03.29 Claude Haiku API로 매일 새로운 영상 콘셉트 자동 생성
+
+[고려 요소]
+- 계절/날씨 반영 (오늘 날짜 기준)
+- 카테고리 로테이션 (최근 업로드와 중복 방지)
+- 기존 업로드 영상 제목과 겹치지 않게
+- 한국어 타겟 (제목/태그 한국어)
+"""
+
+import json
+import logging
+import os
+from datetime import datetime, date
+from pathlib import Path
+
+import anthropic
+
+log = logging.getLogger(__name__)
+
+MODEL = "claude-haiku-4-5-20251001"
+
+# 지원 카테고리 전체 목록
+ALL_CATEGORIES = ["rain", "rain_thunder", "ocean", "forest", "birds",
+                  "white_noise", "cafe", "camping"]
+
+# 카테고리별 한국어 설명 (프롬프트용)
+CATEGORY_KO = {
+    "rain":        "빗소리",
+    "rain_thunder": "빗소리+천둥",
+    "ocean":       "파도/바다소리",
+    "forest":      "숲 자연소리",
+    "birds":       "새소리",
+    "white_noise": "백색소음",
+    "cafe":        "카페 분위기",
+    "camping":     "캠핑/모닥불",
+}
+
+# 카테고리별 Freesound 검색 쿼리
+# 카테고리별 기본 영상 쿼리 (Claude 프롬프트 힌트용)
+CATEGORY_VIDEO_QUERIES = {
+    "rain":         ["rain window", "rainy day", "rain drops"],
+    "rain_thunder": ["thunderstorm", "lightning rain", "dark storm"],
+    "ocean":        ["ocean waves", "beach waves", "calm sea"],
+    "forest":       ["forest nature", "misty forest", "green forest"],
+    "birds":        ["birds nature", "morning forest", "peaceful garden"],
+    "white_noise":  ["abstract calm", "minimalist nature", "soft light"],
+    "cafe":         ["cafe window", "coffee shop", "cozy interior"],
+    "camping":      ["campfire night", "tent camping", "forest night"],
+}
+
+CATEGORY_SOUNDS = {
+    "rain":        ["heavy rain", "rain on window", "gentle rain"],
+    "rain_thunder":["thunder storm", "heavy rain thunder", "lightning rain"],
+    "ocean":       ["ocean waves", "gentle waves", "beach waves"],
+    "forest":      ["forest ambience", "nature sounds", "forest birds"],
+    "birds":       ["birds chirping", "morning birds", "bird song"],
+    "white_noise": ["white noise", "brown noise", "pink noise"],
+    "cafe":        ["cafe ambience", "coffee shop", "indoor ambience"],
+    "camping":     ["campfire", "forest night", "crickets night"],
+}
+
+
+def _get_season(today: date) -> str:
+    m = today.month
+    if m in (3, 4, 5):   return "봄"
+    if m in (6, 7, 8):   return "여름"
+    if m in (9, 10, 11): return "가을"
+    return "겨울"
+
+
+def _get_recent_categories(used_assets_path: Path, n: int = 7) -> list[str]:
+    """최근 N개 세션에서 사용한 카테고리 목록 반환"""
+    if not used_assets_path.exists():
+        return []
+    data = json.loads(used_assets_path.read_text(encoding="utf-8"))
+    # session_id 최신순 정렬
+    recent = sorted(data.keys(), reverse=True)[:n]
+    categories = []
+    for sid in recent:
+        entry = data[sid]
+        # 제목에서 카테고리 추론 (sounds 파일명 기반)
+        sounds = entry.get("sounds", [])
+        for cat, queries in CATEGORY_SOUNDS.items():
+            if any(any(q.split()[0] in s.lower() for q in queries) for s in sounds):
+                if cat not in categories:
+                    categories.append(cat)
+    return categories
+
+
+def _get_recent_titles(used_assets_path: Path, n: int = 14) -> list[str]:
+    """최근 N개 세션의 제목 목록 반환"""
+    if not used_assets_path.exists():
+        return []
+    data = json.loads(used_assets_path.read_text(encoding="utf-8"))
+    recent = sorted(data.keys(), reverse=True)[:n]
+    return [data[sid].get("title", "") for sid in recent if data[sid].get("title")]
+
+
+def _pick_category(recent_categories: list[str]) -> str:
+    """최근에 안 쓴 카테고리 우선 선택 (로테이션)"""
+    unused = [c for c in ALL_CATEGORIES if c not in recent_categories]
+    if unused:
+        return unused[0]
+    # 전부 최근에 썼으면 가장 오래된 것 선택
+    for cat in reversed(ALL_CATEGORIES):
+        if cat not in recent_categories[-3:]:  # 최근 3개만 피함
+            return cat
+    return ALL_CATEGORIES[0]
+
+
+def generate_concept(
+    api_key: str,
+    used_assets_path: Path,
+    duration_hours: float = 1,
+    language: str = "ko",
+) -> dict:
+    """
+    Claude Haiku로 오늘의 영상 콘셉트 자동 생성
+
+    반환 예시:
+    {
+        "title": "빗소리 ASMR | 1시간 숙면 & 집중 사운드 | 공부할 때 듣기 좋은 음악",
+        "category": "rain",
+        "sounds": ["heavy rain", "rain on window", "gentle rain"],
+        "mood": "cozy rainy",
+        "duration_hours": 1,
+        "title_sub": "공부할 때 듣기 좋은",
+        "subtitle_en": "Rain Sounds",
+        "tags": ["빗소리", "ASMR", ...],
+        "language": "ko"
+    }
+    """
+    today          = date.today()
+    season         = _get_season(today)
+    recent_cats    = _get_recent_categories(used_assets_path)
+    recent_titles  = _get_recent_titles(used_assets_path)
+    category       = _pick_category(recent_cats)
+    category_name  = CATEGORY_KO.get(category, category)
+    sounds         = CATEGORY_SOUNDS.get(category, ["nature sounds"])
+
+    log.info(f"AI 기획 시작 — 카테고리: {category}({category_name}), 계절: {season}")
+
+    # ── 프롬프트 ──────────────────────────────────────────────────────
+    recent_titles_str = "\n".join(f"- {t}" for t in recent_titles[:5]) or "없음"
+
+    default_sounds_str = ", ".join(sounds)
+    default_videos = CATEGORY_VIDEO_QUERIES.get(category, [category])
+    default_videos_str = ", ".join(default_videos)
+    prompt = f"""너는 한국 유튜브 힐링/ASMR 채널 'Calmdromeda'의 콘텐츠 기획자야.
+오늘 업로드할 자연 사운드 영상의 콘셉트를 만들어줘.
+
+[오늘 정보]
+- 날짜: {today.strftime("%Y년 %m월 %d일")} ({season})
+- 선택된 카테고리: {category_name}
+- 영상 길이: {duration_hours}시간
+
+[최근 업로드 제목 (겹치면 안 됨)]
+{recent_titles_str}
+
+[카테고리 기본 사운드 쿼리 (참고용)]
+{default_sounds_str}
+
+[카테고리 기본 영상 쿼리 (참고용)]
+{default_videos_str}
+
+[요구사항]
+1. 제목은 "메인 키워드 | 부가설명 | SEO 키워드" 형식 (파이프로 구분, 100자 이내)
+2. 태그는 한국어 위주 10~15개
+3. {season} 계절감이 자연스럽게 녹아들면 좋음
+4. 최근 업로드 제목과 겹치지 않게
+5. title_sub는 썸네일 상단에 들어갈 짧은 문구 (10자 이내)
+6. subtitle_en은 썸네일 하단 영문 (2~3단어)
+7. sounds는 Freesound.org 영어 검색 쿼리 3개 (카테고리에 맞는 자연음)
+   - 기본 쿼리를 참고해서 오늘 콘셉트/계절에 어울리게 변형 가능
+8. video_queries는 Pexels 영상 검색 쿼리 3~4개 (영어, 콘셉트와 어울리는 자연 풍경)
+   - 기본 쿼리를 참고해서 오늘 콘셉트/계절/mood에 어울리게 변형 가능
+
+아래 JSON 형식으로만 응답해. 다른 텍스트 없이 JSON만:
+{{
+  "title": "...",
+  "mood": "...",
+  "title_sub": "...",
+  "subtitle_en": "...",
+  "sounds": ["...", "...", "..."],
+  "video_queries": ["...", "...", "...", "..."],
+  "tags": ["...", "..."]
+}}"""
+
+    # ── Claude API 호출 ───────────────────────────────────────────────
+    try:
+        client   = anthropic.Anthropic(api_key=api_key)
+        message  = client.messages.create(
+            model=MODEL,
+            max_tokens=768,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        raw = message.content[0].text.strip()
+        log.info(f"Claude 응답:\n{raw}")
+
+        # JSON 파싱
+        # 혹시 ```json ... ``` 감싸진 경우 제거
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        ai = json.loads(raw.strip())
+
+    except Exception as e:
+        log.error(f"Claude API 오류: {e} — 기본 콘셉트로 폴백")
+        ai = _fallback_concept(category, season)
+
+    # ── 최종 콘셉트 조합 ─────────────────────────────────────────────
+    # AI가 생성한 sounds 사용, 없거나 형식 이상하면 기본값 폴백
+    ai_sounds = ai.get("sounds", [])
+    if not isinstance(ai_sounds, list) or len(ai_sounds) < 1:
+        ai_sounds = sounds
+        log.warning("sounds 생성 실패 — 기본 카테고리 쿼리 사용")
+    else:
+        log.info(f"AI 생성 sounds: {ai_sounds}")
+
+    ai_video_queries = ai.get("video_queries", [])
+    if not isinstance(ai_video_queries, list) or len(ai_video_queries) < 1:
+        ai_video_queries = None  # None이면 pexels.collect()가 config 기본값 사용
+        log.warning("video_queries 생성 실패 — config 기본값 사용")
+    else:
+        log.info(f"AI 생성 video_queries: {ai_video_queries}")
+
+    concept = {
+        "title":        ai.get("title", f"{category_name} | {duration_hours}시간 힐링 사운드"),
+        "category":     category,
+        "sounds":       ai_sounds,
+        "video_queries": ai_video_queries,
+        "mood":         ai.get("mood", "calm and relaxing"),
+        "duration_hours": duration_hours,
+        "title_sub":    ai.get("title_sub", "잠잘때 듣기 좋은"),
+        "subtitle_en":  ai.get("subtitle_en", "Healing Music"),
+        "tags":         ai.get("tags", [category_name, "ASMR", "힐링음악", "수면음악"]),
+        "language":     language,
+    }
+
+    log.info(f"생성된 콘셉트: {concept['title']}")
+    return concept
+
+
+def _fallback_concept(category: str, season: str) -> dict:
+    """API 실패 시 기본 콘셉트"""
+    fallbacks = {
+        "rain":        {"title": f"빗소리 ASMR | 1시간 {season} 빗소리 | 수면 집중 힐링",
+                        "mood": "cozy rainy", "title_sub": "잠잘때 듣기 좋은",
+                        "subtitle_en": "Rain Sounds",
+                        "sounds": ["heavy rain", "rain on window", "gentle rain"],
+                        "tags": ["빗소리", "ASMR", "수면음악", "힐링음악", "백색소음"]},
+        "ocean":       {"title": f"파도 소리 | 1시간 {season} 바다 소리 | 스트레스 해소 힐링",
+                        "mood": "peaceful ocean", "title_sub": "마음이 편해지는",
+                        "subtitle_en": "Ocean Waves",
+                        "sounds": ["ocean waves", "gentle waves", "beach waves"],
+                        "tags": ["파도소리", "바다소리", "힐링음악", "수면음악", "ASMR"]},
+        "forest":      {"title": f"숲 소리 ASMR | 1시간 {season} 자연 소리 | 명상 힐링",
+                        "mood": "peaceful forest", "title_sub": "자연 속에서",
+                        "subtitle_en": "Forest Sounds",
+                        "sounds": ["forest ambience", "nature sounds", "forest birds"],
+                        "tags": ["숲소리", "자연소리", "힐링음악", "명상음악", "ASMR"]},
+    }
+    fb = fallbacks.get(category, fallbacks["rain"])
+    return fb

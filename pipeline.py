@@ -10,6 +10,9 @@
 2026.03.29 output/{session_id}/pipeline.log 로그 파일 자동 생성
 2026.03.29 used_assetss.json 포맷형식 변경
 2026.03.29 YouTube 업로드
+
+2026.03.29 [Phase2] AI 기획 자동화 (Claude API)
+
 """
 
 import json
@@ -22,6 +25,7 @@ from collector.pexels import PexelsCollector
 from producer.ffmpeg_producer import VideoProducer
 from producer.thumbnail import ThumbnailGenerator
 from uploader.youtube import YouTubeUploader
+from planner.concept_generator import generate_concept
 from config import Config
 
 logging.basicConfig(
@@ -287,32 +291,54 @@ Perfect for studying, working, meditation, or deep sleep.
 
 
 if __name__ == "__main__":
-    # ===== 한글 콘셉트 테스트 =====
-    test_concept = {
-        "title": "빗소리 ASMR | 1시간 숙면 & 집중 사운드 | 공부할 때 듣기 좋은 음악",
-        "category": "rain",
-        "sounds": ["heavy rain", "rain on window", "gentle rain"],
-        "mood": "cozy rainy",
-        "duration_hours": 0.001,                 # 1시간
-        "title_sub": "공부할 때 듣기 좋은",     # 썸네일 상단 부제목
-        "subtitle_en": "Rain Sounds",        # 썸네일 하단 영문
-        "tags": ["빗소리", "ASMR", "수면음악", "공부음악", "백색소음", "힐링음악", "빗소리ASMR"],
-        "language": "ko"
-    }
+    cfg = Config()
 
-    # ===== 영어 콘셉트로 바꾸려면 아래 주석 해제 =====
-    # test_concept = {
-    #     "title": "Heavy Rain & Distant Thunder | 3 Hours Deep Sleep Sounds",
-    #     "category": "rain_thunder",
-    #     "sounds": ["heavy rain", "thunder storm", "rain on window"],
-    #     "mood": "stormy and cozy",
-    #     "duration_hours": 3,
-    #     "tags": ["rain sounds", "thunder", "sleep sounds", "white noise", "study music"],
-    #     "language": "en"
-    # }
+    # ════════════════════════════════════════════════════════════════
+    # ▼▼▼ 모드 선택 플래그 ▼▼▼
+    USE_AI_PLANNER = True   # True: Claude AI 자동 기획 / False: 수동 콘셉트
+    # ════════════════════════════════════════════════════════════════
 
-    result = run_pipeline(test_concept)
+    if USE_AI_PLANNER:
+        # ── AI 자동 기획 모드 ─────────────────────────────────────────
+        # Claude Haiku가 계절/카테고리 로테이션/기존 업로드 기반으로 자동 생성
+        # .env에 ANTHROPIC_API_KEY 필요
+        from collector.freesound import USED_ASSETS_FILE
+        concept = generate_concept(
+            api_key=cfg.claude_api_key,
+            used_assets_path=USED_ASSETS_FILE,
+            duration_hours=1,
+            language="ko",
+        )
+    else:
+        # ── 수동 콘셉트 모드 (기존 방식) ─────────────────────────────
+        # USE_AI_PLANNER = False 일 때 아래 콘셉트 그대로 사용
+        concept = {
+            "title": "빗소리 ASMR | 1시간 숙면 & 집중 사운드 | 공부할 때 듣기 좋은 음악",
+            "category": "rain",
+            "sounds": ["heavy rain", "rain on window", "gentle rain"],
+            "mood": "cozy rainy",
+            "duration_hours": 1,                 # 1시간
+            "title_sub": "공부할 때 듣기 좋은",     # 썸네일 상단 부제목
+            "subtitle_en": "Rain Sounds",        # 썸네일 하단 영문
+            "tags": ["빗소리", "ASMR", "수면음악", "공부음악", "백색소음", "힐링음악", "빗소리ASMR"],
+            "language": "ko"
+        }
+        # ── 영어 콘셉트로 바꾸려면 아래 주석 해제 ─────────────────────
+        # concept = {
+        #     "title": "Heavy Rain & Distant Thunder | 3 Hours Deep Sleep Sounds",
+        #     "category": "rain_thunder",
+        #     "sounds": ["heavy rain", "thunder storm", "rain on window"],
+        #     "mood": "stormy and cozy",
+        #     "duration_hours": 3,
+        #     "tags": ["rain sounds", "thunder", "sleep sounds", "white noise", "study music"],
+        #     "language": "en"
+        # }
+
+    result = run_pipeline(concept)
     if result:
         print(f"\nSuccess! Video: {result['video_path']}")
+        if result.get("youtube"):
+            print(f"YouTube: {result['youtube']['url']}")
+            print(f"공개 예약: {result['youtube']['publish_at']}")
     else:
         print("\nPipeline failed. Check logs.")
