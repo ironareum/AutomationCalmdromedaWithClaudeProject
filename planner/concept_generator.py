@@ -55,7 +55,9 @@ CATEGORY_KO = {
     "summer_night": "여름밤 귀뚜라미",
     "winter_snow":  "겨울 눈 내리는 소리",
     "study_room":   "공부방 분위기",
-    "stream":       "계곡/시냇물",
+    "stream":         "계곡/시냇물",
+    "summer_rain":    "여름 소나기/나뭇잎 빗소리",
+    "snow_walk":      "눈밭 발자국 소리",
 }
 
 # 카테고리별 Freesound 검색 쿼리
@@ -92,10 +94,32 @@ CATEGORY_VIDEO_QUERIES = {
         "cafe window", "coffee shop", "cozy interior",
         "cafe rain", "warm interior", "coffee morning"
     ],
-    "camping": [
-        "campfire night", "tent camping", "forest night",
-        "campfire outdoor", "starry night camping", "bonfire nature"
-    ],
+    "camping":        ["campfire night", "tent camping", "forest night",
+                       "campfire outdoor", "starry night camping", "bonfire nature"],
+    "airplane":       ["airplane window clouds", "plane window sky", "aircraft clouds",
+                       "flying above clouds", "airplane interior"],
+    "subway":         ["subway train", "metro train window", "train journey",
+                       "underground metro", "train window night"],
+    "library":        ["library interior", "books shelf", "reading room",
+                       "quiet study room", "library light"],
+    "underwater":     ["underwater ocean", "aquarium fish", "coral reef",
+                       "deep sea", "ocean underwater"],
+    "hot_spring":     ["hot spring water", "waterfall nature", "steam water",
+                       "thermal bath", "water flowing rocks"],
+    "fireplace_rain": ["fireplace cozy", "fireplace rain window", "indoor fire",
+                       "cozy cabin fireplace", "fire warm indoor"],
+    "summer_night":   ["summer night nature", "fireflies night", "night meadow",
+                       "sunset field", "dusk nature"],
+    "winter_snow":    ["snowfall nature", "winter forest snow", "snow falling",
+                       "winter landscape", "snowy forest"],
+    "study_room":     ["desk lamp night", "study room cozy", "reading lamp",
+                       "quiet room interior", "night study"],
+    "stream":         ["forest stream", "mountain creek", "river stones",
+                       "babbling brook", "waterfall forest"],
+    "summer_rain":    ["summer rain leaves", "rain garden plants", "tropical rain",
+                       "rain drops leaves", "rain forest summer"],
+    "snow_walk":      ["snow walking path", "winter snow walk", "snowy forest path",
+                       "footprints snow", "winter walk nature"],
 }
 
 # 카테고리별 검증된 Freesound 쿼리 풀
@@ -135,10 +159,32 @@ CATEGORY_SOUNDS = {
         "cafe ambience", "coffee shop", "indoor ambience",
         "cafe background", "coffee shop noise", "cafe rain window"
     ],
-    "camping": [
-        "campfire", "forest night", "crickets night",
-        "campfire crackling", "night forest", "fire crackling outdoor"
-    ],
+    "camping":        ["campfire", "forest night", "crickets night",
+                       "campfire crackling", "night forest", "fire crackling outdoor"],
+    "airplane":       ["airplane cabin", "aircraft noise", "plane engine", "airplane ambience",
+                       "flight noise", "jet engine distant"],
+    "subway":         ["subway train", "metro ambience", "train interior", "train noise",
+                       "underground train", "train rumble"],
+    "library":        ["library ambience", "quiet room", "pages turning", "indoor quiet",
+                       "study ambience", "soft indoor"],
+    "underwater":     ["underwater ambience", "aquarium sounds", "deep ocean", "water bubbles",
+                       "underwater bubbles", "ocean depth"],
+    "hot_spring":     ["hot spring", "water flowing", "steam water", "waterfall gentle",
+                       "flowing water", "water stream relaxing"],
+    "fireplace_rain": ["fireplace crackling", "fire rain", "campfire rain", "crackling fire",
+                       "fireplace indoor", "wood fire crackling"],
+    "summer_night":   ["crickets night", "summer insects", "night nature", "evening insects",
+                       "cicada summer", "summer night ambient"],
+    "winter_snow":    ["winter ambience", "snow wind", "blizzard", "winter forest",
+                       "cold wind nature", "snowfall silent"],
+    "study_room":     ["quiet room", "study ambience", "clock ticking", "indoor quiet study",
+                       "library quiet", "focus ambience"],
+    "stream":         ["forest stream", "babbling brook", "mountain stream", "creek water",
+                       "river flowing", "stream nature"],
+    "summer_rain":    ["summer rain", "rain leaves", "tropical rain", "rain garden",
+                       "summer shower", "rain grass"],
+    "snow_walk":      ["snow footsteps", "snow walking", "crunching snow", "snow steps",
+                       "winter footsteps", "snow crunch outdoor"],
 }
 
 
