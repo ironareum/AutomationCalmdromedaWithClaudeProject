@@ -11,7 +11,7 @@ env.example
 /credentials/
 
 # 암호화 유틸
-/crypto_utils.py
+#/crypto_utils.py
 
 # 암호화 데이터 (data 브랜치에서 관리)
 /used_assets.json

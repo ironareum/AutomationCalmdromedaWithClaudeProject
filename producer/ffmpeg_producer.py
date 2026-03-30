@@ -6,6 +6,7 @@ FFmpeg Video Producer
 2026.03.29 오디오 -14 LUFS 정규화 (YouTube 권장)
 2026.03.29 영상 좌상단 heading 로고 + 우하단 원형 로고 동시 삽입
 2026.03.29 video 수집 개수 판정로직 변경
+2026.03.30 최적화: 영상 CRF 28, fps 24, preset medium (이전값 주석 보관)(처리시간 단축, 영상 해상도/용량 최적화)
 
 """
 
@@ -237,8 +238,10 @@ class VideoProducer:
                         "scale=1920:1080:force_original_aspect_ratio=decrease,"
                         "pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1"
                     ),
-                    "-r", "30",
-                    "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                    #"-r", "30",
+                    #"-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                    "-r", "24",
+                    "-c:v", "libx264", "-preset", "medium", "-crf", "28",
                     "-an",  # 오디오 제거 (우리 사운드 따로 붙임)
                     str(out)
                 ]
@@ -285,7 +288,8 @@ class VideoProducer:
             "-f", "concat", "-safe", "0",
             "-i", str(concat_list),
             "-t", str(target_duration),
-            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            #"-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            "-c:v", "libx264", "-preset", "medium", "-crf", "28",
             "-movflags", "+faststart",
             "-an",
             str(video_loop)
@@ -361,7 +365,8 @@ class VideoProducer:
             "-filter_complex", filter_complex,
             "-map", f"[{final_out}]",
             "-map", "0:a",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            #"-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            "-c:v", "libx264", "-preset", "medium", "-crf", "28",
             "-c:a", "copy",
             "-movflags", "+faststart",
             str(output_path)

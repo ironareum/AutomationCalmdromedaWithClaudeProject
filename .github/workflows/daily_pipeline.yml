@@ -10,7 +10,8 @@ on:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 120  # 최대 2시간 (1시간 영상 제작 기준)
+    #timeout-minutes: 120  # 최대 2시간 (1시간 영상 제작 기준)
+    timeout-minutes: 360  # 최대 6시간
 
     steps:
       # ── 1. 코드 체크아웃 (main 브랜치) ──────────────────────────────

@@ -207,6 +207,22 @@ concept_generator.py 동작 흐름
   - workflow 파일 작성 완료
   - 수동 실행 테스트 남음
 
-신규 카테고리 추가 
+  1. (컨셉)신규 카테고리 추가 
+
+  2. 영상 CRF 28, fps 24, preset medium (이전값 주석 보관)(처리시간 단축, 영상 해상도/용량 최적화)
+     ```
+     26.03.30
+     [디스크 사용 흐름]
+       이전: 원본영상 + normalized + video_loop + mixed_audio + merged_no_logo + 최종 = 최종x3~4배
+       이후: 원본영상 + mixed_audio(임시) + 최종 = 최종x1.1배 수준
+    
+     [임시 파일 관리 전략]
+       - normalized 클립: 합성 직후 삭제
+       - video_loop: merge 완료 직후 삭제
+       - mixed_audio: merge 완료 직후 삭제
+       - merged_no_logo: 로고 적용 완료 직후 삭제
+       - temp 폴더: 파이프라인 완료 후 전체 삭제
+     ```
+
 
 ### ⬜ Phase 3  — 앱 수익화
