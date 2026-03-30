@@ -25,19 +25,35 @@ log = logging.getLogger(__name__)
 MODEL = "claude-haiku-4-5-20251001"
 
 # 지원 카테고리 전체 목록
-ALL_CATEGORIES = ["rain", "rain_thunder", "ocean", "forest", "birds",
-                  "white_noise", "cafe", "camping"]
+ALL_CATEGORIES = [
+    "rain", "rain_thunder", "ocean", "forest", "birds",
+    "white_noise", "cafe", "camping",
+    "airplane", "subway", "library", "underwater",
+    "hot_spring", "fireplace_rain", "summer_night",
+    "winter_snow", "study_room", "stream",
+    "summer_rain", "snow_walk",
+]
 
 # 카테고리별 한국어 설명 (프롬프트용)
 CATEGORY_KO = {
-    "rain":        "빗소리",
+    "rain":         "빗소리",
     "rain_thunder": "빗소리+천둥",
-    "ocean":       "파도/바다소리",
-    "forest":      "숲 자연소리",
-    "birds":       "새소리",
-    "white_noise": "백색소음",
-    "cafe":        "카페 분위기",
-    "camping":     "캠핑/모닥불",
+    "ocean":        "파도/바다소리",
+    "forest":       "숲 자연소리",
+    "birds":        "새소리",
+    "white_noise":  "백색소음",
+    "cafe":         "카페 분위기",
+    "camping":      "캠핑/모닥불",
+    "airplane":     "비행기 기내소음",
+    "subway":       "지하철/기차 소음",
+    "library":      "도서관/독서실",
+    "underwater":   "수족관/바닷속",
+    "hot_spring":   "온천/물소리",
+    "fireplace_rain": "모닥불+빗소리",
+    "summer_night": "여름밤 귀뚜라미",
+    "winter_snow":  "겨울 눈 내리는 소리",
+    "study_room":   "공부방 분위기",
+    "stream":       "계곡/시냇물",
 }
 
 # 카테고리별 Freesound 검색 쿼리
@@ -324,6 +340,41 @@ def _fallback_concept(category: str, season: str) -> dict:
                         "subtitle_en": "Forest Sounds",
                         "sounds": ["forest ambience", "nature sounds", "forest birds"],
                         "tags": ["숲소리", "자연소리", "힐링음악", "명상음악", "ASMR"]},
+        "airplane":     {"title": f"비행기 기내 소음 | 1시간 {season} 여행 백색소음 | 수면 집중",
+                         "mood": "cozy airplane", "title_sub": "기내에서",
+                         "subtitle_en": "Airplane Ambience",
+                         "sounds": ["airplane cabin", "aircraft noise", "plane engine"],
+                         "tags": ["기내소음", "비행기소음", "백색소음", "수면음악", "ASMR"]},
+        "subway":       {"title": f"지하철 소리 | 1시간 {season} 기차 백색소음 | 집중 수면",
+                         "mood": "urban travel", "title_sub": "달리는 기차",
+                         "subtitle_en": "Train Ambience",
+                         "sounds": ["subway train", "metro ambience", "train interior"],
+                         "tags": ["지하철소리", "기차소리", "백색소음", "집중음악", "ASMR"]},
+        "stream":       {"title": f"계곡 물소리 | 1시간 {season} 자연 힐링 | 명상 수면",
+                         "mood": "peaceful stream", "title_sub": "맑은 계곡",
+                         "subtitle_en": "Forest Stream",
+                         "sounds": ["forest stream", "babbling brook", "mountain stream"],
+                         "tags": ["계곡소리", "물소리", "자연소리", "힐링음악", "ASMR"]},
+        "summer_night": {"title": f"여름밤 귀뚜라미 | 1시간 {season} 밤 자연소리 | 숙면 힐링",
+                         "mood": "warm summer night", "title_sub": "여름밤에",
+                         "subtitle_en": "Summer Night",
+                         "sounds": ["crickets night", "summer insects", "night nature"],
+                         "tags": ["귀뚜라미소리", "여름밤", "자연소리", "수면음악", "ASMR"]},
+        "winter_snow":  {"title": f"겨울 눈 내리는 소리 | 1시간 {season} 설경 힐링 | 수면",
+                         "mood": "silent winter", "title_sub": "눈 내리는 밤",
+                         "subtitle_en": "Winter Snow",
+                         "sounds": ["winter ambience", "snow wind", "winter forest"],
+                         "tags": ["눈소리", "겨울소리", "백색소음", "수면음악", "ASMR"]},
+        "summer_rain": {"title": f"여름 소나기 나뭇잎 소리 | 1시간 {season} 빗소리 ASMR | 힐링",
+                        "mood": "warm summer rain", "title_sub": "여름 소나기",
+                        "subtitle_en": "Summer Rain",
+                        "sounds": ["summer rain", "rain leaves", "rain garden"],
+                        "tags": ["여름소나기", "빗소리", "나뭇잎빗소리", "자연소리", "ASMR"]},
+        "snow_walk":  {"title": f"눈밭 발자국 소리 | 1시간 {season} 겨울 ASMR | 뽀득뽀득",
+                        "mood": "peaceful winter walk", "title_sub": "뽀득뽀득",
+                        "subtitle_en": "Snow Walk ASMR",
+                        "sounds": ["snow footsteps", "crunching snow", "snow steps"],
+                        "tags": ["눈발자국", "눈ASMR", "겨울소리", "뽀득뽀득", "ASMR"]},
     }
     fb = fallbacks.get(category, fallbacks["rain"])
     return fb

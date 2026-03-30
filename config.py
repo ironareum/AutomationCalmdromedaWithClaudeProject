@@ -45,15 +45,26 @@ class Config:
     # Category → Pexels search query mapping
     category_queries = {
         "rain": ["rain window", "rainy day", "rain drops glass", "storm rain",
-                  "heavy rain nature", "rain street", "rain forest", "raining outside",
-                  "rain puddle", "rain roof", "rain night", "rainfall", "rain drop"],
-        "rain_thunder": ["thunderstorm", "dark storm", "lightning rain", "rainy night"],
-        "ocean": ["ocean waves", "beach waves", "sea waves night", "calm ocean"],
-        "forest": ["forest nature", "misty forest", "green forest", "forest morning"],
-        "birds": ["birds nature", "morning forest", "peaceful garden", "bird wildlife"],
-        "white_noise": ["abstract calm", "minimalist nature", "soft light nature", "peaceful landscape"],
-        "cafe": ["cafe window rain", "coffee shop", "cozy interior", "cafe ambience"],
-        "camping": ["campfire night", "tent camping", "forest campfire", "camping nature"],
+                 "heavy rain nature", "rain street", "rain forest", "raining outside",
+                 "rain puddle", "rain roof", "rain night", "rainfall"],
+        "rain_thunder":  ["thunderstorm", "dark storm", "lightning rain", "rainy night"],
+        "ocean":         ["ocean waves", "beach waves", "sea waves night", "calm ocean"],
+        "forest":        ["forest nature", "misty forest", "green forest", "forest morning"],
+        "birds":         ["birds nature", "morning forest", "peaceful garden", "bird wildlife"],
+        "white_noise":   ["abstract calm", "minimalist nature", "soft light nature", "peaceful landscape"],
+        "cafe":          ["cafe window rain", "coffee shop", "cozy interior", "cafe ambience"],
+        "camping":       ["campfire night", "tent camping", "forest campfire", "camping nature"],
+        # 신규 카테고리
+        "airplane":      ["airplane window", "plane cabin", "aircraft interior", "flying clouds"],
+        "subway":        ["subway train", "metro train interior", "train window", "train journey"],
+        "library":       ["library interior", "quiet study room", "reading room", "books library"],
+        "underwater":    ["underwater ocean", "aquarium fish", "deep sea", "underwater coral"],
+        "hot_spring":    ["hot spring water", "thermal bath", "onsen steam", "waterfall close"],
+        "fireplace_rain":["fireplace cozy", "fireplace rain window", "indoor fire rain", "cozy fireplace"],
+        "summer_night":  ["summer night nature", "night insects", "crickets field", "summer dusk"],
+        "winter_snow":   ["snowfall nature", "winter forest snow", "snow falling", "blizzard calm"],
+        "study_room":    ["study desk lamp", "quiet room night", "desk study", "reading lamp cozy"],
+        "stream":        ["forest stream", "mountain creek", "babbling brook", "river stones"],
     }
 
     def __post_init__(self):

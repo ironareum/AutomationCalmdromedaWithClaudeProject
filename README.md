@@ -201,6 +201,12 @@ concept_generator.py 동작 흐름
     └── workflows/
         └── daily_pipeline.yml   ← 매일 자동 실행 설
 ```
+✅ Phase 2C — GitHub Actions 스케줄러 (거의 완성)
+  - data 브랜치 암호화 설정 완료
+  - GitHub Secrets 등록 완료
+  - workflow 파일 작성 완료
+  - 수동 실행 테스트 남음
 
+신규 카테고리 추가 
 
 ### ⬜ Phase 3  — 앱 수익화

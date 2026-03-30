@@ -85,7 +85,7 @@ def _paste_logo_br(base: Image.Image) -> Image.Image:
     W, H = base.size
     logo  = _rm_black(Image.open(LOGO_CIRCLE))
     sz    = 70
-    logo  = logo.resize((sz,sz), Image.LANCZOS)
+    logo  = logo.resize((sz,sz), Image.LANCZOS) # 최신 방식 (Pillow 9.0+)
     r,g,b,a = logo.split()
     logo.putalpha(a.point(lambda v: int(v*0.65)))
     layer = Image.new("RGBA", (W,H), (0,0,0,0))
@@ -162,15 +162,28 @@ def _stroke_center(draw, text, y, fnt, W,
 
 # ── 테마 ──────────────────────────────────────────────────────────────
 THEMES = {
-    "rain":         dict(ov=150, glow=(65,118,250),  sub=(170,205,255), en=(115,172,255)),
-    "rain_thunder": dict(ov=160, glow=(100,60,220),  sub=(190,170,255), en=(150,130,245)),
-    "ocean":        dict(ov=148, glow=(50,172,218),  sub=(145,212,238), en=(85,195,228)),
-    "forest":       dict(ov=145, glow=(90,190,55),   sub=(185,245,145), en=(135,225,95)),
-    "birds":        dict(ov=140, glow=(160,210,80),  sub=(210,245,160), en=(165,225,110)),
-    "white_noise":  dict(ov=155, glow=(160,160,210), sub=(210,210,240), en=(170,170,230)),
-    "cafe":         dict(ov=148, glow=(210,155,75),  sub=(240,220,180), en=(220,175,105)),
-    "camping":      dict(ov=150, glow=(235,135,55),  sub=(248,218,175), en=(238,165,95)),
-    "sleep":        dict(ov=150, glow=(125,65,215),  sub=(192,172,255), en=(168,132,242)),
+    "rain":           dict(ov=150, glow=(65,118,250),  sub=(170,205,255), en=(115,172,255)),
+    "rain_thunder":   dict(ov=160, glow=(100,60,220),  sub=(190,170,255), en=(150,130,245)),
+    "ocean":          dict(ov=148, glow=(50,172,218),  sub=(145,212,238), en=(85,195,228)),
+    "forest":         dict(ov=145, glow=(90,190,55),   sub=(185,245,145), en=(135,225,95)),
+    "birds":          dict(ov=140, glow=(160,210,80),  sub=(210,245,160), en=(165,225,110)),
+    "white_noise":    dict(ov=155, glow=(160,160,210), sub=(210,210,240), en=(170,170,230)),
+    "cafe":           dict(ov=148, glow=(210,155,75),  sub=(240,220,180), en=(220,175,105)),
+    "camping":        dict(ov=150, glow=(235,135,55),  sub=(248,218,175), en=(238,165,95)),
+    "sleep":          dict(ov=150, glow=(125,65,215),  sub=(192,172,255), en=(168,132,242)),
+    # 신규 카테고리
+    "airplane":       dict(ov=155, glow=(100,140,200), sub=(180,210,240), en=(140,180,225)),
+    "subway":         dict(ov=158, glow=(80,80,140),   sub=(160,160,200), en=(120,120,180)),
+    "library":        dict(ov=148, glow=(160,120,70),  sub=(220,200,160), en=(190,165,115)),
+    "underwater":     dict(ov=150, glow=(30,150,180),  sub=(120,210,230), en=(60,185,210)),
+    "hot_spring":     dict(ov=145, glow=(200,100,80),  sub=(240,190,170), en=(220,145,125)),
+    "fireplace_rain": dict(ov=152, glow=(220,100,40),  sub=(245,195,145), en=(230,140,80)),
+    "summer_night":   dict(ov=148, glow=(80,160,100),  sub=(160,230,180), en=(110,200,140)),
+    "winter_snow":    dict(ov=145, glow=(160,200,230), sub=(210,230,245), en=(180,215,238)),
+    "study_room":     dict(ov=150, glow=(180,150,80),  sub=(230,215,170), en=(205,180,120)),
+    "stream":         dict(ov=145, glow=(60,180,140),  sub=(140,225,200), en=(90,205,170)),
+    "summer_rain":    dict(ov=148, glow=(80,160,80),   sub=(160,220,160), en=(100,190,120)),
+    "snow_walk":      dict(ov=143, glow=(180,210,240), sub=(220,235,250), en=(195,220,245)),
 }
 
 
