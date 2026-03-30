@@ -1,6 +1,8 @@
 """
 Configuration for calmdromeda pipeline
 환경변수 or .env 파일로 API 키 관리
+
+2026.03.30 신규 신규 카테고리 추가(12개)
 """
 
 import os

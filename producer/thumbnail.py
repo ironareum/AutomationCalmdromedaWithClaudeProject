@@ -20,6 +20,9 @@ Thumbnail Generator
 [로고 파일 위치] assets/
   logo_heading.png (← Heading_2_.png)
   logo.png         (← Calmdromeda.PNG)
+
+2026.03.30 신규 신규 카테고리 추가(12개)
+
 """
 
 import logging

@@ -9,12 +9,14 @@ AI 콘셉트 자동 생성기
 - 한국어 타겟 (제목/태그 한국어)
 
 2026.03.30 사운드 쿼리 로직 변경 - 사운드 쿼리 풀에서 AI가 콘셉트/계절에 맞는 것만 골라옴
-
+2026.03.30 신규 신규 카테고리 추가(12개)
+2026.03.30 pick_category 로직 변경(랜덤방식, 추적 갯수 변경(기존:7 -> 변경:전체 카테고리 개수의 절반)
 """
 
 import json
 import logging
 import os
+import random
 from datetime import datetime, date
 from pathlib import Path
 
@@ -148,8 +150,13 @@ def _get_season(today: date) -> str:
     return "겨울"
 
 
-def _get_recent_categories(used_assets_path: Path, n: int = 7) -> list[str]:
-    """최근 N개 세션에서 사용한 카테고리 목록 반환"""
+def _get_recent_categories(used_assets_path: Path, n: int = None) -> list[str]:
+    """
+    최근 N개 세션에서 사용한 카테고리 목록 반환
+    n 기본값: 카테고리 수의 절반 (20개면 10개 추적)
+    """
+    if n is None:
+        n = max(7, len(ALL_CATEGORIES) // 2)
     if not used_assets_path.exists():
         return []
     data = json.loads(used_assets_path.read_text(encoding="utf-8"))
@@ -177,15 +184,23 @@ def _get_recent_titles(used_assets_path: Path, n: int = 14) -> list[str]:
 
 
 def _pick_category(recent_categories: list[str]) -> str:
-    """최근에 안 쓴 카테고리 우선 선택 (로테이션)"""
+    """
+    최근에 안 쓴 카테고리 중 랜덤 선택 (공평한 로테이션)
+    - 안 쓴 카테고리 있으면 → 그 중 랜덤
+    - 전부 최근에 썼으면 → 최근 3개 제외하고 랜덤
+    """
     unused = [c for c in ALL_CATEGORIES if c not in recent_categories]
     if unused:
-        return unused[0]
-    # 전부 최근에 썼으면 가장 오래된 것 선택
-    for cat in reversed(ALL_CATEGORIES):
-        if cat not in recent_categories[-3:]:  # 최근 3개만 피함
-            return cat
-    return ALL_CATEGORIES[0]
+        chosen = random.choice(unused)
+        log.info(f"카테고리 선택: {chosen} (미사용 {len(unused)}개 중 랜덤)")
+        return chosen
+    # 전부 최근에 썼으면 최근 3개만 피하고 랜덤
+    available = [c for c in ALL_CATEGORIES if c not in recent_categories[-3:]]
+    if available:
+        chosen = random.choice(available)
+        log.info(f"카테고리 선택: {chosen} (전체 로테이션 완료, 최근 3개 제외 랜덤)")
+        return chosen
+    return random.choice(ALL_CATEGORIES)
 
 
 def generate_concept(
