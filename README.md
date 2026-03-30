@@ -199,7 +199,7 @@ concept_generator.py 동작 흐름
 ```bash
     .github/
     └── workflows/
-        └── daily_pipeline.yml   ← 매일 자동 실행 설
+        └── daily_pipeline.yml   ← 매일 자동 실행 설정
 ```
 ✅ Phase 2C — GitHub Actions 스케줄러 (거의 완성)
   - data 브랜치 암호화 설정 완료

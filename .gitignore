@@ -30,7 +30,10 @@ __pycache__/
 
 # 에셋 (용량 큼)
 /assets/
+!assets/fonts/
+!assets/fonts/**
 
 # 기타
 logo.PNG
 .idea/
+/run_local.bat
