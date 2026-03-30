@@ -15,9 +15,9 @@ env.example
 
 # 암호화 데이터 (data 브랜치에서 관리)
 /used_assets.json
-/used_assets.json.enc
+#/used_assets.json.enc
 /history.txt
-/history.txt.enc
+#/history.txt.enc
 
 
 # 빌드/캐시
