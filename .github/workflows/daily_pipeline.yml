@@ -1,3 +1,14 @@
+# ================================================================
+# Daily Calmdromeda Pipeline
+# ================================================================
+# [변경 이력]
+# 2026.03.29 최초 작성
+# 2026.03.30 브랜치명 main → master 수정
+# 2026.03.30 timeout 2시간 → 6시간
+# 2026.03.30 dotenv 추가, checkout 충돌 해결
+# ================================================================
+
+
 name: Daily Calmdromeda Pipeline
 
 on:
@@ -40,7 +51,7 @@ jobs:
         env:
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: |
-          pip install cryptography --quiet
+          pip install cryptography python-dotenv --quiet
           if [ -f used_assets.json.enc ]; then
             python crypto_utils.py --decrypt used_assets.json.enc
           fi
@@ -96,9 +107,11 @@ jobs:
         run: |
           if [ -f used_assets.json ]; then
             python crypto_utils.py --encrypt used_assets.json
+            cp used_assets.json.enc /tmp/used_assets.json.enc
           fi
           if [ -f history.txt ]; then
             python crypto_utils.py --encrypt history.txt
+            cp history.txt.enc /tmp/history.txt.enc
           fi
 
           git config user.name  "github-actions[bot]"
@@ -106,12 +119,17 @@ jobs:
 
           # data 브랜치 체크아웃 (없으면 고아 브랜치로 생성)
           git fetch origin data 2>/dev/null || true
+          # checkout 전 .enc 파일 제거 (충돌 방지)
+          rm -f used_assets.json.enc history.txt.enc
           if git ls-remote --heads origin data | grep -q data; then
             git checkout -B data origin/data
           else
             git checkout --orphan data
             git rm -rf . --quiet 2>/dev/null || true
           fi
+          # 새로 암호화한 파일 복사
+          [ -f /tmp/used_assets.json.enc ] && cp /tmp/used_assets.json.enc used_assets.json.enc
+          [ -f /tmp/history.txt.enc ] && cp /tmp/history.txt.enc history.txt.enc
 
           [ -f used_assets.json.enc ] && git add used_assets.json.enc
           [ -f history.txt.enc ]     && git add history.txt.enc
