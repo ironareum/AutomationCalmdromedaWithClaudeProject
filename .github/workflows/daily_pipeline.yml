@@ -6,6 +6,7 @@
 # 2026.03.30 브랜치명 main → master 수정
 # 2026.03.30 timeout 2시간 → 6시간
 # 2026.03.30 dotenv 추가, checkout 충돌 해결
+# 2026.03.31 thumbnails/, pipeline.log, metadata.json 저장(Artifacts 섹션에서 다운로드 가능. 30일후 삭제)
 # ================================================================
 
 
@@ -138,7 +139,20 @@ jobs:
           git diff --cached --quiet || git commit -m "data: ${TODAY}"
           git push origin data
 
-      # ── 9. 민감 파일 정리 ────────────────────────────────────────────
+      # ── 9. 썸네일/로그 Artifacts 저장 ───────────────────────────────
+      - name: Upload pipeline artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-output-${{ github.run_id }}
+          path: |
+            output/**/thumbnails/
+            output/**/pipeline.log
+            output/**/metadata.json
+          retention-days: 30  # 30일 보관
+          if-no-files-found: warn
+
+      # ── 10. 민감 파일 정리 ───────────────────────────────────────────
       - name: Cleanup sensitive files
         if: always()
         run: |
