@@ -8,6 +8,7 @@ Freesound.org API Collector
 2026.03.29 로컬 사용 음원 → assets/sounds/_used/ 로 자동 이동 (재사용 방지)
 2026.03.29 used_assetss.json 포맷형식 변경
 2026.03.29 수집소스 페이지네이션 (수집소스 고갈 방지)
+2026.04.01 재사용 모드에서는 로컬 파일 무시하고 API에서만 수집
 """
 
 import shutil
@@ -333,7 +334,7 @@ class FreesoundCollector:
             log.error(f"Sound download failed {sound['id']}: {e}")
             return None
 
-    def collect(self, queries: list[str], count_per_query: int = 3) -> list[Path]:
+    def collect(self, queries: list[str], count_per_query: int = 3, skip_local: bool = False) -> list[Path]:
         """
         1단계: 로컬 assets/sounds/ 폴더 확인
         2단계: 로컬 부족하면 Freesound API 시도
@@ -343,8 +344,12 @@ class FreesoundCollector:
         # 유효하지 않은 파일 대비 여유분 확보 (최소 5개)
         needed = max(MAX_SOUND_LAYERS + 2, int(MAX_SOUND_LAYERS * 1.5))
 
-        # ── 1단계: 로컬 음원 수집 ──────────────────────────────
-        local_files = self.local.collect_by_queries(queries, count_per_query)
+        # ── 1단계: 로컬 음원 수집 (skip_local=True면 스킵) ────
+        if skip_local:
+            log.info("skip_local=True — 로컬 음원 무시, API에서만 수집")
+            local_files = []
+        else:
+            local_files = self.local.collect_by_queries(queries, count_per_query)
 
         if len(local_files) >= needed:
             log.info(f"Using local sounds only ({len(local_files)} files) — Freesound API skipped")

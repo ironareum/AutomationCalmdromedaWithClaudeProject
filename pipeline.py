@@ -13,6 +13,7 @@
 
 2026.03.29 [Phase2] AI 기획 자동화 (Claude API) + sound,video 쿼리에도 적용
 2026.04.01 fix: 사운드 타겟팅 강화, 영상 재사용 모드 추가, 그룹 기반 카테고리 로테이션
+2026.04.01 재사용 모드에서는 로컬 파일 무시하고 API에서만 수집
 """
 
 import argparse
@@ -73,7 +74,9 @@ def run_pipeline(concept: dict):
         # 1. 사운드 수집 (로컬 우선 → Freesound API 폴백)
         log.info("Step 1: [사운드 수집] 로컬 폴더 확인 후 필요시 Freesound API 사용...")
         sound_collector = FreesoundCollector(cfg.freesound_api_key, work_dir, session_id=session_id)
-        sound_files = sound_collector.collect(concept["sounds"], count_per_query=3)
+        # 재사용 모드에서는 로컬 음원 무시 (카테고리 불일치 방지)
+        skip_local = bool(concept.get("_reuse_video_session"))
+        sound_files = sound_collector.collect(concept["sounds"], count_per_query=3, skip_local=skip_local)
         if not sound_files:
             log.error("사운드 파일 없음. assets/sounds/{category}/ 폴더에 음원을 넣거나 Freesound API를 확인하세요.")
             return None
