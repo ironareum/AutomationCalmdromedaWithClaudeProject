@@ -164,6 +164,11 @@ def run_pipeline(concept: dict):
         metadata = {
             "session_id": session_id,
             "title": concept["title"],
+            "category": concept.get("category", ""),
+            "mood": concept.get("mood", ""),
+            "duration_hours": concept.get("duration_hours", 1),
+            "title_sub": concept.get("title_sub", ""),
+            "subtitle_en": concept.get("subtitle_en", ""),
             "tags": concept["tags"],
             "description": generate_description(concept),
             "language": language,
@@ -377,7 +382,25 @@ if __name__ == "__main__":
 
         # 새 사운드로 교체할지 여부 확인
         log.info("사운드를 새로 수집해서 교체합니다.")
-        concept["sounds"] = CATEGORY_SOUNDS_FOR_REUSE.get(concept["category"], concept["sounds"])
+        category = concept.get("category", "")
+        if not category:
+            # metadata에 category 없으면 thumbnail 파일명에서 추론
+            thumb = meta.get("thumbnail_path", "")
+            for cat in CATEGORY_SOUNDS_FOR_REUSE.keys():
+                if cat in thumb:
+                    category = cat
+                    break
+            if category:
+                log.info(f"thumbnail에서 카테고리 추론: {category}")
+                concept["category"] = category
+            else:
+                log.warning("카테고리 추론 실패 — used_sounds 쿼리 그대로 사용")
+        sound_queries = CATEGORY_SOUNDS_FOR_REUSE.get(category, [])
+        if sound_queries:
+            concept["sounds"] = sound_queries
+            log.info(f"카테고리 '{category}' 사운드 쿼리 적용: {sound_queries[:3]}")
+        else:
+            log.warning(f"카테고리 '{category}' 쿼리 없음 — used_sounds 그대로 사용")
 
     elif USE_AI_PLANNER:
         # ── AI 자동 기획 모드 ─────────────────────────────────────────
