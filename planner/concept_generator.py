@@ -11,6 +11,7 @@ AI 콘셉트 자동 생성기
 2026.03.30 사운드 쿼리 로직 변경 - 사운드 쿼리 풀에서 AI가 콘셉트/계절에 맞는 것만 골라옴
 2026.03.30 신규 신규 카테고리 추가(12개)
 2026.03.30 pick_category 로직 변경(랜덤방식, 추적 갯수 변경(기존:7 -> 변경:전체 카테고리 개수의 절반)
+2026.04.01 fix: 사운드 타겟팅 강화, 영상 재사용 모드 추가, 그룹 기반 카테고리 로테이션
 """
 
 import json
@@ -35,6 +36,25 @@ ALL_CATEGORIES = [
     "winter_snow", "study_room", "stream",
     "summer_rain", "snow_walk",
 ]
+
+# 비슷한 카테고리 그룹 — 같은 그룹 연속 방지
+CATEGORY_GROUPS = {
+    "rain_group":    ["rain", "rain_thunder", "summer_rain", "fireplace_rain"],
+    "nature_group":  ["forest", "birds", "stream", "summer_night"],
+    "water_group":   ["ocean", "underwater", "hot_spring"],
+    "indoor_group":  ["cafe", "library", "study_room"],
+    "travel_group":  ["airplane", "subway"],
+    "ambient_group": ["white_noise", "camping"],
+    "winter_group":  ["winter_snow", "snow_walk"],
+}
+
+def _get_group(category: str) -> str | None:
+    """카테고리가 속한 그룹 반환"""
+    for group, cats in CATEGORY_GROUPS.items():
+        if category in cats:
+            return group
+    return None
+
 
 # 카테고리별 한국어 설명 (프롬프트용)
 CATEGORY_KO = {
@@ -187,6 +207,30 @@ CATEGORY_SOUNDS = {
                        "winter footsteps", "snow crunch outdoor"],
 }
 
+# 카테고리별 사운드 특성 힌트 (프롬프트에 주입 → AI가 카테고리 특성 정확히 인식)
+CATEGORY_SOUND_HINTS = {
+    "rain":          "빗소리 위주. 실내에서 듣는 빗소리 느낌.",
+    "rain_thunder":  "빗소리+천둥. 극적이고 웅장한 폭풍우 느낌.",
+    "ocean":         "파도 소리. 해변에서 듣는 파도/바다 느낌.",
+    "forest":        "숲 자연음. 새소리+바람+나뭇잎 소리. ",
+    "birds":         "새소리 위주. 아침 새벽 새 울음소리.",
+    "white_noise":   "백색소음. 지속적이고 일정한 노이즈.",
+    "cafe":          "카페 실내음. 대화소리+커피머신+배경음악 없는 분위기.",
+    "camping":       "캠핑. 모닥불 타는 소리+밤 자연음.",
+    "airplane":      "비행기 기내. 엔진소음+기내 공기소리. 파도/새소리 절대 금지.",
+    "subway":        "지하철/기차 주행음. 철로 소리+진동음. 자연음 절대 금지.",
+    "library":       "도서관 실내. 조용한 환경+책 넘기는 소리+먼 발소리.",
+    "underwater":    "수중/바닷속. 물속 기포+수압음+수중 특유의 울림. 파도/해변 소리 절대 금지.",
+    "hot_spring":    "온천/물소리. 물 흐르는 소리+증기+자연.",
+    "fireplace_rain":"모닥불+빗소리. 실내 따뜻한 불+창밖 비.",
+    "summer_night":  "여름밤. 귀뚜라미+매미+밤 곤충소리.",
+    "winter_snow":   "겨울 설경. 눈 밟는 소리+차가운 바람+고요함.",
+    "study_room":    "공부방. 조용한 실내+시계소리+에어컨 소음.",
+    "stream":        "계곡/시냇물. 물 흐르는 소리+돌 위 물소리.",
+    "summer_rain":   "여름 소나기. 나뭇잎에 떨어지는 빗소리+흙냄새 느낌.",
+    "snow_walk":     "눈밭 발자국. 뽀득뽀득 눈 밟는 소리 위주.",
+}
+
 
 def _get_season(today: date) -> str:
     m = today.month
@@ -231,22 +275,48 @@ def _get_recent_titles(used_assets_path: Path, n: int = 14) -> list[str]:
 
 def _pick_category(recent_categories: list[str]) -> str:
     """
-    최근에 안 쓴 카테고리 중 랜덤 선택 (공평한 로테이션)
-    - 안 쓴 카테고리 있으면 → 그 중 랜덤
-    - 전부 최근에 썼으면 → 최근 3개 제외하고 랜덤
+    카테고리 선택 로직 (그룹 기반 반복 방지)
+
+    1. 미사용 카테고리 중 → 최근 사용 그룹 제외 후 랜덤
+    2. 미사용 없으면 → 최근 3개 그룹 제외 후 랜덤
+    3. 그래도 없으면 → 최근 3개 카테고리만 피하고 랜덤
+
+    [그룹 반복 방지]
+    rain_group: rain, rain_thunder, summer_rain, fireplace_rain
+    → 이 중 하나 나왔으면 다음엔 다른 그룹에서 선택
     """
+    # 최근 사용 그룹 파악 (최근 4개)
+    recent_groups = []
+    for cat in recent_categories[:4]:
+        g = _get_group(cat)
+        if g and g not in recent_groups:
+            recent_groups.append(g)
+
+    # 1단계: 미사용 카테고리 중 최근 그룹 제외
     unused = [c for c in ALL_CATEGORIES if c not in recent_categories]
     if unused:
-        chosen = random.choice(unused)
-        log.info(f"카테고리 선택: {chosen} (미사용 {len(unused)}개 중 랜덤)")
+        # 최근 그룹 제외한 미사용 카테고리
+        preferred = [c for c in unused if _get_group(c) not in recent_groups]
+        pool = preferred if preferred else unused
+        chosen = random.choice(pool)
+        reason = f"미사용 {len(unused)}개 중" + (f" 최근 그룹({recent_groups[:2]}) 제외" if preferred != unused else "")
+        log.info(f"카테고리 선택: {chosen} ({reason} 랜덤)")
         return chosen
-    # 전부 최근에 썼으면 최근 3개만 피하고 랜덤
-    available = [c for c in ALL_CATEGORIES if c not in recent_categories[-3:]]
+
+    # 2단계: 전부 최근에 썼으면 최근 3개 그룹 제외
+    available = [c for c in ALL_CATEGORIES
+                 if c not in recent_categories[:3]
+                 and _get_group(c) not in recent_groups[:3]]
     if available:
         chosen = random.choice(available)
-        log.info(f"카테고리 선택: {chosen} (전체 로테이션 완료, 최근 3개 제외 랜덤)")
+        log.info(f"카테고리 선택: {chosen} (전체 로테이션 완료, 그룹 제외 랜덤)")
         return chosen
-    return random.choice(ALL_CATEGORIES)
+
+    # 3단계: 최후 수단 — 최근 3개만 피함
+    fallback = [c for c in ALL_CATEGORIES if c not in recent_categories[:3]]
+    chosen = random.choice(fallback) if fallback else random.choice(ALL_CATEGORIES)
+    log.info(f"카테고리 선택: {chosen} (최후 수단 랜덤)")
+    return chosen
 
 
 def generate_concept(
@@ -287,6 +357,7 @@ def generate_concept(
     default_sounds_str = ", ".join(sounds)
     default_videos = CATEGORY_VIDEO_QUERIES.get(category, [category])
     default_videos_str = ", ".join(default_videos)
+    sound_hint = CATEGORY_SOUND_HINTS.get(category, "카테고리에 맞는 자연음 선택")
     prompt = f"""너는 한국 유튜브 힐링/ASMR 채널 'Calmdromeda'의 콘텐츠 기획자야.
 오늘 업로드할 자연 사운드 영상의 콘셉트를 만들어줘.
 
@@ -297,6 +368,9 @@ def generate_concept(
 
 [최근 업로드 제목 (겹치면 안 됨)]
 {recent_titles_str}
+
+[카테고리 사운드 특성 — 반드시 준수]
+{sound_hint}
 
 [사운드 쿼리 풀 — 이 중에서만 3개 선택]
 {default_sounds_str}
@@ -311,9 +385,10 @@ def generate_concept(
 4. 최근 업로드 제목과 겹치지 않게
 5. title_sub는 썸네일 상단에 들어갈 짧은 문구 (10자 이내)
 6. subtitle_en은 썸네일 하단 영문 (2~3단어)
-7. sounds는 아래 [사운드 쿼리 풀] 목록에서 오늘 콘셉트/계절에 맞는 것 3개 선택
+7. sounds는 [사운드 쿼리 풀] 목록에서 [카테고리 사운드 특성]에 맞는 것 3개 선택
    - 반드시 목록에 있는 것만 선택 (임의 생성 금지)
-8. video_queries는 아래 [영상 쿼리 풀] 목록에서 오늘 콘셉트/계절/mood에 맞는 것 3~4개 선택
+   - 카테고리 특성에 어긋나는 쿼리 절대 선택 금지
+8. video_queries는 [영상 쿼리 풀] 목록에서 오늘 콘셉트/계절/mood에 맞는 것 3~4개 선택
    - 반드시 목록에 있는 것만 선택 (임의 생성 금지)
 
 아래 JSON 형식으로만 응답해. 다른 텍스트 없이 JSON만:

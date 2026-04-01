@@ -12,11 +12,13 @@
 2026.03.29 YouTube 업로드
 
 2026.03.29 [Phase2] AI 기획 자동화 (Claude API) + sound,video 쿼리에도 적용
-
+2026.04.01 fix: 사운드 타겟팅 강화, 영상 재사용 모드 추가, 그룹 기반 카테고리 로테이션
 """
 
+import argparse
 import json
 import logging
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -25,7 +27,7 @@ from collector.pexels import PexelsCollector
 from producer.ffmpeg_producer import VideoProducer
 from producer.thumbnail import ThumbnailGenerator
 from uploader.youtube import YouTubeUploader
-from planner.concept_generator import generate_concept
+from planner.concept_generator import generate_concept, CATEGORY_SOUNDS as CATEGORY_SOUNDS_FOR_REUSE
 from config import Config
 
 logging.basicConfig(
@@ -78,12 +80,33 @@ def run_pipeline(concept: dict):
 
         # 2. 영상 수집
         log.info("Step 2: [영상 수집] Collecting video assets from Pexels...")
-        video_collector = PexelsCollector(cfg.pexels_api_key, work_dir, session_id=session_id)
-        video_files = video_collector.collect(
-            concept["category"],
-            count=5,
-            queries=concept.get("video_queries"),  # AI 생성 쿼리, 없으면 config 기본값
-        )
+        reuse_session = concept.get("_reuse_video_session")
+        if reuse_session:
+            # 영상 재사용: 기존 세션 영상 복사
+            reuse_dir = cfg.output_dir / reuse_session
+            old_videos_dir = reuse_dir / "videos"
+            new_videos_dir = work_dir / "videos"
+            new_videos_dir.mkdir(parents=True, exist_ok=True)
+            video_files = []
+            if old_videos_dir.exists():
+                for vf in sorted(old_videos_dir.glob("*.mp4")):
+                    dest = new_videos_dir / vf.name
+                    shutil.copy2(str(vf), str(dest))
+                    video_files.append(dest)
+                log.info(f"영상 재사용: {len(video_files)}개 복사 ({reuse_session})")
+            else:
+                log.warning(f"기존 영상 폴더 없음: {old_videos_dir} — 새로 수집")
+                video_files = []
+            if not video_files:
+                video_collector = PexelsCollector(cfg.pexels_api_key, work_dir, session_id=session_id)
+                video_files = video_collector.collect(concept["category"], count=5)
+        else:
+            video_collector = PexelsCollector(cfg.pexels_api_key, work_dir, session_id=session_id)
+            video_files = video_collector.collect(
+                concept["category"],
+                count=5,
+                queries=concept.get("video_queries"),  # AI 생성 쿼리, 없으면 config 기본값
+            )
         if not video_files:
             log.error("No video files collected. Aborting.")
             return None
@@ -302,7 +325,58 @@ if __name__ == "__main__":
     USE_AI_PLANNER = True   # True: Claude AI 자동 기획 / False: 수동 콘셉트
     # ════════════════════════════════════════════════════════════════
 
-    if USE_AI_PLANNER:
+    # ── CLI 인자 파싱 ─────────────────────────────────────────────────
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--reuse-session", type=str, default=None,
+                        help="기존 세션 영상 재사용 (사운드만 새로 제작). 예: 20260331_000300")
+    args, _ = parser.parse_known_args()
+
+    if args.reuse_session:
+        # ── 영상 재사용 모드 ──────────────────────────────────────────
+        reuse_session_id = args.reuse_session
+        reuse_dir = cfg.output_dir / reuse_session_id
+        metadata_path = reuse_dir / "metadata.json"
+
+        if not reuse_dir.exists():
+            log.error("=" * 60)
+            log.error("영상 재사용은 로컬 실행에서만 가능합니다.")
+            log.error(f"output/{reuse_session_id}/ 폴더가 없습니다.")
+            log.error("GitHub Actions에서는 실행 후 output/ 폴더가 삭제됩니다.")
+            log.error("로컬에서 실행하거나 run_local.bat 을 사용하세요.")
+            log.error("=" * 60)
+            raise SystemExit(1)
+
+        if not metadata_path.exists():
+            log.error(f"metadata.json 없음: {metadata_path}")
+            raise SystemExit(1)
+
+        with open(metadata_path, encoding="utf-8") as f:
+            meta = json.load(f)
+
+        log.info(f"영상 재사용 모드: {reuse_session_id}")
+        log.info(f"기존 제목: {meta.get('title', '?')}")
+        log.info(f"기존 영상: {meta.get('used_videos', [])}")
+
+        # 기존 concept 로드 (카테고리/제목 유지)
+        concept = {
+            "title":         meta.get("title", ""),
+            "category":      meta.get("category", "rain"),
+            "sounds":        meta.get("used_sounds", []),
+            "video_queries": meta.get("video_queries"),
+            "mood":          meta.get("mood", "calm"),
+            "duration_hours": meta.get("duration_hours", 1),
+            "title_sub":     meta.get("title_sub", "힐링 사운드"),
+            "subtitle_en":   meta.get("subtitle_en", "Healing Music"),
+            "tags":          meta.get("tags", []),
+            "language":      meta.get("language", "ko"),
+            "_reuse_video_session": reuse_session_id,  # 재사용 플래그
+        }
+
+        # 새 사운드로 교체할지 여부 확인
+        log.info("사운드를 새로 수집해서 교체합니다.")
+        concept["sounds"] = CATEGORY_SOUNDS_FOR_REUSE.get(concept["category"], concept["sounds"])
+
+    elif USE_AI_PLANNER:
         # ── AI 자동 기획 모드 ─────────────────────────────────────────
         # Claude Haiku가 계절/카테고리 로테이션/기존 업로드 기반으로 자동 생성
         # .env에 ANTHROPIC_API_KEY 필요
@@ -321,10 +395,10 @@ if __name__ == "__main__":
             "category": "rain",
             "sounds": ["heavy rain", "rain on window", "gentle rain"],
             "mood": "cozy rainy",
-            "duration_hours": 1,                 # 1시간
-            "title_sub": "공부할 때 듣기 좋은",     # 썸네일 상단 부제목
-            "subtitle_en": "Rain Sounds",        # 썸네일 하단 영문
-            "tags": ["빗소리", "ASMR", "수면음악", "공부음악", "백색소음", "힐링음악", "빗소리ASMR"],
+            "duration_hours": 1,
+            "title_sub": "공부할 때 듣기 좋은",
+            "subtitle_en": "Rain Sounds",
+            "tags": ["빗소리", "ASMR", "수면음악", "공부음악", "백색소음", "힐링음악"],
             "language": "ko"
         }
         # ── 영어 콘셉트로 바꾸려면 아래 주석 해제 ─────────────────────
@@ -334,7 +408,7 @@ if __name__ == "__main__":
         #     "sounds": ["heavy rain", "thunder storm", "rain on window"],
         #     "mood": "stormy and cozy",
         #     "duration_hours": 3,
-        #     "tags": ["rain sounds", "thunder", "sleep sounds", "white noise", "study music"],
+        #     "tags": ["rain sounds", "thunder", "sleep sounds", "white noise"],
         #     "language": "en"
         # }
 
