@@ -13,6 +13,9 @@ AI 콘셉트 자동 생성기
 2026.03.30 pick_category 로직 변경(랜덤방식, 추적 갯수 변경(기존:7 -> 변경:전체 카테고리 개수의 절반)
 2026.04.01 fix: 사운드 타겟팅 강화, 영상 재사용 모드 추가, 그룹 기반 카테고리 로테이션
 2026.04.01 feat: forest/birds 차별화, 콘셉트 다양성 강화, 최근 제목 10개 참조
+2026.04.02 fix: 계절 키워드 제거, 프롬프트 수정
+
+
 """
 
 import json
@@ -70,7 +73,7 @@ CATEGORY_KO = {
     "airplane":     "비행기 기내소음",
     "subway":       "지하철/기차 소음",
     "library":      "도서관/독서실",
-    "underwater":   "수족관/바닷속",
+    "underwater":   "수족관/바닷속 물 소리",
     "hot_spring":   "온천/물소리",
     "fireplace_rain": "모닥불+빗소리",
     "summer_night": "여름밤 귀뚜라미",
@@ -86,7 +89,7 @@ CATEGORY_KO = {
 CATEGORY_VIDEO_QUERIES = {
     "rain": [
         "rain window", "rainy day", "rain drops glass",
-        "rain street", "rain nature", "spring rain window",
+        "rain street", "rain nature", "rain city"
         "rain forest", "rainy night city", "rain puddle"
     ],
     "rain_thunder": [
@@ -363,7 +366,7 @@ def generate_concept(
 오늘 업로드할 자연 사운드 영상의 콘셉트를 만들어줘.
 
 [오늘 정보]
-- 날짜: {today.strftime("%Y년 %m월 %d일")} ({season})
+- 날짜: {today.strftime("%Y년 %m월 %d일")}
 - 선택된 카테고리: {category_name}
 - 영상 길이: {duration_hours}시간
 
@@ -382,7 +385,7 @@ def generate_concept(
 [요구사항]
 1. 제목은 "메인 키워드 | 부가설명 | SEO 키워드" 형식 (파이프로 구분, 100자 이내)
 2. 태그는 한국어 위주 10~15개
-3. {season} 계절감이 자연스럽게 녹아들면 좋음
+3. 제목에 봄/여름/가을/겨울 계절 키워드 사용 금지 — 계절과 무관하게 언제든 시청 가능한 제목
 4. 최근 업로드 제목과 겹치지 않게
 5. title_sub는 썸네일 상단에 들어갈 짧은 문구 (10자 이내)
 6. subtitle_en은 썸네일 하단 영문 (2~3단어)
@@ -392,8 +395,8 @@ def generate_concept(
 8. video_queries는 [영상 쿼리 풀] 목록에서 오늘 콘셉트/계절/mood에 맞는 것 3~4개 선택
    - 반드시 목록에 있는 것만 선택 (임의 생성 금지)
 9. 제목/콘셉트는 최근 업로드 제목과 뚜렷이 달라야 함
-   - 같은 카테고리라도 시간대/계절/장소/분위기가 확실히 다른 각도로 접근
-   - 예: 빗소리라도 "창밖 봄비", "한여름 소나기", "가을 밤비", "새벽 이슬비" 등 차별화
+   - 같은 카테고리라도 시간대/장소/분위기가 확실히 다른 각도로 접근
+   - 예: 빗소리라도 "창밖 빗소리", "한여름 소나기", "가을 비", "새벽 이슬비", "도심 빗소리", "깊은 밤 빗소리", "양철지붕 빗소리" 등 차별화
    - 제목만 다르고 실제 콘셉트가 같으면 안 됨
 
 아래 JSON 형식으로만 응답해. 다른 텍스트 없이 JSON만:
@@ -474,11 +477,11 @@ def _fallback_concept(category: str, season: str) -> dict:
     video_queries = CATEGORY_VIDEO_QUERIES.get(category, [category])[:3]
 
     return {
-        "title":      f"{category_name} ASMR | 1시간 {season} {category_name} | 수면 집중 힐링",
+        "title":      f"{category_name} ASMR | 1시간 {category_name} | 수면 집중 힐링",
         "mood":       f"calm and relaxing {category_name}",
         "title_sub":  "힐링 사운드",
         "subtitle_en": " ".join(w.capitalize() for w in category.split("_")[:2]),
         "sounds":     sounds,
         "video_queries": video_queries,
-        "tags":       [category_name, "ASMR", "수면음악", "힐링음악", "백색소음", season],
+        "tags":       [category_name, "ASMR", "수면음악", "힐링음악", "백색소음", "명상음악"],
     }
