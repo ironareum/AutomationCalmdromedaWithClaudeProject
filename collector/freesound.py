@@ -9,6 +9,7 @@ Freesound.org API Collector
 2026.03.29 used_assetss.json 포맷형식 변경
 2026.03.29 수집소스 페이지네이션 (수집소스 고갈 방지)
 2026.04.01 재사용 모드에서는 로컬 파일 무시하고 API에서만 수집
+2026.04.02 feat: AI 사운드 검증 추가 (컨셉 일치율 향상), 계절 키워드 제거
 """
 
 import shutil
@@ -255,7 +256,7 @@ class FreesoundCollector:
                 "query":     query,
                 "page_size": page_size,
                 "page":      page,
-                "fields":    "id,name,duration,license,previews,avg_rating,num_downloads",
+                "fields":    "id,name,duration,license,previews,avg_rating,num_downloads,tags,description",
                 "filter":    'license:"Creative Commons 0" OR license:"Attribution"',
                 "sort":      "downloads_desc",
                 "token":     self.api_key,
@@ -334,7 +335,7 @@ class FreesoundCollector:
             log.error(f"Sound download failed {sound['id']}: {e}")
             return None
 
-    def collect(self, queries: list[str], count_per_query: int = 3, skip_local: bool = False) -> list[Path]:
+    def collect(self, queries: list[str], count_per_query: int = 3, skip_local: bool = False, concept: dict = None) -> list[Path]:
         """
         1단계: 로컬 assets/sounds/ 폴더 확인
         2단계: 로컬 부족하면 Freesound API 시도
@@ -396,5 +397,98 @@ class FreesoundCollector:
 
                 time.sleep(0.3)  # API rate limit 방지
 
+        # AI 검증: concept이 있으면 파일명+태그 기반으로 부적합 파일 제거
+        if concept and collected:
+            collected = self._ai_filter_sounds(collected, concept)
+
         log.info(f"Total sounds collected: {len(collected)} (local: {len(local_files)}, api: {len(collected) - len(local_files)})")
         return collected
+
+    def _ai_filter_sounds(self, sound_files: list, concept: dict) -> list:
+        """
+        다운받은 파일명+Freesound 메타데이터 기반으로 AI가 컨셉 부적합 파일 제거
+        """
+        import anthropic, os
+        from dotenv import load_dotenv
+        load_dotenv()
+
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            log.warning("ANTHROPIC_API_KEY 없음 — AI 사운드 검증 스킵")
+            return sound_files
+
+        category = concept.get("category", "")
+        title = concept.get("title", "")
+        mood = concept.get("mood", "")
+
+        # 파일 정보 구성
+        file_info = []
+        for p in sound_files:
+            file_info.append(f"- {p.name}")
+
+        files_str = "\n".join(file_info)
+
+        prompt = f"""너는 힐링/ASMR 유튜브 채널의 사운드 큐레이터야.
+채널 목적: 강박, 불안, 공황, 우울이 있는 사람들을 위한 치유 컨텐츠. 차분하고 마음을 명상 상태로 만드는 힐링 사운드.
+
+[오늘 영상 정보]
+- 카테고리: {category}
+- 제목: {title}
+- 분위기: {mood}
+
+[다운받은 사운드 파일들]
+{files_str}
+
+위 파일들 중 영상 컨셉과 잘 맞고 치유/힐링에 적합한 파일만 선택해줘.
+제거 기준:
+1. 파일명에 폭발적/자극적 소리 암시 (howling, storm, crash, war, battle, scream, horror 등)
+2. 컨셉과 전혀 다른 카테고리 소리 (비행기 컨셉인데 lake waves 등)
+3. 치유/평온함 보다는 긴장감/공포감을 주는 소리
+
+반드시 최소 3개는 선택해야 함. 모두 부적합해도 가장 나은 3개 선택.
+
+JSON 형식으로만 응답:
+{{
+  "keep": ["파일명1.mp3", "파일명2.mp3", ...],
+  "reason": "선택 이유 한 줄"
+}}"""
+
+        try:
+            client = anthropic.Anthropic(api_key=api_key)
+            message = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=512,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            raw = message.content[0].text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("```")[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+            result = json.loads(raw.strip())
+            keep_names = set(result.get("keep", []))
+            reason = result.get("reason", "")
+
+            filtered = [f for f in sound_files if f.name in keep_names]
+            removed = [f.name for f in sound_files if f.name not in keep_names]
+
+            if removed:
+                log.info(f"AI 사운드 검증 — 제거: {removed}")
+                log.info(f"AI 사운드 검증 — 이유: {reason}")
+                # 제거된 파일 삭제
+                for f in sound_files:
+                    if f.name not in keep_names:
+                        try:
+                            f.unlink()
+                        except Exception:
+                            pass
+
+            if len(filtered) < 3:
+                log.warning(f"AI 검증 후 파일 부족 ({len(filtered)}개) — 원본 유지")
+                return sound_files
+
+            return filtered
+
+        except Exception as e:
+            log.error(f"AI 사운드 검증 실패: {e} — 원본 사용")
+            return sound_files
