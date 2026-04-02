@@ -374,6 +374,7 @@ class FreesoundCollector:
         # ── 3단계: Freesound API로 부족분 채우기 ──────────────
         collected = list(local_files)
         seen_ids = set()
+        sound_meta = {}  # 파일명 → {tags, description}
 
         for query in queries:
             if len(collected) >= needed:
@@ -392,19 +393,24 @@ class FreesoundCollector:
                 path = self.download(sound)
                 if path:
                     collected.append(path)
+                    # 메타데이터 보존 (AI 검증용)
+                    sound_meta[path.name] = {
+                        "tags": sound.get("tags", []),
+                        "description": (sound.get("description", "") or "")[:200],
+                    }
                     seen_ids.add(sound["id"])
                     downloaded += 1
 
                 time.sleep(0.3)  # API rate limit 방지
 
-        # AI 검증: concept이 있으면 파일명+태그 기반으로 부적합 파일 제거
+        # AI 검증: concept이 있으면 파일명+태그+description 기반으로 부적합 파일 제거
         if concept and collected:
-            collected = self._ai_filter_sounds(collected, concept)
+            collected = self._ai_filter_sounds(collected, concept, sound_meta)
 
         log.info(f"Total sounds collected: {len(collected)} (local: {len(local_files)}, api: {len(collected) - len(local_files)})")
         return collected
 
-    def _ai_filter_sounds(self, sound_files: list, concept: dict) -> list:
+    def _ai_filter_sounds(self, sound_files: list, concept: dict, sound_meta: dict = None) -> list:
         """
         다운받은 파일명+Freesound 메타데이터 기반으로 AI가 컨셉 부적합 파일 제거
         """
@@ -421,10 +427,19 @@ class FreesoundCollector:
         title = concept.get("title", "")
         mood = concept.get("mood", "")
 
-        # 파일 정보 구성
+        # 파일 정보 구성 (파일명 + tags + description)
+        sound_meta = sound_meta or {}
         file_info = []
         for p in sound_files:
-            file_info.append(f"- {p.name}")
+            meta = sound_meta.get(p.name, {})
+            tags = ", ".join(meta.get("tags", [])[:8]) if meta.get("tags") else "태그 없음"
+            desc = meta.get("description", "")[:100] if meta.get("description") else ""
+            line = f"- {p.name}"
+            if tags != "태그 없음":
+                line += f" [태그: {tags}]"
+            if desc:
+                line += f" [설명: {desc}]"
+            file_info.append(line)
 
         files_str = "\n".join(file_info)
 
@@ -439,13 +454,26 @@ class FreesoundCollector:
 [다운받은 사운드 파일들]
 {files_str}
 
-위 파일들 중 영상 컨셉과 잘 맞고 치유/힐링에 적합한 파일만 선택해줘.
-제거 기준:
-1. 파일명에 폭발적/자극적 소리 암시 (howling, storm, crash, war, battle, scream, horror 등)
-2. 컨셉과 전혀 다른 카테고리 소리 (비행기 컨셉인데 lake waves 등)
-3. 치유/평온함 보다는 긴장감/공포감을 주는 소리
+위 파일들을 판단해서 치유/힐링 영상에 적합한 파일만 선택해줘.
 
-반드시 최소 3개는 선택해야 함. 모두 부적합해도 가장 나은 3개 선택.
+[선택 기준 — 이 기준에 맞는 파일만 keep]
+✓ 오늘 영상 카테고리({category})와 소리가 일치
+✓ 차분하고 평온하며 마음을 안정시키는 소리
+✓ 강박/불안/공황/우울이 있는 사람에게 안전한 소리
+✓ tags나 description에 ambient, calm, gentle, peaceful, soft, relaxing, nature 같은 단어 있으면 우선 선택
+
+[제거 기준 — 이 기준에 해당하면 반드시 제거]
+✗ 파일명/tags/description에 자극적 소리 암시
+  (howling, storm, crash, war, battle, scream, horror, intense, dramatic, loud, aggressive 등)
+✗ 카테고리와 전혀 다른 소리
+  (비행기 컨셉인데 waves/birds, 수중 컨셉인데 rain/wind 등)
+✗ 긴장감/공포감/불쾌감을 줄 수 있는 소리
+✗ 반복적이고 자극적인 기계음, 경보음, 사이렌
+
+[예외 처리]
+- 모든 파일이 부적합해도 반드시 가장 나은 3개 선택 (파일이 없으면 영상 제작 불가)
+- 파일명만으로 판단 어려울 때는 tags와 description 우선 참고
+- tags/description 없는 파일은 파일명으로만 판단
 
 JSON 형식으로만 응답:
 {{
@@ -469,8 +497,15 @@ JSON 형식으로만 응답:
             keep_names = set(result.get("keep", []))
             reason = result.get("reason", "")
 
-            filtered = [f for f in sound_files if f.name in keep_names]
-            removed = [f.name for f in sound_files if f.name not in keep_names]
+            # 실제 존재하는 파일명만 매칭 (AI가 잘못된 파일명 반환 대비)
+            valid_names = {f.name for f in sound_files}
+            matched_names = keep_names & valid_names
+            unmatched = keep_names - valid_names
+            if unmatched:
+                log.warning(f"AI가 존재하지 않는 파일 반환 (무시): {unmatched}")
+
+            filtered = [f for f in sound_files if f.name in matched_names]
+            removed = [f.name for f in sound_files if f.name not in matched_names]
 
             if removed:
                 log.info(f"AI 사운드 검증 — 제거: {removed}")
