@@ -213,6 +213,52 @@ def run_pipeline(concept: dict):
         else:
             log.info("Step 6: [YouTube 업로드] UPLOAD_ENABLED=false — 스킵")
 
+        # 7. 쇼츠 클립 추출 + YouTube Shorts 업로드
+        shorts_result = None
+        if cfg.upload_enabled:
+            log.info("Step 7: [쇼츠 제작] Extracting Shorts clip...")
+            shorts_path = producer.extract_shorts_clip(output_video, duration=58)
+
+            if shorts_path:
+                log.info("Step 7: [쇼츠 업로드] YouTube Shorts 업로드 시작...")
+                # 쇼츠용 제목: 원본 제목 앞에 이모지 추가, 뒤에 #Shorts
+                shorts_title = concept["title"]
+                if len(shorts_title) > 90:
+                    shorts_title = shorts_title[:90]
+
+                # 쇼츠 태그 (원본 태그 + Shorts 태그)
+                shorts_tags = concept["tags"] + ["Shorts", "유튜브쇼츠", "힐링쇼츠", "ASMR쇼츠"]
+
+                # 쇼츠 설명
+                shorts_desc = concept['title'] + "\n\n#Shorts\n\n" + metadata["description"]
+
+                shorts_uploader = YouTubeUploader(
+                    client_secret_path=Path(cfg.youtube_client_secret_path),
+                    token_path=Path(cfg.youtube_token_path),
+                )
+                shorts_result = shorts_uploader.upload(
+                    video_path=shorts_path,
+                    title=shorts_title,
+                    description=shorts_desc,
+                    tags=shorts_tags,
+                    thumbnail_path=thumbnail,
+                    language=concept.get("language", "ko"),
+                    hour_kst=cfg.upload_hour_kst,  # 풀영상과 같은 시간 예약
+                )
+                if shorts_result:
+                    metadata["youtube_shorts"] = shorts_result
+                    meta_path.write_text(
+                        json.dumps(metadata, indent=2, ensure_ascii=False),
+                        encoding="utf-8"
+                    )
+                    log.info(f"Shorts URL: {shorts_result['url']}")
+                else:
+                    log.warning("Shorts 업로드 실패 — 풀영상 업로드는 유지됨")
+            else:
+                log.warning("Shorts 클립 추출 실패 — 스킵")
+        else:
+            log.info("Step 7: [쇼츠] UPLOAD_ENABLED=false — 스킵")
+
         log.info("=== Pipeline Complete ===")
         log.info(f"Video   : {output_video}")
         log.info(f"Thumb   : {thumbnail}")
@@ -220,6 +266,8 @@ def run_pipeline(concept: dict):
         log.info(f"Log     : {log_file}")
         if upload_result:
             log.info(f"YouTube : {upload_result['url']} (공개: {upload_result['publish_at']})")
+        if shorts_result:
+            log.info(f"Shorts  : {shorts_result['url']} (공개: {shorts_result['publish_at']})")
 
         return metadata
 

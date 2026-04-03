@@ -3,6 +3,16 @@ FFmpeg Video Producer
 2026.03.26 사운드 레이어링 + 영상 루프 합성 → 1~3시간 유튜브 영상 생성
 2026.03.28 영상 우측 하단에 Calmdromeda 로고 워터마크 자동 삽입
 2026.03.29 임시 파일 단계별 즉시 삭제 → 디스크 사용량 최소화
+[디스크 사용 흐름]
+  이전: 원본영상 + normalized + video_loop + mixed_audio + merged_no_logo + 최종 = 최종x3~4배
+  이후: 원본영상 + mixed_audio(임시) + 최종 = 최종x1.1배 수준
+
+[임시 파일 관리 전략]
+  - normalized 클립: 합성 직후 삭제
+  - video_loop: merge 완료 직후 삭제
+  - mixed_audio: merge 완료 직후 삭제
+  - merged_no_logo: 로고 적용 완료 직후 삭제
+  - temp 폴더: 파이프라인 완료 후 전체 삭제
 2026.03.29 오디오 -14 LUFS 정규화 (YouTube 권장)
 2026.03.29 영상 좌상단 heading 로고 + 우하단 원형 로고 동시 삽입
 2026.03.29 video 수집 개수 판정로직 변경
@@ -470,3 +480,41 @@ class VideoProducer:
             return None
         # (최종영상경로, 실제사용사운드, 실제사용영상) 반환
         return result, actual_sounds, actual_videos
+
+    def extract_shorts_clip(self, video_path: Path, duration: int = 58) -> Path | None:
+        """
+        풀영상 앞부분에서 쇼츠/릴스용 세로 클립 추출
+        - duration: 클립 길이 (기본 58초, YouTube Shorts 60초 제한 여유)
+        - 9:16 세로 비율로 크롭 (1080x1920)
+        - 시작점: 3초 (인트로 어두운 부분 스킵)
+        """
+        if not video_path.exists():
+            log.error(f"Shorts 추출 실패: 파일 없음 {video_path}")
+            return None
+
+        safe_name = video_path.stem.replace("_final", "")
+        output_path = video_path.parent / f"{safe_name}_shorts.mp4"
+
+        # 9:16 크롭: 원본 1920x1080 → 가운데 크롭 → 608x1080 → 스케일 1080x1920
+        cmd = [
+            "ffmpeg", "-y",
+            "-ss", "3",                    # 3초부터 시작
+            "-i", str(video_path),
+            "-t", str(duration),           # 58초
+            "-vf", (
+                "crop=ih*9/16:ih:(iw-ih*9/16)/2:0,"  # 9:16 크롭
+                "scale=1080:1920"                      # 세로 HD
+            ),
+            "-c:v", "libx264", "-preset", "medium", "-crf", "28",
+            "-c:a", "aac", "-b:a", "192k",
+            "-movflags", "+faststart",
+            str(output_path)
+        ]
+
+        if self._run(cmd, f"Extracting {duration}s Shorts clip"):
+            size_mb = output_path.stat().st_size / (1024 * 1024)
+            log.info(f"Shorts clip: {output_path.name} ({size_mb:.1f}MB)")
+            return output_path
+        else:
+            log.error("Shorts 클립 추출 실패")
+            return None
