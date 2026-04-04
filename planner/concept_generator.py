@@ -15,10 +15,7 @@ AI 콘셉트 자동 생성기
 2026.04.01 feat: forest/birds 차별화, 콘셉트 다양성 강화, 최근 제목 10개 참조
 2026.04.02 fix: 계절 키워드 제거, 프롬프트 수정
 2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
-# CATEGORY_SOUNDS에 카테고리 있으면 → 해당 쿼리 사용
-# 없으면 → main 쿼리에서 가져옴 (엉뚱한 기본값 없음)
-sounds_sub   = cat_sounds.get("sub",   sounds_main[:1])
-sounds_point = cat_sounds.get("point", sounds_main[:1])
+2026.04.04 feat: 제목 SEO 키워드 강화, 태그 한/영 통합, 폴백 개선
 """
 
 import json
@@ -72,6 +69,30 @@ CATEGORY_TAGS = {
     "stream":        ["계곡소리", "시냇물소리", "stream sounds", "river asmr"],
     "summer_rain":   ["여름빗소리", "소나기소리", "summer rain", "rain leaves"],
     "snow_walk":     ["눈밭소리", "발자국소리", "snow walking", "winter walk"],
+}
+
+# 카테고리별 제목 첫 키워드 (사람들이 실제로 검색하는 단어)
+CATEGORY_TITLE_KEYWORDS = {
+    "rain":           "빗소리 ASMR",
+    "rain_thunder":   "천둥 빗소리 ASMR",
+    "ocean":          "파도소리 ASMR",
+    "forest":         "숲속 소리 ASMR",
+    "birds":          "새소리 ASMR",
+    "white_noise":    "백색소음",
+    "cafe":           "카페 소리 ASMR",
+    "camping":        "모닥불 소리 ASMR",
+    "airplane":       "비행기 소리 ASMR",
+    "subway":         "지하철 소리 ASMR",
+    "library":        "도서관 소리 ASMR",
+    "underwater":     "수중 소리 ASMR",
+    "hot_spring":     "온천 물소리 ASMR",
+    "fireplace_rain": "모닥불 빗소리 ASMR",
+    "summer_night":   "여름밤 귀뚜라미 ASMR",
+    "winter_snow":    "겨울 눈소리 ASMR",
+    "study_room":     "공부 집중 소리 ASMR",
+    "stream":         "계곡 물소리 ASMR",
+    "summer_rain":    "여름 빗소리 ASMR",
+    "snow_walk":      "눈밭 발자국 ASMR",
 }
 
 # 지원 카테고리 전체 목록
@@ -460,6 +481,7 @@ def generate_concept(
     default_videos = CATEGORY_VIDEO_QUERIES.get(category, [category])
     default_videos_str = ", ".join(default_videos)
     sound_hint = CATEGORY_SOUND_HINTS.get(category, "카테고리에 맞는 자연음 선택")
+    title_keyword = CATEGORY_TITLE_KEYWORDS.get(category, f"{category_name} ASMR")
     prompt = f"""너는 한국 유튜브 힐링/ASMR 채널 'Calmdromeda'의 콘텐츠 기획자야.
 오늘 업로드할 자연 사운드 영상의 콘셉트를 만들어줘.
 
@@ -481,7 +503,9 @@ def generate_concept(
 {default_videos_str}
 
 [요구사항]
-1. 제목은 "메인 키워드 | 부가설명 | SEO 키워드" 형식 (파이프로 구분, 100자 이내)
+1. 제목은 "{title_keyword} | 부가설명 | SEO 키워드" 형식 (파이프로 구분, 100자 이내)
+   - 반드시 "{title_keyword}"로 시작 — 사람들이 실제 검색하는 단어가 앞에 와야 함
+   - 예: "{title_keyword} | 1시간 깊은 숙면 & 명상 | 공부할 때 듣기 좋은"
 2. 태그는 한국어 위주 10~15개
 3. 제목에 봄/여름/가을/겨울 계절 키워드 사용 금지 — 계절과 무관하게 언제든 시청 가능한 제목
 4. 최근 업로드 제목과 겹치지 않게
