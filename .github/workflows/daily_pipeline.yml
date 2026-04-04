@@ -7,6 +7,7 @@
 # 2026.03.30 timeout 2시간 → 6시간
 # 2026.03.30 dotenv 추가, checkout 충돌 해결
 # 2026.03.31 thumbnails/, pipeline.log, metadata.json 저장(Artifacts 섹션에서 다운로드 가능. 30일후 삭제)
+# 2026.04.04 feat: used_assets 신규 세션 quality=pending 기본값 설정
 # ================================================================
 
 
@@ -134,6 +135,7 @@ jobs:
 
           [ -f used_assets.json.enc ] && git add used_assets.json.enc
           [ -f history.txt.enc ]     && git add history.txt.enc
+          [ -f blacklist.json ]      && git add blacklist.json
 
           TODAY=$(date -u '+%Y-%m-%d %H:%M UTC')
           git diff --cached --quiet || git commit -m "data: ${TODAY}"

@@ -11,6 +11,7 @@ Freesound.org API Collector
 2026.04.01 재사용 모드에서는 로컬 파일 무시하고 API에서만 수집
 2026.04.02 feat: AI 사운드 검증 추가 (컨셉 일치율 향상), 계절 키워드 제거
 2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
+2026.04.04 feat: used_assets 신규 세션 quality=pending 기본값 설정
 """
 
 import shutil
@@ -23,7 +24,8 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 # 사용한 asset 관리
-USED_ASSETS_FILE = Path(__file__).parent.parent / "used_assets.json"
+USED_ASSETS_FILE  = Path(__file__).parent.parent / "used_assets.json"
+BLACKLIST_FILE    = Path(__file__).parent.parent / "blacklist.json"
 
 # 로컬 음원 폴더 루트
 LOCAL_SOUNDS_DIR = Path(__file__).parent.parent / "assets" / "sounds"
@@ -58,6 +60,28 @@ def load_used_assets() -> dict:
     return {}
 
 
+def load_blacklist() -> set:
+    """blacklist.json에서 블랙리스트 파일명 집합 로드"""
+    if not BLACKLIST_FILE.exists():
+        return set()
+    data = json.loads(BLACKLIST_FILE.read_text(encoding="utf-8"))
+    return set(data.get("sounds", []))
+
+
+def save_blacklist(names: set):
+    """블랙리스트 저장"""
+    existing = load_blacklist()
+    merged = existing | names
+    data = {
+        "sounds": sorted(merged),
+        "description": "Freesound 수집 시 이 파일들은 스킵",
+    }
+    BLACKLIST_FILE.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    log.info(f"블랙리스트 업데이트: {len(merged)}개 ({len(names - existing)}개 신규)")
+
+
 def save_used_assets(data: dict):
     USED_ASSETS_FILE.write_text(
         json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
@@ -78,6 +102,7 @@ def register_used_session(session_id: str, title: str,
     data[session_id] = {
         "title":      title,
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "quality":    "pending",
         "sounds":     [f.name for f in sound_files],
         "videos":     [f.name for f in video_files],
     }
@@ -213,15 +238,23 @@ class FreesoundCollector:
         self.session_id = session_id  # used_assets 기록에 사용
         self.sound_dir  = work_dir / "sounds"
         self.sound_dir.mkdir(parents=True, exist_ok=True)
-        self.used  = load_used_assets()
-        self.local = LocalSoundCollector(work_dir, session_id=session_id)
+        self.used      = load_used_assets()
+        self.blacklist = load_blacklist()
+        self.local     = LocalSoundCollector(work_dir, session_id=session_id)
+        if self.blacklist:
+            log.info(f"블랙리스트 로드: {len(self.blacklist)}개 파일 스킵 예정")
         log.info(f"Used sessions so far: {len(self.used)} — {list(self.used.keys())[-3:] if self.used else []}")
 
     def _used_sound_names(self) -> set:
-        """이미 사용된 사운드 파일명 집합 반환"""
+        """이미 사용된 사운드 파일명 집합 반환 (블랙리스트 포함)"""
         names = set()
         for entry in self.used.values():
+            # quality=bad인 세션은 sounds 재사용 허용 (스킵 안 함)
+            if entry.get("quality") == "bad":
+                continue
             names.update(entry.get("sounds", []))
+        # 블랙리스트는 항상 스킵
+        names.update(self.blacklist)
         return names
 
     def _is_api_available(self) -> bool:
@@ -277,6 +310,7 @@ class FreesoundCollector:
                 fresh = [
                     r for r in results
                     if not any(str(r["id"]) in name for name in used_names)
+                    and r.get("name", "") not in self.blacklist
                 ]
                 skipped = len(results) - len(fresh)
 
