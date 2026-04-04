@@ -15,7 +15,10 @@ AI 콘셉트 자동 생성기
 2026.04.01 feat: forest/birds 차별화, 콘셉트 다양성 강화, 최근 제목 10개 참조
 2026.04.02 fix: 계절 키워드 제거, 프롬프트 수정
 2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
-
+# CATEGORY_SOUNDS에 카테고리 있으면 → 해당 쿼리 사용
+# 없으면 → main 쿼리에서 가져옴 (엉뚱한 기본값 없음)
+sounds_sub   = cat_sounds.get("sub",   sounds_main[:1])
+sounds_point = cat_sounds.get("point", sounds_main[:1])
 """
 
 import json
@@ -30,6 +33,46 @@ import anthropic
 log = logging.getLogger(__name__)
 
 MODEL = "claude-haiku-4-5-20251001"
+
+# 공통 고정 태그 (모든 영상에 포함)
+COMMON_TAGS = [
+    # 채널 브랜딩
+    "Calmdromeda", "캄드로메다",
+    # 힐링/수면 한국어
+    "힐링음악", "수면음악", "명상", "백색소음", "자연소리",
+    "수면유도", "숙면사운드", "불면증", "잠안올때", "잠오는음악",
+    "편안한음악", "앰비언트", "릴렉스", "마음이편안해지는",
+    "밤에듣는음악", "잘때듣기좋은노래", "공부음악",
+    # 힐링/수면 영문
+    "asmr", "asmr sounds", "healing", "healing music", "healing sounds",
+    "meditation", "sleep Music", "deep sleep", "relax", "relaxing sounds",
+    "Inner Peace", "ambient", "white noise", "nature sounds",
+    "stress relief", "sleep sound",
+]
+
+# 카테고리별 추가 태그
+CATEGORY_TAGS = {
+    "rain":          ["빗소리", "빗소리ASMR", "rain sounds", "rain asmr"],
+    "rain_thunder":  ["빗소리", "천둥소리", "thunder", "storm sounds"],
+    "ocean":         ["파도소리", "바다소리", "ocean sounds", "wave sound"],
+    "forest":        ["숲소리", "자연소리", "forest sounds", "nature asmr"],
+    "birds":         ["새소리", "풀벌레소리", "bird sounds", "morning birds"],
+    "white_noise":   ["백색소음", "집중사운드", "white noise", "focus sounds"],
+    "cafe":          ["카페소리", "카페음악", "cafe sounds", "coffee shop"],
+    "camping":       ["캠핑소리", "모닥불소리", "campfire", "camping sounds"],
+    "airplane":      ["비행기소리", "기내소음", "airplane sounds", "flight asmr"],
+    "subway":        ["지하철소리", "기차소리", "train sounds", "subway asmr"],
+    "library":       ["도서관소리", "독서실소음", "library sounds", "study asmr"],
+    "underwater":    ["수중소리", "바닷속소리", "underwater sounds", "aquarium"],
+    "hot_spring":    ["온천소리", "물소리", "water sounds", "hot spring"],
+    "fireplace_rain":["모닥불빗소리", "벽난로소리", "fireplace rain", "cozy sounds"],
+    "summer_night":  ["여름밤소리", "귀뚜라미소리", "summer night", "cricket sounds"],
+    "winter_snow":   ["눈소리", "겨울소리", "snow sounds", "winter asmr"],
+    "study_room":    ["공부소리", "집중사운드", "study sounds", "focus asmr"],
+    "stream":        ["계곡소리", "시냇물소리", "stream sounds", "river asmr"],
+    "summer_rain":   ["여름빗소리", "소나기소리", "summer rain", "rain leaves"],
+    "snow_walk":     ["눈밭소리", "발자국소리", "snow walking", "winter walk"],
+}
 
 # 지원 카테고리 전체 목록
 ALL_CATEGORIES = [
@@ -399,8 +442,8 @@ def generate_concept(
     # 메인/서브/포인트 구조에서 각 레이어 쿼리 추출
     cat_sounds = CATEGORY_SOUNDS.get(category, {})
     sounds_main  = cat_sounds.get("main",  ["nature ambient calm"])
-    sounds_sub   = cat_sounds.get("sub",   sounds_main[:1])
-    sounds_point = cat_sounds.get("point", sounds_main[:1])
+    sounds_sub   = cat_sounds.get("sub",   sounds_main[:1])   # 폴백: main에서 가져옴
+    sounds_point = cat_sounds.get("point", sounds_main[:1])   # 폴백: main에서 가져옴
     sounds_all   = sounds_main + sounds_sub + sounds_point
 
     log.info(f"AI 기획 시작 — 카테고리: {category}({category_name}), 계절: {season}")
@@ -507,6 +550,11 @@ def generate_concept(
     else:
         log.info(f"AI 생성 video_queries: {ai_video_queries}")
 
+    # 태그: AI 생성 태그 + 카테고리별 태그 + 공통 태그 조합 (중복 제거)
+    ai_tags = ai.get("tags", [])
+    cat_tags = CATEGORY_TAGS.get(category, [])
+    merged_tags = list(dict.fromkeys(ai_tags + cat_tags + COMMON_TAGS))[:50]
+
     concept = {
         "title":        ai.get("title", f"{category_name} | {duration_hours}시간 힐링 사운드"),
         "category":     category,
@@ -521,7 +569,7 @@ def generate_concept(
         "duration_hours": duration_hours,
         "title_sub":    ai.get("title_sub", "잠잘때 듣기 좋은"),
         "subtitle_en":  ai.get("subtitle_en", "Healing Music"),
-        "tags":         ai.get("tags", [category_name, "ASMR", "힐링음악", "수면음악"]),
+        "tags":         merged_tags,
         "language":     language,
     }
 
