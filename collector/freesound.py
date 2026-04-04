@@ -10,6 +10,7 @@ Freesound.org API Collector
 2026.03.29 수집소스 페이지네이션 (수집소스 고갈 방지)
 2026.04.01 재사용 모드에서는 로컬 파일 무시하고 API에서만 수집
 2026.04.02 feat: AI 사운드 검증 추가 (컨셉 일치율 향상), 계절 키워드 제거
+2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
 """
 
 import shutil
@@ -335,12 +336,16 @@ class FreesoundCollector:
             log.error(f"Sound download failed {sound['id']}: {e}")
             return None
 
-    def collect(self, queries: list[str], count_per_query: int = 3, skip_local: bool = False, concept: dict = None) -> list[Path]:
+    def collect(self, queries: list[str], count_per_query: int = 3, skip_local: bool = False, concept: dict = None, sound_layers: dict = None) -> list[Path]:
         """
         1단계: 로컬 assets/sounds/ 폴더 확인
         2단계: 로컬 부족하면 Freesound API 시도
         3단계: API도 안 되면 로컬 파일만으로 진행
         """
+        # sound_layers가 있으면 메인/서브/포인트 구조로 각각 수집
+        if sound_layers and not skip_local:
+            return self._collect_by_layers(sound_layers, concept)
+
         # 실제 사용하는 레이어는 MAX_SOUND_LAYERS(3)개
         # 유효하지 않은 파일 대비 여유분 확보 (최소 5개)
         needed = max(MAX_SOUND_LAYERS + 2, int(MAX_SOUND_LAYERS * 1.5))
@@ -527,3 +532,52 @@ JSON 형식으로만 응답:
         except Exception as e:
             log.error(f"AI 사운드 검증 실패: {e} — 원본 사용")
             return sound_files
+    def _collect_by_layers(self, sound_layers: dict, concept: dict = None) -> list[Path]:
+        """
+        메인/서브/포인트 구조로 각 레이어별 최적 파일 1개씩 수집
+        - main:  앰비언스 핵심음 → duration 가장 긴 파일
+        - sub:   배경 보완음
+        - point: 포인트 효과음 → duration 짧아도 OK
+        """
+        result = []
+        sound_meta = {}
+        layer_names = ["main", "sub", "point"]
+
+        for layer in layer_names:
+            queries = sound_layers.get(layer, [])
+            if not queries:
+                continue
+
+            found = None
+            for query in queries:
+                if found:
+                    break
+                results = self.search(query, page_size=12)
+                for sound in results:
+                    # 메인은 최소 60초, 서브/포인트는 10초 이상
+                    min_dur = 60 if layer == "main" else 10
+                    if sound.get("duration", 0) < min_dur:
+                        continue
+                    path = self.download(sound)
+                    if path:
+                        found = path
+                        sound_meta[path.name] = {
+                            "tags": sound.get("tags", []),
+                            "description": (sound.get("description", "") or "")[:200],
+                            "layer": layer,
+                        }
+                        break
+                    time.sleep(0.3)
+
+            if found:
+                result.append(found)
+                log.info(f"레이어 [{layer}] 수집 완료: {found.name}")
+            else:
+                log.warning(f"레이어 [{layer}] 수집 실패 — 쿼리: {queries[:2]}")
+
+        # AI 검증
+        if concept and result:
+            result = self._ai_filter_sounds(result, concept, sound_meta)
+
+        log.info(f"레이어 구조 수집 완료: {len(result)}개")
+        return result

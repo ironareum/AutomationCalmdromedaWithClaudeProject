@@ -15,6 +15,8 @@
 2026.04.01 fix: 사운드 타겟팅 강화, 영상 재사용 모드 추가, 그룹 기반 카테고리 로테이션
 2026.04.01 재사용 모드에서는 로컬 파일 무시하고 API에서만 수집
 2026.04.02 feat: AI 사운드 검증 추가 (컨셉 일치율 향상), 계절 키워드 제거
+2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
+
 """
 
 import argparse
@@ -77,7 +79,15 @@ def run_pipeline(concept: dict):
         sound_collector = FreesoundCollector(cfg.freesound_api_key, work_dir, session_id=session_id)
         # 재사용 모드에서는 로컬 음원 무시 (카테고리 불일치 방지)
         skip_local = bool(concept.get("_reuse_video_session"))
-        sound_files = sound_collector.collect(concept["sounds"], count_per_query=3, skip_local=skip_local, concept=concept)
+        # 메인/서브/포인트 레이어 구조로 수집
+        sound_layers = concept.get("sound_layers")
+        sound_files = sound_collector.collect(
+            concept["sounds"],
+            count_per_query=3,
+            skip_local=skip_local,
+            concept=concept,
+            sound_layers=sound_layers,
+        )
         if not sound_files:
             log.error("사운드 파일 없음. assets/sounds/{category}/ 폴더에 음원을 넣거나 Freesound API를 확인하세요.")
             return None

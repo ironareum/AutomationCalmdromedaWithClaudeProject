@@ -17,6 +17,7 @@ FFmpeg Video Producer
 2026.03.29 영상 좌상단 heading 로고 + 우하단 원형 로고 동시 삽입
 2026.03.29 video 수집 개수 판정로직 변경
 2026.03.30 최적화: 영상 CRF 28, fps 24, preset medium (이전값 주석 보관)(처리시간 단축, 영상 해상도/용량 최적화)
+2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
 
 """
 
@@ -156,14 +157,29 @@ class VideoProducer:
                 f.unlink()
 
         # 유효성 검사 통과한 파일로 최대 3개 레이어 구성
-        layers = []
+        # duration 내림차순 정렬: 긴 파일(앰비언스) → 메인, 짧은 파일(효과음) → 포인트
+        valid_files = []
         for f in sound_files:
             if self._is_valid_audio(f):
-                layers.append(f)
+                valid_files.append(f)
             else:
                 log.warning(f"사운드 건너뜀: {f.name}")
-            if len(layers) == 3:
-                break
+
+        # duration 기반 정렬 (ffprobe로 길이 확인)
+        def get_duration(p: Path) -> float:
+            try:
+                import subprocess as sp
+                r = sp.run(
+                    ["ffprobe", "-v", "error", "-show_entries",
+                     "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(p)],
+                    capture_output=True, text=True, timeout=5
+                )
+                return float(r.stdout.strip())
+            except Exception:
+                return 0.0
+
+        valid_files.sort(key=get_duration, reverse=True)
+        layers = valid_files[:3]
 
         if not layers:
             log.error("유효한 사운드 파일이 없습니다")
@@ -185,8 +201,14 @@ class VideoProducer:
             for f in layers:
                 inputs += ["-stream_loop", "-1", "-i", str(f)]
 
-            # 각 레이어 볼륨 설정 (첫번째가 주 사운드, 나머지는 보조)
-            volumes = [1.0, 0.6, 0.4]
+            # 각 레이어 볼륨 설정 (duration 내림차순 정렬 기반)
+            # 메인(60~80%): 가장 긴 파일 = 앰비언스
+            # 서브(10~30%): 중간 파일 = 배경 보완음
+            # 포인트(5~15%): 가장 짧은 파일 = 효과음 (거의 안 들림)
+            import random
+            vol_ranges = [(0.60, 0.80), (0.10, 0.30), (0.05, 0.15)]
+            volumes = [round(random.uniform(*r), 2) for r in vol_ranges[:len(layers)]]
+            log.info(f"레이어 볼륨: {list(zip([f.name for f in layers], volumes))}")
             amix_inputs = "".join(f"[{i}:a]volume={volumes[i]}[a{i}];" for i in range(len(layers)))
             mix_inputs  = "".join(f"[a{i}]" for i in range(len(layers)))
             filter_complex = (

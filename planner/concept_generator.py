@@ -14,7 +14,7 @@ AI 콘셉트 자동 생성기
 2026.04.01 fix: 사운드 타겟팅 강화, 영상 재사용 모드 추가, 그룹 기반 카테고리 로테이션
 2026.04.01 feat: forest/birds 차별화, 콘셉트 다양성 강화, 최근 제목 10개 참조
 2026.04.02 fix: 계절 키워드 제거, 프롬프트 수정
-
+2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
 
 """
 
@@ -148,67 +148,112 @@ CATEGORY_VIDEO_QUERIES = {
 
 # 카테고리별 검증된 Freesound 쿼리 풀
 # AI는 이 목록 안에서만 3개 선택 → 엉뚱한 키워드 방지
+# 카테고리별 검증된 Freesound 쿼리 풀
+# 구조: {"main": [...], "sub": [...], "point": [...]}
+# main  = 앰비언스 핵심음 (60~80%)
+# sub   = 배경 보완음 (10~30%)
+# point = 거의 안 들리는 포인트음 (5~15%)
 CATEGORY_SOUNDS = {
-    "rain": [
-        "heavy rain", "rain on window", "gentle rain",
-        "soft rain", "rain drops", "rain forest",
-        "rainy night", "spring rain", "light rain",
-        "rain storm", "rain roof", "rainfall nature"
-    ],
-    "rain_thunder": [
-        "thunder storm", "heavy rain thunder", "lightning rain",
-        "thunderstorm rain", "distant thunder", "storm rain night"
-    ],
-    "ocean": [
-        "ocean waves", "gentle waves", "beach waves",
-        "calm sea waves", "ocean shore", "coastal waves",
-        "soft ocean waves", "sea water", "waves sandy beach",
-        "calm ocean ambient", "ocean sounds relaxing"
-    ],
-    "forest": [
-        "forest ambience", "nature sounds", "forest birds",
-        "forest rain", "woodland nature", "forest stream",
-        "deep forest", "nature ambience", "forest morning"
-    ],
-    "birds": [
-        "birds chirping", "morning birds", "bird song",
-        "birds singing", "birdsong nature", "birds forest",
-        "dawn chorus birds", "peaceful birds", "birds meadow"
-    ],
-    "white_noise": [
-        "white noise", "brown noise", "pink noise",
-        "fan noise", "static noise", "ambient noise"
-    ],
-    "cafe": [
-        "cafe ambience", "coffee shop", "indoor ambience",
-        "cafe background", "coffee shop noise", "cafe rain window"
-    ],
-    "camping":        ["campfire", "forest night", "crickets night",
-                       "campfire crackling", "night forest", "fire crackling outdoor"],
-    "airplane":       ["airplane cabin", "aircraft noise", "plane engine", "airplane ambience",
-                       "flight noise", "jet engine distant"],
-    "subway":         ["subway train", "metro ambience", "train interior", "train noise",
-                       "underground train", "train rumble"],
-    "library":        ["library ambience", "quiet room", "pages turning", "indoor quiet",
-                       "study ambience", "soft indoor"],
-    "underwater":     ["underwater ambience", "aquarium sounds", "deep ocean", "water bubbles",
-                       "underwater bubbles", "ocean depth"],
-    "hot_spring":     ["hot spring", "water flowing", "steam water", "waterfall gentle",
-                       "flowing water", "water stream relaxing"],
-    "fireplace_rain": ["fireplace crackling", "fire rain", "campfire rain", "crackling fire",
-                       "fireplace indoor", "wood fire crackling"],
-    "summer_night":   ["crickets night", "summer insects", "night nature", "evening insects",
-                       "cicada summer", "summer night ambient"],
-    "winter_snow":    ["winter ambience", "snow wind", "blizzard", "winter forest",
-                       "cold wind nature", "snowfall silent"],
-    "study_room":     ["quiet room", "study ambience", "clock ticking", "indoor quiet study",
-                       "library quiet", "focus ambience"],
-    "stream":         ["forest stream", "babbling brook", "mountain stream", "creek water",
-                       "river flowing", "stream nature"],
-    "summer_rain":    ["summer rain", "rain leaves", "tropical rain", "rain garden",
-                       "summer shower", "rain grass"],
-    "snow_walk":      ["snow footsteps", "snow walking", "crunching snow", "snow steps",
-                       "winter footsteps", "snow crunch outdoor"],
+    "rain": {
+        "main":  ["heavy rain ambient", "gentle rain loopable", "soft rain nature calm"],
+        "sub":   ["soft wind ambient", "rain roof gentle", "rain forest ambient"],
+        "point": ["distant thunder rumble", "rain drops soft", "light rain drizzle"],
+    },
+    "rain_thunder": {
+        "main":  ["thunderstorm rain ambient", "heavy rain thunder calm"],
+        "sub":   ["storm rain background", "rain ambient loop"],
+        "point": ["distant thunder low", "thunder rumble far"],
+    },
+    "ocean": {
+        "main":  ["gentle ocean waves ambient", "calm sea waves loop", "soft ocean shore"],
+        "sub":   ["coastal breeze soft", "ocean wind gentle"],
+        "point": ["distant seagulls calm", "water lapping soft"],
+    },
+    "forest": {
+        "main":  ["forest ambience calm", "woodland nature ambient", "deep forest quiet"],
+        "sub":   ["leaves wind gentle", "forest breeze soft"],
+        "point": ["birds chirping distant", "forest insects quiet"],
+    },
+    "birds": {
+        "main":  ["birds chirping morning calm", "birdsong peaceful ambient", "dawn chorus gentle"],
+        "sub":   ["forest background quiet", "nature ambience soft"],
+        "point": ["single bird distant", "wind leaves gentle"],
+    },
+    "white_noise": {
+        "main":  ["white noise calm", "brown noise smooth", "pink noise gentle"],
+        "sub":   ["fan noise soft ambient", "static noise low"],
+        "point": ["ambient noise quiet", "room tone soft"],
+    },
+    "cafe": {
+        "main":  ["cafe ambience calm", "coffee shop background quiet", "indoor cafe soft"],
+        "sub":   ["cafe background murmur gentle", "indoor ambience soft"],
+        "point": ["coffee cup gentle", "cafe distant chatter low"],
+    },
+    "camping": {
+        "main":  ["campfire crackling calm", "fire crackling gentle loop"],
+        "sub":   ["night forest ambient quiet", "outdoor night calm"],
+        "point": ["crickets distant night", "wind trees gentle"],
+    },
+    "airplane": {
+        "main":  ["airplane cabin ambient", "aircraft interior noise calm", "inflight ambience loop"],
+        "sub":   ["plane engine hum gentle", "airplane interior background"],
+        "point": ["cabin air circulation soft", "flight ambient low"],
+    },
+    "subway": {
+        "main":  ["subway train interior calm", "metro train ride ambient", "underground train gentle"],
+        "sub":   ["rail vibration ambient", "train rumble soft"],
+        "point": ["station distant ambient", "train door soft"],
+    },
+    "library": {
+        "main":  ["library ambience quiet", "reading room ambient calm", "study room quiet"],
+        "sub":   ["pencil writing soft", "paper writing gentle ambient"],
+        "point": ["page turn soft single", "library distant footsteps"],
+    },
+    "underwater": {
+        "main":  ["underwater ambience calm", "aquarium ambient gentle", "deep ocean ambient quiet"],
+        "sub":   ["water bubbles soft gentle", "underwater current soft"],
+        "point": ["deep sea ambient low", "water flow distant gentle"],
+    },
+    "hot_spring": {
+        "main":  ["water flowing calm gentle", "stream flowing peaceful", "hot spring ambient"],
+        "sub":   ["steam ambient soft", "water bubbling gentle"],
+        "point": ["nature birds distant", "wind soft nature"],
+    },
+    "fireplace_rain": {
+        "main":  ["fireplace crackling calm", "fire indoor ambient gentle"],
+        "sub":   ["rain window soft background", "indoor rain ambient gentle"],
+        "point": ["wood fire crackle soft", "rain drizzle distant"],
+    },
+    "summer_night": {
+        "main":  ["crickets night ambient calm", "summer night insects gentle"],
+        "sub":   ["night nature ambient soft", "evening insects background"],
+        "point": ["distant frog night", "night breeze soft"],
+    },
+    "winter_snow": {
+        "main":  ["winter ambience calm quiet", "snow falling ambient gentle"],
+        "sub":   ["soft winter wind low", "cold wind nature quiet"],
+        "point": ["snow footsteps crunch soft", "winter forest distant"],
+    },
+    "study_room": {
+        "main":  ["quiet room ambient calm", "study ambience soft", "indoor quiet ambient"],
+        "sub":   ["clock ticking gentle soft", "air conditioning soft hum"],
+        "point": ["pencil writing paper soft", "keyboard typing gentle"],
+    },
+    "stream": {
+        "main":  ["forest stream gentle calm", "babbling brook peaceful", "creek water flowing soft"],
+        "sub":   ["nature ambient stream background", "river gentle flow"],
+        "point": ["birds stream distant", "wind leaves stream"],
+    },
+    "summer_rain": {
+        "main":  ["summer rain leaves calm", "rain garden gentle ambient", "tropical rain soft"],
+        "sub":   ["rain grass soft background", "summer shower gentle"],
+        "point": ["rain drops leaves soft", "summer breeze gentle"],
+    },
+    "snow_walk": {
+        "main":  ["snow walking ambient calm", "winter footsteps snow gentle"],
+        "sub":   ["winter forest ambient quiet", "cold wind soft nature"],
+        "point": ["snow crunch soft single", "winter silence ambient"],
+    },
 }
 
 # 카테고리별 사운드 특성 힌트 (프롬프트에 주입 → AI가 카테고리 특성 정확히 인식)
@@ -351,14 +396,24 @@ def generate_concept(
     recent_titles  = _get_recent_titles(used_assets_path)
     category       = _pick_category(recent_cats)
     category_name  = CATEGORY_KO.get(category, category)
-    sounds         = CATEGORY_SOUNDS.get(category, ["nature sounds"])
+    # 메인/서브/포인트 구조에서 각 레이어 쿼리 추출
+    cat_sounds = CATEGORY_SOUNDS.get(category, {})
+    sounds_main  = cat_sounds.get("main",  ["nature ambient calm"])
+    sounds_sub   = cat_sounds.get("sub",   sounds_main[:1])
+    sounds_point = cat_sounds.get("point", sounds_main[:1])
+    sounds_all   = sounds_main + sounds_sub + sounds_point
 
     log.info(f"AI 기획 시작 — 카테고리: {category}({category_name}), 계절: {season}")
 
     # ── 프롬프트 ──────────────────────────────────────────────────────
     recent_titles_str = "\n".join(f"- {t}" for t in recent_titles[:10]) or "없음"
 
-    default_sounds_str = ", ".join(sounds)
+    # 프롬프트용 사운드 풀 (메인/서브/포인트 구분해서 전달)
+    default_sounds_str = (
+        f"[메인 앰비언스] {', '.join(sounds_main)}\n"
+        f"[서브 배경음]   {', '.join(sounds_sub)}\n"
+        f"[포인트 효과음] {', '.join(sounds_point)}"
+    )
     default_videos = CATEGORY_VIDEO_QUERIES.get(category, [category])
     default_videos_str = ", ".join(default_videos)
     sound_hint = CATEGORY_SOUND_HINTS.get(category, "카테고리에 맞는 자연음 선택")
@@ -389,7 +444,10 @@ def generate_concept(
 4. 최근 업로드 제목과 겹치지 않게
 5. title_sub는 썸네일 상단에 들어갈 짧은 문구 (10자 이내)
 6. subtitle_en은 썸네일 하단 영문 (2~3단어)
-7. sounds는 [사운드 쿼리 풀] 목록에서 [카테고리 사운드 특성]에 맞는 것 3개 선택
+7. sounds는 반드시 아래 3개 구조로 선택:
+   - sounds[0]: [메인 앰비언스] 목록에서 1개 선택 (핵심 공간음)
+   - sounds[1]: [서브 배경음] 목록에서 1개 선택 (보완 배경음)
+   - sounds[2]: [포인트 효과음] 목록에서 1개 선택 (거의 안 들리는 세부음)
    - 반드시 목록에 있는 것만 선택 (임의 생성 금지)
    - 카테고리 특성에 어긋나는 쿼리 절대 선택 금지
 8. video_queries는 [영상 쿼리 풀] 목록에서 오늘 콘셉트/계절/mood에 맞는 것 3~4개 선택
@@ -436,9 +494,9 @@ def generate_concept(
     # ── 최종 콘셉트 조합 ─────────────────────────────────────────────
     # AI가 생성한 sounds 사용, 없거나 형식 이상하면 기본값 폴백
     ai_sounds = ai.get("sounds", [])
-    if not isinstance(ai_sounds, list) or len(ai_sounds) < 1:
-        ai_sounds = sounds
-        log.warning("sounds 생성 실패 — 기본 카테고리 쿼리 사용")
+    if not isinstance(ai_sounds, list) or len(ai_sounds) < 3:
+        ai_sounds = [sounds_main[0], sounds_sub[0], sounds_point[0]]
+        log.warning("sounds 생성 실패 — 기본 메인/서브/포인트 쿼리 사용")
     else:
         log.info(f"AI 생성 sounds: {ai_sounds}")
 
@@ -453,6 +511,11 @@ def generate_concept(
         "title":        ai.get("title", f"{category_name} | {duration_hours}시간 힐링 사운드"),
         "category":     category,
         "sounds":       ai_sounds,
+        "sound_layers": {
+            "main":  cat_sounds.get("main",  [ai_sounds[0]] if ai_sounds else ["nature ambient calm"]),
+            "sub":   cat_sounds.get("sub",   [ai_sounds[1]] if len(ai_sounds) > 1 else ["wind gentle soft"]),
+            "point": cat_sounds.get("point", [ai_sounds[2]] if len(ai_sounds) > 2 else ["birds distant quiet"]),
+        },
         "video_queries": ai_video_queries,
         "mood":         ai.get("mood", "calm and relaxing"),
         "duration_hours": duration_hours,
@@ -473,7 +536,12 @@ def _fallback_concept(category: str, season: str) -> dict:
     모든 카테고리를 자동 지원 → 새 카테고리 추가해도 자동 적용
     """
     category_name = CATEGORY_KO.get(category, category)
-    sounds        = CATEGORY_SOUNDS.get(category, ["nature sounds"])[:3]
+    cat_sounds = CATEGORY_SOUNDS.get(category, {})
+    sounds = [
+        cat_sounds.get("main",  ["nature ambient calm"])[0],
+        cat_sounds.get("sub",   ["wind gentle soft"])[0],
+        cat_sounds.get("point", ["birds distant quiet"])[0],
+    ]
     video_queries = CATEGORY_VIDEO_QUERIES.get(category, [category])[:3]
 
     return {
