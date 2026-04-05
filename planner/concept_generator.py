@@ -16,6 +16,8 @@ AI 콘셉트 자동 생성기
 2026.04.02 fix: 계절 키워드 제거, 프롬프트 수정
 2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
 2026.04.04 feat: 제목 SEO 키워드 강화, 태그 한/영 통합, 폴백 개선
+2026.04.05 fix: rain/forest 하이노이즈 제거, white_noise brown noise만 허용
+
 """
 
 import json
@@ -219,9 +221,9 @@ CATEGORY_VIDEO_QUERIES = {
 # point = 거의 안 들리는 포인트음 (5~15%)
 CATEGORY_SOUNDS = {
     "rain": {
-        "main":  ["heavy rain ambient", "gentle rain loopable", "soft rain nature calm"],
-        "sub":   ["soft wind ambient", "rain roof gentle", "rain forest ambient"],
-        "point": ["distant thunder rumble", "rain drops soft", "light rain drizzle"],
+        "main":  ["gentle rain loopable", "soft rain nature calm", "rain window indoor calm"],
+        "sub":   ["rain roof gentle", "light rain drizzle ambient"],
+        "point": ["rain drops soft single", "rain puddle gentle"],
     },
     "rain_thunder": {
         "main":  ["thunderstorm rain ambient", "heavy rain thunder calm"],
@@ -234,9 +236,9 @@ CATEGORY_SOUNDS = {
         "point": ["distant seagulls calm", "water lapping soft"],
     },
     "forest": {
-        "main":  ["forest ambience calm", "woodland nature ambient", "deep forest quiet"],
-        "sub":   ["leaves wind gentle", "forest breeze soft"],
-        "point": ["birds chirping distant", "forest insects quiet"],
+        "main":  ["forest ambience calm", "deep forest quiet ambient", "woodland morning calm"],
+        "sub":   ["leaves rustle gentle", "forest background quiet"],
+        "point": ["birds chirping distant soft", "forest insects quiet low"],
     },
     "birds": {
         "main":  ["birds chirping morning calm", "birdsong peaceful ambient", "dawn chorus gentle"],
@@ -244,9 +246,9 @@ CATEGORY_SOUNDS = {
         "point": ["single bird distant", "wind leaves gentle"],
     },
     "white_noise": {
-        "main":  ["white noise calm", "brown noise smooth", "pink noise gentle"],
-        "sub":   ["fan noise soft ambient", "static noise low"],
-        "point": ["ambient noise quiet", "room tone soft"],
+        "main":  ["brown noise smooth", "brown noise sleep ambient", "deep brown noise calm"],
+        "sub":   ["room tone soft ambient", "fan noise soft low"],
+        "point": ["ambient hum quiet", "low frequency hum gentle"],
     },
     "cafe": {
         "main":  ["cafe ambience calm", "coffee shop background quiet", "indoor cafe soft"],
@@ -322,12 +324,12 @@ CATEGORY_SOUNDS = {
 
 # 카테고리별 사운드 특성 힌트 (프롬프트에 주입 → AI가 카테고리 특성 정확히 인식)
 CATEGORY_SOUND_HINTS = {
-    "rain":          "빗소리 위주. 실내에서 듣는 빗소리 느낌.",
+    "rain":          "차분하고 부드러운 빗소리. 강한 바람/하이 프리퀀시 절대 금지. 창문에 조용히 떨어지는 빗소리 느낌.",
     "rain_thunder":  "빗소리+천둥. 극적이고 웅장한 폭풍우 느낌.",
     "ocean":         "파도 소리. 해변에서 듣는 파도/바다 느낌.",
-    "forest":        "숲 앰비언스. 바람+나뭇잎+풀벌레 위주. 새소리는 배경으로만. 숲 전체 공간감.",
+    "forest":        "조용하고 차분한 숲 앰비언스. 강한 바람/하이 노이즈 절대 금지. 나뭇잎 살랑이는 소리+풀벌레+먼 새소리. 고요한 숲 공간감.",
     "birds":         "새소리가 메인. 특정 새 울음소리+아침 합창. 숲 배경음 최소화. 새 울음이 전면에.",
-    "white_noise":   "백색소음. 지속적이고 일정한 노이즈.",
+    "white_noise":   "브라운 노이즈만 허용. 화이트/핑크 노이즈 절대 금지. 저음 위주의 부드럽고 묵직한 소리. 아주 작은 볼륨으로.",
     "cafe":          "카페 실내음. 대화소리+커피머신+배경음악 없는 분위기.",
     "camping":       "캠핑. 모닥불 타는 소리+밤 자연음.",
     "airplane":      "비행기 기내. 엔진소음+기내 공기소리. 파도/새소리 절대 금지.",
