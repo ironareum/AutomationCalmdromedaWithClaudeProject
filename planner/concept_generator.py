@@ -18,6 +18,7 @@ AI 콘셉트 자동 생성기
 2026.04.04 feat: 제목 SEO 키워드 강화, 태그 한/영 통합, 폴백 개선
 2026.04.05 fix: rain/forest 하이노이즈 제거, white_noise brown noise만 허용
 2026.04.05 feat: 신규 카테고리 5개 추가 (cave_water/ice_melt/bath_house/train_ride/temple_bell)
+2026.04.05 feat: category 필드 추가, 순차 카테고리 선택 로직 완성
 """
 
 import json
@@ -406,25 +407,34 @@ def _get_season(today: date) -> str:
 
 def _get_recent_categories(used_assets_path: Path, n: int = None) -> list[str]:
     """
-    최근 N개 세션에서 사용한 카테고리 목록 반환
-    n 기본값: 카테고리 수의 절반 (20개면 10개 추적)
+    최근 N개 세션에서 사용한 카테고리 목록 반환 (최신순)
+    metadata의 category 필드 우선 사용
     """
     if n is None:
-        n = max(7, len(ALL_CATEGORIES) // 2)
+        n = len(ALL_CATEGORIES)  # 전체 카테고리 수만큼 추적
     if not used_assets_path.exists():
         return []
     data = json.loads(used_assets_path.read_text(encoding="utf-8"))
-    # session_id 최신순 정렬
     recent = sorted(data.keys(), reverse=True)[:n]
     categories = []
     for sid in recent:
         entry = data[sid]
-        # 제목에서 카테고리 추론 (sounds 파일명 기반)
+        # category 필드 직접 사용 (없으면 sounds 기반 추론)
+        cat = entry.get("category", "")
+        if cat and cat not in categories:
+            categories.append(cat)
+            continue
+        # 폴백: sounds 파일명 기반 추론
         sounds = entry.get("sounds", [])
-        for cat, queries in CATEGORY_SOUNDS.items():
-            if any(any(q.split()[0] in s.lower() for q in queries) for s in sounds):
-                if cat not in categories:
-                    categories.append(cat)
+        for c, queries in CATEGORY_SOUNDS.items():
+            if isinstance(list(queries.values())[0], list):
+                all_q = [q for qs in queries.values() for q in qs]
+            else:
+                all_q = list(queries)
+            if any(any(q.split()[0] in s.lower() for q in all_q) for s in sounds):
+                if c not in categories:
+                    categories.append(c)
+                break
     return categories
 
 
@@ -439,47 +449,50 @@ def _get_recent_titles(used_assets_path: Path, n: int = 14) -> list[str]:
 
 def _pick_category(recent_categories: list[str]) -> str:
     """
-    카테고리 선택 로직 (그룹 기반 반복 방지)
+    카테고리 순차 선택 로직
 
-    1. 미사용 카테고리 중 → 최근 사용 그룹 제외 후 랜덤
-    2. 미사용 없으면 → 최근 3개 그룹 제외 후 랜덤
-    3. 그래도 없으면 → 최근 3개 카테고리만 피하고 랜덤
-
-    [그룹 반복 방지]
-    rain_group: rain, rain_thunder, summer_rain, fireplace_rain
-    → 이 중 하나 나왔으면 다음엔 다른 그룹에서 선택
+    - ALL_CATEGORIES 순서대로 순차 진행
+    - 최근 7개 세션 카테고리는 스킵
+    - 단, 같은 그룹이 연속되지 않도록 체크
+    - 전체 순환 완료 시 처음부터 재시작 (최근 2개만 피함)
     """
-    # 최근 사용 그룹 파악 (최근 4개)
+    SKIP_RECENT = 7  # 최근 N개 카테고리 스킵
+
+    # 최근 2개 그룹 파악 (그룹 연속 방지)
     recent_groups = []
-    for cat in recent_categories[:4]:
+    for cat in recent_categories[:2]:
         g = _get_group(cat)
         if g and g not in recent_groups:
             recent_groups.append(g)
 
-    # 1단계: 미사용 카테고리 중 최근 그룹 제외
-    unused = [c for c in ALL_CATEGORIES if c not in recent_categories]
+    # 1단계: 최근 7개 미사용 카테고리 중 순서대로
+    skip_set = set(recent_categories[:SKIP_RECENT])
+    unused = [c for c in ALL_CATEGORIES if c not in skip_set]
     if unused:
-        # 최근 그룹 제외한 미사용 카테고리
+        # 최근 그룹 제외한 미사용 중 첫 번째
         preferred = [c for c in unused if _get_group(c) not in recent_groups]
-        pool = preferred if preferred else unused
-        chosen = random.choice(pool)
-        reason = f"미사용 {len(unused)}개 중" + (f" 최근 그룹({recent_groups[:2]}) 제외" if preferred != unused else "")
-        log.info(f"카테고리 선택: {chosen} ({reason} 랜덤)")
+        if preferred:
+            chosen = preferred[0]
+            log.info(f"카테고리 선택: {chosen} (순차, 최근 {SKIP_RECENT}개 스킵, 그룹 {recent_groups} 제외)")
+            return chosen
+        # 그룹 피할 수 없으면 미사용 중 첫 번째
+        chosen = unused[0]
+        log.info(f"카테고리 선택: {chosen} (순차, 최근 {SKIP_RECENT}개 스킵)")
         return chosen
 
-    # 2단계: 전부 최근에 썼으면 최근 3개 그룹 제외
+    # 2단계: 전체 순환 완료 → 최근 2개만 피하고 재시작
     available = [c for c in ALL_CATEGORIES
-                 if c not in recent_categories[:3]
-                 and _get_group(c) not in recent_groups[:3]]
+                 if c not in recent_categories[:2]
+                 and _get_group(c) not in recent_groups]
     if available:
-        chosen = random.choice(available)
-        log.info(f"카테고리 선택: {chosen} (전체 로테이션 완료, 그룹 제외 랜덤)")
+        chosen = available[0]
+        log.info(f"카테고리 선택: {chosen} (전체 순환 완료, 재시작)")
         return chosen
 
-    # 3단계: 최후 수단 — 최근 3개만 피함
-    fallback = [c for c in ALL_CATEGORIES if c not in recent_categories[:3]]
-    chosen = random.choice(fallback) if fallback else random.choice(ALL_CATEGORIES)
-    log.info(f"카테고리 선택: {chosen} (최후 수단 랜덤)")
+    # 3단계: 최후 수단
+    fallback = [c for c in ALL_CATEGORIES if c not in recent_categories[:2]]
+    chosen = fallback[0] if fallback else ALL_CATEGORIES[0]
+    log.info(f"카테고리 선택: {chosen} (최후 수단)")
     return chosen
 
 

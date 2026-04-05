@@ -156,6 +156,7 @@ def run_pipeline(concept: dict):
             title=concept["title"],
             sound_files=used_sounds,
             video_files=used_videos,
+            category=concept.get("category", ""),
         )
 
         # 4. 썸네일 생성 — 수집된 영상 중 첫 번째 파일의 첫 프레임을 배경으로 사용

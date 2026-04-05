@@ -12,6 +12,8 @@ Freesound.org API Collector
 2026.04.02 feat: AI 사운드 검증 추가 (컨셉 일치율 향상), 계절 키워드 제거
 2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
 2026.04.04 feat: used_assets 신규 세션 quality=pending 기본값 설정
+2026.04.05 feat: category 필드 추가, 순차 카테고리 선택 로직 완성
+
 """
 
 import shutil
@@ -89,11 +91,11 @@ def save_used_assets(data: dict):
 
 
 def register_used_session(session_id: str, title: str,
-                           sound_files: list, video_files: list):
+                           sound_files: list, video_files: list,
+                           category: str = ""):
     """
     파이프라인 완료 후 실제 사용한 소스를 used_assets.json에 등록
     키: session_id (output 폴더명과 동일)
-
     """
     from datetime import datetime
 
@@ -101,6 +103,7 @@ def register_used_session(session_id: str, title: str,
 
     data[session_id] = {
         "title":      title,
+        "category":   category,
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "quality":    "pending",
         "sounds":     [f.name for f in sound_files],
@@ -508,6 +511,11 @@ class FreesoundCollector:
   (비행기 컨셉인데 waves/birds, 수중 컨셉인데 rain/wind 등)
 ✗ 긴장감/공포감/불쾌감을 줄 수 있는 소리
 ✗ 반복적이고 자극적인 기계음, 경보음, 사이렌
+✗ 강한 바람 소리, 하이 노이즈, 하이 프리퀀시 소리
+  (wind, gust, howl, noise, hiss, hum high, static 등 — 귀에 거슬리는 고주파 성분)
+✗ 화이트 노이즈, 핑크 노이즈 (브라운 노이즈만 허용)
+✗ 음악적 요소 포함 (멜로디, 비트, 리듬, 악기 연주 등)
+  (music, beat, melody, funk, loop with melody, song 등)
 
 [예외 처리]
 - 모든 파일이 부적합해도 반드시 가장 나은 3개 선택 (파일이 없으면 영상 제작 불가)

@@ -17,7 +17,7 @@ env.example
 /used_assets.json
 #/used_assets.json.enc
 /history.txt
-/history.txt.enc
+#/history.txt.enc
 
 
 # 빌드/캐시
