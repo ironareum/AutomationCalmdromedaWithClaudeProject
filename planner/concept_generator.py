@@ -17,7 +17,7 @@ AI 콘셉트 자동 생성기
 2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
 2026.04.04 feat: 제목 SEO 키워드 강화, 태그 한/영 통합, 폴백 개선
 2026.04.05 fix: rain/forest 하이노이즈 제거, white_noise brown noise만 허용
-
+2026.04.05 feat: 신규 카테고리 5개 추가 (cave_water/ice_melt/bath_house/train_ride/temple_bell)
 """
 
 import json
@@ -105,6 +105,7 @@ ALL_CATEGORIES = [
     "hot_spring", "fireplace_rain", "summer_night",
     "winter_snow", "study_room", "stream",
     "summer_rain", "snow_walk",
+    "cave_water", "ice_melt", "bath_house", "train_ride", "temple_bell",
 ]
 
 # 비슷한 카테고리 그룹 — 같은 그룹 연속 방지
@@ -116,6 +117,9 @@ CATEGORY_GROUPS = {
     "travel_group":  ["airplane", "subway"],
     "ambient_group": ["white_noise", "camping"],
     "winter_group":  ["winter_snow", "snow_walk"],
+    "water_drip_group": ["cave_water", "ice_melt"],
+    "zen_group":     ["temple_bell", "bath_house"],
+    "transit_group": ["airplane", "subway", "train_ride"],
 }
 
 def _get_group(category: str) -> str | None:
@@ -148,6 +152,11 @@ CATEGORY_KO = {
     "stream":         "계곡/시냇물",
     "summer_rain":    "여름 소나기/나뭇잎 빗소리",
     "snow_walk":      "눈밭 발자국 소리",
+    "cave_water":     "동굴 물방울 소리",
+    "ice_melt":       "얼음 녹는 소리",
+    "bath_house":     "대중목욕탕/온천 ASMR",
+    "train_ride":     "열차 실내 소리",
+    "temple_bell":    "목탁/사찰 소리",
 }
 
 # 카테고리별 Freesound 검색 쿼리
@@ -210,6 +219,16 @@ CATEGORY_VIDEO_QUERIES = {
                        "rain drops leaves", "rain forest summer"],
     "snow_walk":      ["snow walking path", "winter snow walk", "snowy forest path",
                        "footprints snow", "winter walk nature"],
+    "cave_water":     ["cave waterfall", "stalactite cave", "underground cave water",
+                       "cave dripping", "dark cave nature"],
+    "ice_melt":       ["ice melting water", "ice close up", "frozen water melting",
+                       "crystal ice water", "cold water drops"],
+    "bath_house":     ["hot spring pool", "steam bath water", "spa water surface",
+                       "thermal pool steam", "onsen japan"],
+    "train_ride":     ["train window night", "train interior moving", "railway journey",
+                       "train window landscape", "night train window"],
+    "temple_bell":    ["zen temple garden", "buddhist temple", "japanese garden calm",
+                       "temple morning", "buddhist meditation"],
 }
 
 # 카테고리별 검증된 Freesound 쿼리 풀
@@ -320,6 +339,31 @@ CATEGORY_SOUNDS = {
         "sub":   ["winter forest ambient quiet", "cold wind soft nature"],
         "point": ["snow crunch soft single", "winter silence ambient"],
     },
+    "cave_water": {
+        "main":  ["cave dripping water ambient", "cave water drops echo", "underground cave ambient"],
+        "sub":   ["cave echo soft", "water drip cave gentle"],
+        "point": ["cave ambient low hum", "distant water drip"],
+    },
+    "ice_melt": {
+        "main":  ["ice melting water gentle", "water drips ice calm", "cold water drops ambient"],
+        "sub":   ["ice cracking soft gentle", "water trickle soft"],
+        "point": ["ice ambient quiet", "frozen water ambient"],
+    },
+    "bath_house": {
+        "main":  ["onsen hot spring ambient", "bath water gentle splash", "spa pool ambient calm"],
+        "sub":   ["steam ambient soft", "water surface gentle"],
+        "point": ["distant bath ambient", "water bubbles soft low"],
+    },
+    "train_ride": {
+        "main":  ["train interior ambient calm", "railway ride ambient", "train window moving gentle"],
+        "sub":   ["train rhythm gentle", "rail track ambient soft"],
+        "point": ["train distant whistle soft", "cabin ambient quiet"],
+    },
+    "temple_bell": {
+        "main":  ["temple bell ambient calm", "buddhist bell meditation", "zen bell gentle"],
+        "sub":   ["birds temple morning soft", "nature temple ambient"],
+        "point": ["distant temple bell", "wind chime gentle soft"],
+    },
 }
 
 # 카테고리별 사운드 특성 힌트 (프롬프트에 주입 → AI가 카테고리 특성 정확히 인식)
@@ -344,6 +388,11 @@ CATEGORY_SOUND_HINTS = {
     "stream":        "계곡/시냇물. 물 흐르는 소리+돌 위 물소리.",
     "summer_rain":   "여름 소나기. 나뭇잎에 떨어지는 빗소리+흙냄새 느낌.",
     "snow_walk":     "눈밭 발자국. 뽀득뽀득 눈 밟는 소리 위주.",
+    "cave_water":    "동굴 물방울. 천천히 떨어지는 물방울+동굴 에코. 고요하고 신비로운 느낌. 심플하게.",
+    "ice_melt":      "얼음 녹는 소리. 물방울 떨어지는 소리+얼음 녹는 소리. 조용하고 차갑고 투명한 느낌.",
+    "bath_house":    "대중목욕탕/온천. 잔잔한 물소리+증기+멀리서 들리는 물소리. 따뜻하고 포근한 느낌.",
+    "train_ride":    "열차 실내. 리드미컬한 레일 소리+기차 진동. 잠들 것 같은 부드러운 기차 주행음. 자연음 절대 금지.",
+    "temple_bell":   "목탁/사찰. 차분한 목탁 소리+잔잔한 새소리. 저음 목탁, 하이 프리퀀시 금지. 명상적이고 고요한 느낌.",
 }
 
 
