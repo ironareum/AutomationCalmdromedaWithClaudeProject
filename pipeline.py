@@ -16,6 +16,7 @@
 2026.04.01 재사용 모드에서는 로컬 파일 무시하고 API에서만 수집
 2026.04.02 feat: AI 사운드 검증 추가 (컨셉 일치율 향상), 계절 키워드 제거
 2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
+2026.04.07 feat: 제목/설명 영문 추가 (글로벌 타겟팅)
 
 """
 
@@ -232,8 +233,8 @@ def run_pipeline(concept: dict):
 
             if shorts_path:
                 log.info("Step 7: [쇼츠 업로드] YouTube Shorts 업로드 시작...")
-                # 쇼츠용 제목: 원본 제목 앞에 이모지 추가, 뒤에 #Shorts
-                shorts_title = concept["title"]
+                # 쇼츠용 제목: 감성적 shorts_title 사용
+                shorts_title = concept.get("shorts_title", concept["title"])
                 if len(shorts_title) > 90:
                     shorts_title = shorts_title[:90]
 
@@ -347,10 +348,11 @@ def generate_description(concept: dict) -> str:
     language = concept.get("language", "ko")
     hours = concept["duration_hours"]
     mood = concept.get("mood", "calming")
+    desc_en = concept.get("description_en", "")
 
-    if language == "ko":
-        tags_str = " ".join(f"#{t.replace(' ', '')}" for t in concept["tags"])
-        return f"""{concept['title']}
+    tags_str = " ".join(f"#{t.replace(' ', '')}" for t in concept["tags"])
+
+    ko_section = f"""{concept['title']}
 
 편안하게 쉬거나, 집중하거나, 깊은 잠에 빠져들어 보세요.
 {hours}시간의 {mood} 사운드스케이프입니다.
@@ -360,28 +362,23 @@ def generate_description(concept: dict) -> str:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 🔔 매일 새로운 힐링 사운드 → @Calmdromeda 구독
-━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━"""
 
-{tags_str}
-
-#힐링음악 #ASMR #수면음악 #백색소음 #자연소리 #집중음악
-"""
-    else:
-        tags_str = " ".join(f"#{t.replace(' ', '')}" for t in concept["tags"])
-        return f"""{concept['title']}
-
-Relax, focus, or drift off to sleep with this {hours}-hour {mood} soundscape.
+    en_section = desc_en if desc_en else f"""Relax, focus, or drift off to sleep with this {hours}-hour soundscape.
 Perfect for studying, working, meditation, or deep sleep.
-
-🎧 Best experienced with headphones or speakers at low volume.
+Best experienced with headphones. 🎧
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 🔔 Subscribe for daily calming sounds → @Calmdromeda
-━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━"""
+
+    return f"""{ko_section}
+
+{en_section}
 
 {tags_str}
 
-#calmsounds #sleepsounds #relaxation #naturesounds #whitenoise
+#힐링음악 #ASMR #수면음악 #백색소음 #자연소리 #집중음악 #calmsounds #sleepsounds #relaxation #naturesounds
 """
 
 
