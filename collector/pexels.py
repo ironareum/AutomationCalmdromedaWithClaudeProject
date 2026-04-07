@@ -8,6 +8,7 @@ Pexels API Video Collector
 2026.04.07 feat: 로컬 영상 폴더 지원 (assets/video/), 영상 기본 수 3개로 변경
 2026.04.07 feat: Pexels 영상 검색 no people 키워드 추가
 2026.04.07 fix: Pexels size large → medium (1080p 이상 허용, 선택지 확대
+2026.04.07 feat: Pexels 긴 영상 우선 정렬, bath_house 실내 전용으로 변경
 """
 
 import time
@@ -74,7 +75,9 @@ class PexelsCollector:
             pool = no_people if no_people else fresh  # 없으면 원본 사용
 
             skipped = len(videos) - len(fresh)
-            log.info(f"Pexels '{query}': {len(videos)} found / {skipped} skipped (used) / {people_count} people filtered / {len(pool)} fresh")
+            # 긴 영상 우선 정렬
+            pool = sorted(pool, key=lambda v: v.get("duration", 0), reverse=True)
+            log.info(f"Pexels '{query}': {len(videos)} found / {skipped} skipped (used) / {people_count} people filtered / {len(pool)} fresh (duration sorted)")
             return pool
         except requests.RequestException as e:
             log.error(f"Pexels search failed '{query}': {e}")
@@ -82,18 +85,20 @@ class PexelsCollector:
 
     def get_best_file(self, video: dict, prefer_4k: bool = True) -> dict | None:
         """
-        영상 파일 중 최적 해상도 선택
-        우선순위: 4K(2160) > FHD(1080) > HD(720)
+        영상 파일 중 최적 선택
+        우선순위: 긴 영상 + 고해상도
         """
         files = video.get("video_files", [])
         if not files:
             return None
 
-        # 해상도 기준 정렬
         resolution_priority = {2160: 4, 1440: 3, 1080: 2, 720: 1}
+        mp4_files = [f for f in files if f.get("file_type") == "video/mp4"]
+        # 해상도 + 영상 길이(duration) 복합 정렬 (긴 영상 우선)
+        duration = video.get("duration", 0)
         files_sorted = sorted(
-            [f for f in files if f.get("file_type") == "video/mp4"],
-            key=lambda f: resolution_priority.get(f.get("height", 0), 0),
+            mp4_files,
+            key=lambda f: (resolution_priority.get(f.get("height", 0), 0), duration),
             reverse=True
         )
         return files_sorted[0] if files_sorted else None

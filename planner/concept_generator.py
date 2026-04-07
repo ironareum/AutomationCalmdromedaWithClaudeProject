@@ -166,7 +166,7 @@ CATEGORY_KO = {
     "snow_walk":      "눈밭 발자국 소리",
     "cave_water":     "동굴 물방울 소리",
     "ice_melt":       "얼음 녹는 소리",
-    "bath_house":     "대중목욕탕/온천 ASMR",
+    "bath_house":     "실내 목욕탕/사우나 ASMR",
     "train_ride":     "열차 실내 소리",
     "temple_bell":    "목탁/사찰 소리",
 }
@@ -235,8 +235,8 @@ CATEGORY_VIDEO_QUERIES = {
                        "cave dripping", "dark cave nature"],
     "ice_melt":       ["ice melting water", "ice close up", "frozen water melting",
                        "crystal ice water", "cold water drops"],
-    "bath_house":     ["hot spring pool", "steam bath water", "spa water surface",
-                       "thermal pool steam", "onsen japan"],
+    "bath_house":     ["indoor sauna steam", "bathhouse interior", "spa pool indoor",
+                       "steam room interior", "hot tub indoor"],
     "train_ride":     ["train window night", "train interior moving", "railway journey",
                        "train window landscape", "night train window"],
     "temple_bell":    ["zen temple garden", "buddhist temple", "japanese garden calm",
@@ -362,9 +362,9 @@ CATEGORY_SOUNDS = {
         "point": ["ice ambient quiet", "frozen water ambient"],
     },
     "bath_house": {
-        "main":  ["onsen hot spring ambient", "bath water gentle splash", "spa pool ambient calm"],
-        "sub":   ["steam ambient soft", "water surface gentle"],
-        "point": ["distant bath ambient", "water bubbles soft low"],
+        "main":  ["indoor bath water flowing gentle", "bathhouse water ambient calm", "spa indoor water bubbling"],
+        "sub":   ["steam room ambient soft", "water ripple indoor gentle"],
+        "point": ["water drip indoor soft", "bath steam hiss low"],
     },
     "train_ride": {
         "main":  ["train interior ambient calm", "railway ride ambient", "train window moving gentle"],
@@ -402,7 +402,7 @@ CATEGORY_SOUND_HINTS = {
     "snow_walk":     "눈밭 발자국. 뽀득뽀득 눈 밟는 소리 위주.",
     "cave_water":    "동굴 물방울. 천천히 떨어지는 물방울+동굴 에코. 고요하고 신비로운 느낌. 심플하게.",
     "ice_melt":      "얼음 녹는 소리. 물방울 떨어지는 소리+얼음 녹는 소리. 조용하고 차갑고 투명한 느낌.",
-    "bath_house":    "대중목욕탕/온천. 잔잔한 물소리+증기+멀리서 들리는 물소리. 따뜻하고 포근한 느낌.",
+    "bath_house":    "실내 대중목욕탕/사우나 전용. 보글보글 물소리+물 찰랑거리는 소리+증기 소리. 야외/자연음 절대 금지. 실내 욕탕 특유의 울림과 물소리만.",
     "train_ride":    "열차 실내. 리드미컬한 레일 소리+기차 진동. 잠들 것 같은 부드러운 기차 주행음. 자연음 절대 금지.",
     "temple_bell":   "목탁/사찰. 차분한 목탁 소리+잔잔한 새소리. 저음 목탁, 하이 프리퀀시 금지. 명상적이고 고요한 느낌.",
 }
