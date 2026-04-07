@@ -56,12 +56,26 @@ class PexelsCollector:
 
             # 이미 사용한 영상 필터링
             fresh = [v for v in videos if not is_video_used(str(v["id"]))]
+
+            # 사람 관련 키워드 포함 영상 제외
+            PEOPLE_KEYWORDS = ["people", "person", "man", "woman", "girl", "boy",
+                                "human", "crowd", "face", "portrait", "model",
+                                "사람", "남자", "여자", "인물"]
+            def has_people(v):
+                text = " ".join([
+                    v.get("url", ""),
+                    str(v.get("user", {}).get("name", "")),
+                    " ".join(str(t) for t in v.get("tags", [])),
+                ]).lower()
+                return any(kw in text for kw in PEOPLE_KEYWORDS)
+
+            no_people = [v for v in fresh if not has_people(v)]
+            people_count = len(fresh) - len(no_people)
+            pool = no_people if no_people else fresh  # 없으면 원본 사용
+
             skipped = len(videos) - len(fresh)
-            if skipped:
-                log.info(f"Pexels '{query}': {len(videos)} found / {skipped} skipped (used) / {len(fresh)} fresh")
-            else:
-                log.info(f"Pexels '{query}': {len(fresh)} fresh results")
-            return fresh
+            log.info(f"Pexels '{query}': {len(videos)} found / {skipped} skipped (used) / {people_count} people filtered / {len(pool)} fresh")
+            return pool
         except requests.RequestException as e:
             log.error(f"Pexels search failed '{query}': {e}")
             return []

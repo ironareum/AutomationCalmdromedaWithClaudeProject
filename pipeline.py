@@ -18,7 +18,7 @@
 2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
 2026.04.07 feat: 제목/설명 영문 추가 (글로벌 타겟팅)
 2026.04.07 feat: 썸네일 단독 생성 스크립트 추가
-
+2026.04.07 feat: --category 옵션 추가(로컬수행용)
 """
 
 import argparse
@@ -430,6 +430,8 @@ if __name__ == "__main__":
 
     # ── CLI 인자 파싱 ─────────────────────────────────────────────────
     parser = argparse.ArgumentParser()
+    parser.add_argument("--category", type=str, default=None,
+                        help="카테고리 직접 지정 (e.g. bath_house, cave_water). 지정 시 로컬 소스 우선 사용")
     parser.add_argument("--reuse-session", type=str, default=None,
                         help="기존 세션 영상 재사용 (사운드만 새로 제작). 예: 20260331_000300")
     args, _ = parser.parse_known_args()

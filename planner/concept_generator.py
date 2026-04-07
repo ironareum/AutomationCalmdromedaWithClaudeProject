@@ -23,7 +23,7 @@ AI 콘셉트 자동 생성기
 2026.04.07 feat: 제목 감성 문구 형식으로 변경, 그룹 기반 순환 로직
 2026.04.07 feat: 제목/설명 영문 추가 (글로벌 타겟팅)
 2026.04.07 feat: COMMON_TAGS 고정 태그 추가
-
+2026.04.07 feat: --category 옵션 추가(로컬수행용), Pexels 사람 포함 영상 필터링
 """
 
 import json
@@ -517,6 +517,7 @@ def generate_concept(
     used_assets_path: Path,
     duration_hours: float = 1,
     language: str = "ko",
+    force_category: str | None = None,
 ) -> dict:
     """
     Claude Haiku로 오늘의 영상 콘셉트 자동 생성
