@@ -22,6 +22,7 @@ AI 콘셉트 자동 생성기
 2026.04.07 fix: 카테고리 그룹 기반 순환 + shorts_title 적용
 2026.04.07 feat: 제목 감성 문구 형식으로 변경, 그룹 기반 순환 로직
 2026.04.07 feat: 제목/설명 영문 추가 (글로벌 타겟팅)
+2026.04.07 feat: COMMON_TAGS 고정 태그 추가
 
 """
 
@@ -47,11 +48,17 @@ COMMON_TAGS = [
     "수면유도", "숙면사운드", "불면증", "잠안올때", "잠오는음악",
     "편안한음악", "앰비언트", "릴렉스", "마음이편안해지는",
     "밤에듣는음악", "잘때듣기좋은노래", "공부음악",
+    "잘때듣기좋은음악", "딥슬립", "스르르잠드는음악", "꿀잠자는음악",
+    "잠드는음악", "불면증음악", "딥슬립음악", "잠올때",
+    "힐링트리", "빗소리", "피아노소리",
+    "잠잘때듣기좋은노래", "잠안올때듣는음악",
+    "우울증", "ADHD", "용기", "희망", "위로", "힘이되는", "혼자",
     # 힐링/수면 영문
-    "asmr", "asmr sounds", "healing", "healing music", "healing sounds",
-    "meditation", "sleep Music", "deep sleep", "relax", "relaxing sounds",
-    "Inner Peace", "ambient", "white noise", "nature sounds",
-    "stress relief", "sleep sound",
+    "ASMR", "Meditation", "Inner Peace", "Meditation Music",
+    "Relaxing Sounds", "relax", "sleep Music", "embient", "healing",
+    "silent", "Deep Sleep", "healing meditation", "healing sounds",
+    "healing music", "sleep sound", "relaxing sounds",
+    "Wave Sound", "ambient",
 ]
 
 # 카테고리별 추가 태그
