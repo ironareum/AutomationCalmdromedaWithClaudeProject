@@ -3,6 +3,9 @@ FFmpeg Video Producer
 2026.03.26 사운드 레이어링 + 영상 루프 합성 → 1~3시간 유튜브 영상 생성
 2026.03.28 영상 우측 하단에 Calmdromeda 로고 워터마크 자동 삽입
 2026.03.29 임시 파일 단계별 즉시 삭제 → 디스크 사용량 최소화
+2026.03.29 오디오 -14 LUFS 정규화 (YouTube 권장)
+2026.03.29 영상 좌상단 heading 로고 + 우하단 원형 로고 동시 삽입
+
 [디스크 사용 흐름]
   이전: 원본영상 + normalized + video_loop + mixed_audio + merged_no_logo + 최종 = 최종x3~4배
   이후: 원본영상 + mixed_audio(임시) + 최종 = 최종x1.1배 수준
@@ -18,6 +21,7 @@ FFmpeg Video Producer
 2026.03.29 video 수집 개수 판정로직 변경
 2026.03.30 최적화: 영상 CRF 28, fps 24, preset medium (이전값 주석 보관)(처리시간 단축, 영상 해상도/용량 최적화)
 2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
+2026.04.07 fix: LUFS -14 → -18 (ASMR 힐링 채널 기준)
 
 """
 
@@ -146,7 +150,7 @@ class VideoProducer:
         - 유효성 검사 후 통과한 파일로 최대 3개 레이어 구성
         - 레이어링: 최대 3개 사운드 동시 재생 (볼륨 조정)
         - 루프: 짧은 파일은 target_duration까지 반복
-        - loudnorm 필터로 -14 LUFS 정규화 (YouTube 권장 레벨)
+        - loudnorm 필터로 -18 LUFS 정규화 (ASMR/힐링 채널 기준)
         반환: (mixed_audio_path, actual_layers) 또는 None
         """
         # 믹싱 결과를 raw에 먼저 저장 후 LUFS 정규화
@@ -233,16 +237,16 @@ class VideoProducer:
         cmd_lufs = [
             "ffmpeg", "-y",
             "-i", str(raw_audio),
-            "-af", f"loudnorm=I=-14:TP=-1.5:LRA=11,afade=t=out:st={fade_start}:d=5",
+            "-af", f"loudnorm=I=-18:TP=-2.0:LRA=11,afade=t=out:st={fade_start}:d=5",
             "-b:a", "192k",
             str(output)
         ]
 
-        ok = self._run(cmd_lufs, "Normalizing audio → -14 LUFS")
+        ok = self._run(cmd_lufs, "Normalizing audio → -18 LUFS")
         self._delete(raw_audio)
 
         if ok:
-            log.info(f"Audio mixed: {output.name} ({output.stat().st_size // (1024*1024)}MB) @ -14 LUFS")
+            log.info(f"Audio mixed: {output.name} ({output.stat().st_size // (1024*1024)}MB) @ -18 LUFS")
             log.info(f"실제 사용 레이어: {[f.name for f in layers]}")
             return output, layers
         return None
