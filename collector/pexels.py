@@ -4,8 +4,9 @@ Pexels API Video Collector
 2026.03.26 API 키 발급: https://www.pexels.com/api/
 2026.03.28 사용한 영상은 used_assets.json에 기록 → 다음 실행 시 자동 스킵
 2026.03.29 used_assetss.json 포맷형식 변경
-
 2026.03.29 [Phase2] AI 기획 자동화 (Claude API) + sound,video 쿼리에도 적용
+2026.04.07 feat: 로컬 영상 폴더 지원 (assets/video/), 영상 기본 수 3개로 변경
+
 """
 
 import time
@@ -13,6 +14,8 @@ import logging
 import requests
 from pathlib import Path
 from collector.freesound import load_used_assets, save_used_assets, is_video_used
+
+LOCAL_VIDEO_DIR = Path(__file__).parent.parent / "assets" / "video"
 
 log = logging.getLogger(__name__)
 
@@ -118,12 +121,41 @@ class PexelsCollector:
                 dest.unlink()
             return None
 
-    def collect(self, category: str, count: int = 5,
+    def collect_local(self, category: str, count: int = 3) -> list[Path]:
+        """assets/video/{category}/ 폴더에서 로컬 영상 수집"""
+        local_dir = LOCAL_VIDEO_DIR / category
+        if not local_dir.exists():
+            return []
+        files = sorted(local_dir.glob("*.mp4"))[:count]
+        if files:
+            # work_dir/videos/ 로 복사
+            result = []
+            for f in files:
+                dest = self.video_dir / f.name
+                if not dest.exists():
+                    import shutil
+                    shutil.copy2(f, dest)
+                result.append(dest)
+            log.info(f"로컬 영상 {len(result)}개 사용: {local_dir}")
+        return result
+
+    def collect(self, category: str, count: int = 3,
                 queries: list[str] | None = None) -> list[Path]:
         """
         카테고리 기반 영상 수집
+        1단계: assets/video/{category}/ 로컬 폴더 확인
+        2단계: Pexels API 수집
         queries가 주어지면 그걸 사용, 없으면 config.py의 category_queries 매핑 사용
         """
+        # 1단계: 로컬 영상 우선
+        local_files = self.collect_local(category, count)
+        if len(local_files) >= count:
+            log.info(f"로컬 영상만으로 충분 ({len(local_files)}개) — Pexels API 스킵")
+            return local_files[:count]
+        if local_files:
+            log.info(f"로컬 영상 {len(local_files)}개 — Pexels에서 {count - len(local_files)}개 추가 수집")
+
+        # 2단계: Pexels API
         if queries:
             log.info(f"AI 생성 video queries: {queries}")
         else:
@@ -131,13 +163,13 @@ class PexelsCollector:
             cfg = Config()
             queries = cfg.category_queries.get(category, [category])
 
-        collected = []
-        per_query = max(2, count // len(queries) + 1)
+        collected = list(local_files)
+        need = count - len(collected)
+        per_query = max(2, need // max(len(queries), 1) + 1)
 
         for query in queries:
             if len(collected) >= count:
                 break
-            # per_page 넉넉하게 → used 필터 후에도 남도록
             results = self.search(query, count=per_query * 3)
             for video in results:
                 if len(collected) >= count:
@@ -148,4 +180,4 @@ class PexelsCollector:
                 time.sleep(0.5)
 
         log.info(f"Total videos collected: {len(collected)}")
-        return collected
+        return collected[:count]
