@@ -19,6 +19,9 @@ AI 콘셉트 자동 생성기
 2026.04.05 fix: rain/forest 하이노이즈 제거, white_noise brown noise만 허용
 2026.04.05 feat: 신규 카테고리 5개 추가 (cave_water/ice_melt/bath_house/train_ride/temple_bell)
 2026.04.05 feat: category 필드 추가, 순차 카테고리 선택 로직 완성
+2026.04.07 fix: 카테고리 그룹 기반 순환 + shorts_title 적용
+2026.04.07 feat: 제목 감성 문구 형식으로 변경, 그룹 기반 순환 로직
+
 """
 
 import json
@@ -471,7 +474,7 @@ def _pick_category(recent_categories: list[str]) -> str:
 
     # 그룹 우선순위: 최근에 사용 안 한 그룹 먼저
     all_groups = list(CATEGORY_GROUPS.keys())
-    group_priority = [g for g in all_groups if g not in recent_groups_ordered] + [g for g in all_groups if g in recent_groups_ordered]
+    group_priority = [g for g in all_groups if g not in recent_groups_ordered] +                      [g for g in all_groups if g in recent_groups_ordered]
 
     # 1단계: 그룹 순서대로 → 각 그룹 내 미사용 카테고리 찾기
     for group in group_priority:
@@ -572,9 +575,14 @@ def generate_concept(
 {default_videos_str}
 
 [요구사항]
-1. 제목은 "{title_keyword} | 부가설명 | SEO 키워드" 형식 (파이프로 구분, 100자 이내)
+1. 제목은 "{title_keyword} | 감성 문구 | SEO 키워드" 형식 (파이프로 구분, 100자 이내)
    - 반드시 "{title_keyword}"로 시작 — 사람들이 실제 검색하는 단어가 앞에 와야 함
-   - 예: "{title_keyword} | 1시간 깊은 숙면 & 명상 | 공부할 때 듣기 좋은"
+   - 중간 감성 문구: 듣고 싶어지는 한 줄 (딱딱한 기능 나열 절대 금지)
+     좋은 예: "틀어두면 잠드는 소리", "마음이 가라앉는 소리", "머리가 맑아지는 소리",
+              "공부할 때 틀어두면 집중되는", "불안한 마음이 녹아드는", "하루가 편안해지는"
+     나쁜 예: "1시간 깊은 숙면 & 집중력 향상", "스트레스 해소 & 명상", "학습 몰입"
+   - 마지막 SEO 키워드: 수면/명상/공부/힐링 등 검색어
+   - 예: "{title_keyword} | 틀어두면 스르르 잠드는 소리 | 수면 명상 힐링"
 2. 태그는 한국어 위주 10~15개
 3. 제목에 봄/여름/가을/겨울 계절 키워드 사용 금지 — 계절과 무관하게 언제든 시청 가능한 제목
 4. 최근 업로드 제목과 겹치지 않게
