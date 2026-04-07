@@ -8,6 +8,8 @@
 # 2026.03.30 dotenv 추가, checkout 충돌 해결
 # 2026.03.31 thumbnails/, pipeline.log, metadata.json 저장(Artifacts 섹션에서 다운로드 가능. 30일후 삭제)
 # 2026.04.04 feat: used_assets 신규 세션 quality=pending 기본값 설정
+# 2026.04.07 결과물 Google Drive 저장 로직 추가
+
 # ================================================================
 
 
@@ -78,7 +80,17 @@ jobs:
           sudo apt-get install -y ffmpeg
           ffmpeg -version | head -1
 
-      # ── 6. 자격증명 복원 ─────────────────────────────────────────────
+      # ── 6. rclone 설치 및 Google Drive 설정 ─────────────────────────
+      - name: Install and configure rclone
+        env:
+          RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+          mkdir -p ~/.config/rclone
+          echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
+          echo "rclone 설정 완료"
+
+      # ── 7. 자격증명 복원 ─────────────────────────────────────────────
       - name: Restore credentials
         env:
           YOUTUBE_TOKEN_JSON:        ${{ secrets.YOUTUBE_TOKEN_JSON }}
@@ -88,7 +100,7 @@ jobs:
           echo "$YOUTUBE_TOKEN_JSON"        > credentials/token.json
           echo "$GOOGLE_CLIENT_SECRET_JSON" > credentials/client_secret.json
 
-      # ── 7. 파이프라인 실행 ───────────────────────────────────────────
+      # ── 8. 파이프라인 실행 ───────────────────────────────────────────
       - name: Run pipeline
         env:
           FREESOUND_API_KEY:          ${{ secrets.FREESOUND_API_KEY }}
@@ -101,7 +113,7 @@ jobs:
           YOUTUBE_CLIENT_SECRET:      "credentials/client_secret.json"
         run: python pipeline.py
 
-      # ── 8. 실행 후 암호화 & data 브랜치에 커밋 ──────────────────────
+      # ── 9. 실행 후 암호화 & data 브랜치에 커밋 ──────────────────────
       - name: Encrypt and commit data files
         if: always()  # 파이프라인 실패해도 데이터 저장
         env:
@@ -154,7 +166,7 @@ jobs:
           retention-days: 30  # 30일 보관
           if-no-files-found: warn
 
-      # ── 10. 민감 파일 정리 ───────────────────────────────────────────
+      # ── 11. 민감 파일 정리 ───────────────────────────────────────────
       - name: Cleanup sensitive files
         if: always()
         run: |

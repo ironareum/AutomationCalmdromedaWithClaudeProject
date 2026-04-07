@@ -17,6 +17,7 @@
 2026.04.02 feat: AI 사운드 검증 추가 (컨셉 일치율 향상), 계절 키워드 제거
 2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
 2026.04.07 feat: 제목/설명 영문 추가 (글로벌 타겟팅)
+2026.04.07 feat: 썸네일 단독 생성 스크립트 추가
 
 """
 
@@ -225,14 +226,18 @@ def run_pipeline(concept: dict):
         else:
             log.info("Step 6: [YouTube 업로드] UPLOAD_ENABLED=false — 스킵")
 
-        # 7. 쇼츠 클립 추출 + YouTube Shorts 업로드
+        # 7. Google Drive 백업
+        log.info("Step 7: [Google Drive 백업] rclone 업로드...")
+        upload_to_gdrive(session_id, work_dir, cfg)
+
+        # 8. 쇼츠 클립 추출 + YouTube Shorts 업로드
         shorts_result = None
         if cfg.upload_enabled:
-            log.info("Step 7: [쇼츠 제작] Extracting Shorts clip...")
+            log.info("Step 8: [쇼츠 제작] Extracting Shorts clip...")
             shorts_path = producer.extract_shorts_clip(output_video, duration=58)
 
             if shorts_path:
-                log.info("Step 7: [쇼츠 업로드] YouTube Shorts 업로드 시작...")
+                log.info("Step 8: [쇼츠 업로드] YouTube Shorts 업로드 시작...")
                 # 쇼츠용 제목: 감성적 shorts_title 사용
                 shorts_title = concept.get("shorts_title", concept["title"])
                 if len(shorts_title) > 90:
@@ -342,6 +347,39 @@ def _cleanup_assets(
                     log.info(f"Unused video deleted: {f.name}")
                 except Exception as e:
                     log.warning(f"삭제 실패 {f.name}: {e}")
+
+
+
+def upload_to_gdrive(session_id: str, work_dir: Path, cfg) -> bool:
+    """rclone으로 Google Drive에 업로드"""
+    import shutil, subprocess
+
+    # rclone 실행 파일 찾기 (로컬: 루트의 rclone.exe, Actions: PATH의 rclone)
+    rclone_bin = "rclone"
+    local_rclone = Path(__file__).parent / "rclone.exe"
+    if local_rclone.exists():
+        rclone_bin = str(local_rclone)
+
+    remote_path = f"gdrive:Calmdromeda/{session_id}"
+
+    try:
+        result = subprocess.run(
+            [rclone_bin, "copy", str(work_dir), remote_path,
+             "--progress", "--transfers=4", "--exclude=temp/**"],
+            capture_output=True, encoding="utf-8", errors="replace", timeout=600
+        )
+        if result.returncode == 0:
+            log.info(f"Google Drive 업로드 완료: {remote_path}")
+            return True
+        else:
+            log.error(f"rclone 업로드 실패: {result.stderr[:300]}")
+            return False
+    except FileNotFoundError:
+        log.warning("rclone 없음 — Google Drive 업로드 스킵")
+        return False
+    except Exception as e:
+        log.error(f"rclone 업로드 오류: {e}")
+        return False
 
 
 def generate_description(concept: dict) -> str:
