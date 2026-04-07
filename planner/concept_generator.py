@@ -449,45 +449,50 @@ def _get_recent_titles(used_assets_path: Path, n: int = 14) -> list[str]:
 
 def _pick_category(recent_categories: list[str]) -> str:
     """
-    카테고리 순차 선택 로직
+    카테고리 선택 로직 (그룹 기반 순환)
 
-    - ALL_CATEGORIES 순서대로 순차 진행
-    - 최근 7개 세션 카테고리는 스킵
-    - 단, 같은 그룹이 연속되지 않도록 체크
-    - 전체 순환 완료 시 처음부터 재시작 (최근 2개만 피함)
+    1단계: 그룹 순서대로 순환
+           각 그룹 안에서 미사용 카테고리 먼저
+           최근 사용한 그룹은 뒤로 밀기
+    2단계: 모든 그룹에서 미사용 소진 → 최근 7개 스킵 후 그룹 순환
+    3단계: 최후 수단 → 최근 2개만 피함
     """
-    SKIP_RECENT = 7  # 최근 N개 카테고리 스킵
+    SKIP_RECENT = 7
 
-    # 최근 2개 그룹 파악 (그룹 연속 방지)
-    recent_groups = []
-    for cat in recent_categories[:2]:
+    # 전체 사용된 카테고리 집합
+    all_used = set(recent_categories)
+
+    # 최근 사용 그룹 순서 (최신이 앞)
+    recent_groups_ordered = []
+    for cat in recent_categories:
         g = _get_group(cat)
-        if g and g not in recent_groups:
-            recent_groups.append(g)
+        if g and g not in recent_groups_ordered:
+            recent_groups_ordered.append(g)
 
-    # 1단계: 최근 7개 미사용 카테고리 중 순서대로
-    skip_set = set(recent_categories[:SKIP_RECENT])
-    unused = [c for c in ALL_CATEGORIES if c not in skip_set]
-    if unused:
-        # 최근 그룹 제외한 미사용 중 첫 번째
-        preferred = [c for c in unused if _get_group(c) not in recent_groups]
-        if preferred:
-            chosen = preferred[0]
-            log.info(f"카테고리 선택: {chosen} (순차, 최근 {SKIP_RECENT}개 스킵, 그룹 {recent_groups} 제외)")
+    # 그룹 우선순위: 최근에 사용 안 한 그룹 먼저
+    all_groups = list(CATEGORY_GROUPS.keys())
+    group_priority = [g for g in all_groups if g not in recent_groups_ordered] + [g for g in all_groups if g in recent_groups_ordered]
+
+    # 1단계: 그룹 순서대로 → 각 그룹 내 미사용 카테고리 찾기
+    for group in group_priority:
+        cats_in_group = CATEGORY_GROUPS[group]
+        never_used_in_group = [c for c in ALL_CATEGORIES
+                                if c in cats_in_group and c not in all_used]
+        if never_used_in_group:
+            chosen = never_used_in_group[0]
+            log.info(f"카테고리 선택: {chosen} (그룹 [{group}] 미사용 순차)")
             return chosen
-        # 그룹 피할 수 없으면 미사용 중 첫 번째
-        chosen = unused[0]
-        log.info(f"카테고리 선택: {chosen} (순차, 최근 {SKIP_RECENT}개 스킵)")
-        return chosen
 
-    # 2단계: 전체 순환 완료 → 최근 2개만 피하고 재시작
-    available = [c for c in ALL_CATEGORIES
-                 if c not in recent_categories[:2]
-                 and _get_group(c) not in recent_groups]
-    if available:
-        chosen = available[0]
-        log.info(f"카테고리 선택: {chosen} (전체 순환 완료, 재시작)")
-        return chosen
+    # 2단계: 모든 그룹 미사용 소진 → 최근 7개 스킵 후 그룹 순환
+    skip_set = set(recent_categories[:SKIP_RECENT])
+    for group in group_priority:
+        cats_in_group = CATEGORY_GROUPS[group]
+        available = [c for c in ALL_CATEGORIES
+                     if c in cats_in_group and c not in skip_set]
+        if available:
+            chosen = available[0]
+            log.info(f"카테고리 선택: {chosen} (그룹 [{group}] 최근 {SKIP_RECENT}개 스킵 순차)")
+            return chosen
 
     # 3단계: 최후 수단
     fallback = [c for c in ALL_CATEGORIES if c not in recent_categories[:2]]
@@ -583,7 +588,17 @@ def generate_concept(
    - 카테고리 특성에 어긋나는 쿼리 절대 선택 금지
 8. video_queries는 [영상 쿼리 풀] 목록에서 오늘 콘셉트/계절/mood에 맞는 것 3~4개 선택
    - 반드시 목록에 있는 것만 선택 (임의 생성 금지)
-9. 제목/콘셉트는 최근 업로드 제목과 뚜렷이 달라야 함
+9. shorts_title은 쇼츠/릴스용 감성적 제목 (풀영상 제목과 완전히 다르게)
+   - 검색어 대신 공감/감성을 자극하는 문구
+   - 30자 이내, 보는 사람이 "내 얘기다"라고 느낄 수 있게
+   - 예시:
+     빗소리 → "잠이 안 올 때 이 소리 틀어놓으면 5분 안에 잠들어요"
+     숲소리 → "머릿속이 복잡할 때 잠깐 이것만 들어봐"
+     수중소리 → "불안할 때 듣는 소리"
+     모닥불 → "오늘 하루도 수고했어요"
+     지하철 → "퇴근길에 듣는 소리"
+   - 해시태그 없이 순수 문구만
+10. 제목/콘셉트는 최근 업로드 제목과 뚜렷이 달라야 함
    - 같은 카테고리라도 시간대/장소/분위기가 확실히 다른 각도로 접근
    - 예: 빗소리라도 "창밖 빗소리", "한여름 소나기", "가을 비", "새벽 이슬비", "도심 빗소리", "깊은 밤 빗소리", "양철지붕 빗소리" 등 차별화
    - 제목만 다르고 실제 콘셉트가 같으면 안 됨
@@ -591,6 +606,7 @@ def generate_concept(
 아래 JSON 형식으로만 응답해. 다른 텍스트 없이 JSON만:
 {{
   "title": "...",
+  "shorts_title": "...",
   "mood": "...",
   "title_sub": "...",
   "subtitle_en": "...",
