@@ -6,6 +6,7 @@ Pexels API Video Collector
 2026.03.29 used_assetss.json 포맷형식 변경
 2026.03.29 [Phase2] AI 기획 자동화 (Claude API) + sound,video 쿼리에도 적용
 2026.04.07 feat: 로컬 영상 폴더 지원 (assets/video/), 영상 기본 수 3개로 변경
+2026.04.07 feat: Pexels 영상 검색 no people 키워드 추가
 
 """
 
@@ -33,10 +34,12 @@ class PexelsCollector:
 
     def search(self, query: str, count: int = 10) -> list[dict]:
         """
-        Pexels에서 영상 검색
+        Pexels에서 영상 검색 (사람 없는 영상 우선)
         """
+        # 사람 없는 영상 유도 키워드 추가
+        no_people_query = f"{query} no people"
         params = {
-            "query": query,
+            "query": no_people_query,
             "per_page": count,
             "orientation": "landscape",
             "size": "large",  # 최소 4K
