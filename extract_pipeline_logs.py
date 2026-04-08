@@ -147,14 +147,14 @@ def parse_log(log_text: str) -> dict:
             pass
 
     # ── 4. YouTube / Shorts 링크
-    #    패턴: [INFO] YouTube : __https://...__ (공개: ...)
-    yt = re.search(r"\[INFO\]\s*YouTube\s*:\s*__(\S+?)__", log_text)
+    #    패턴: [INFO] YouTube : https://... (공개: 2026-04-08T20:00:00+09:00)
+    yt = re.search(r"\[INFO\]\s*YouTube\s*:\s*(https://\S+.*?)\s*$", log_text, re.MULTILINE)
     if yt:
-        result["youtube_link"] = yt.group(1)
+        result["youtube_link"] = yt.group(1).strip()
 
-    sh = re.search(r"\[INFO\]\s*Shorts\s*:\s*__(\S+?)__", log_text)
+    sh = re.search(r"\[INFO\]\s*Shorts\s*:\s*(https://\S+.*?)\s*$", log_text, re.MULTILINE)
     if sh:
-        result["shorts_link"] = sh.group(1)
+        result["shorts_link"] = sh.group(1).strip()
 
     return result
 
