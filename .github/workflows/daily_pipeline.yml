@@ -9,7 +9,7 @@
 # 2026.03.31 thumbnails/, pipeline.log, metadata.json 저장(Artifacts 섹션에서 다운로드 가능. 30일후 삭제)
 # 2026.04.04 feat: used_assets 신규 세션 quality=pending 기본값 설정
 # 2026.04.07 결과물 Google Drive 저장 로직 추가
-
+# 2026.04.08 feat: CI 테스트 추가 (Actions 사전체크, 로컬 전체)
 # ================================================================
 
 
@@ -100,7 +100,19 @@ jobs:
           echo "$YOUTUBE_TOKEN_JSON"        > credentials/token.json
           echo "$GOOGLE_CLIENT_SECRET_JSON" > credentials/client_secret.json
 
-      # ── 8. 파이프라인 실행 ───────────────────────────────────────────
+      # ── 8. 사전 체크 (Preflight) ────────────────────────────────────
+      - name: Preflight checks
+        env:
+          FREESOUND_API_KEY:          ${{ secrets.FREESOUND_API_KEY }}
+          PEXELS_API_KEY:             ${{ secrets.PEXELS_API_KEY }}
+          ANTHROPIC_API_KEY:          ${{ secrets.ANTHROPIC_API_KEY }}
+          ENCRYPTION_KEY:             ${{ secrets.ENCRYPTION_KEY }}
+          YOUTUBE_TOKEN:              "credentials/token.json"
+        run: |
+          pytest tests/test_pipeline.py -v -k "Preflight" --tb=short
+          echo "사전 체크 완료"
+
+      # ── 9. 파이프라인 실행 ───────────────────────────────────────────
       - name: Run pipeline
         env:
           FREESOUND_API_KEY:          ${{ secrets.FREESOUND_API_KEY }}
@@ -113,7 +125,7 @@ jobs:
           YOUTUBE_CLIENT_SECRET:      "credentials/client_secret.json"
         run: python pipeline.py
 
-      # ── 9. 실행 후 암호화 & data 브랜치에 커밋 ──────────────────────
+      # ── 10. 실행 후 암호화 & data 브랜치에 커밋 ──────────────────────
       - name: Encrypt and commit data files
         if: always()  # 파이프라인 실패해도 데이터 저장
         env:

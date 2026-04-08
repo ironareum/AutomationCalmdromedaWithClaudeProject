@@ -19,6 +19,9 @@ env.example
 /history.txt
 /history.txt.enc
 
+# CI테스트
+/tests/test_core.py
+/tests/test_preflight.py
 
 # 빌드/캐시
 __pycache__/
