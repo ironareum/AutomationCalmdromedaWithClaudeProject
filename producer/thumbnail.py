@@ -22,7 +22,7 @@ Thumbnail Generator
   logo.png         (← Calmdromeda.PNG)
 
 2026.03.30 신규 신규 카테고리 추가(12개)
-
+2026.04.08 fix: 타이틀 한글/영문 분리
 """
 
 import logging
@@ -211,8 +211,14 @@ class ThumbnailGenerator:
         t    = THEMES.get(category, THEMES["forest"])
 
         # ── 1. 타이틀 파싱 ──────────────────────────────────────────
-        # "빗소리 ASMR | 1시간 숙면 ..." → "빗소리 ASMR"
-        display = title.split("|")[0].strip() if "|" in title else title
+        # "새소리 ASMR | 틀어두면 머리가 맑아지는 소리 | Bird Sounds - Sleep Music Nature"
+        # → 파이프[0] = 한글 타이틀, 파이프[2] = 영문 SEO
+        title_parts = [p.strip() for p in title.split("|")]
+        display    = title_parts[0] if title_parts else title
+        # 파이프[2]에서 대시(-) 앞부분만 썸네일 영문 보조로 사용
+        # "Bird Sounds - Sleep Music Nature" → "Bird Sounds"
+        raw_en     = title_parts[2] if len(title_parts) >= 3 else ""
+        display_en = raw_en.split("-")[0].strip() if raw_en else ""
 
         # 2줄 분할
         l1, l2 = _split_two_lines(display)
@@ -221,7 +227,7 @@ class ThumbnailGenerator:
         # 폰트 크기: W*82% 안에 확실히 들어오도록 실측
         max_w     = int(W * 0.82)
         font_size = _fit_font_size(longer, max_w, max_size=100, min_size=38)
-        log.info(f"타이틀: \"{display}\" → {font_size}px  ({l1!r} / {l2!r})")
+        log.info(f"타이틀: \"{display}\" + en:\"{display_en}\" → {font_size}px  ({l1!r} / {l2!r})")
 
         # ── 2. 배경 (영상 첫 프레임) ────────────────────────────────
         bg = None
@@ -262,25 +268,29 @@ class ThumbnailGenerator:
         draw = ImageDraw.Draw(base)
 
         # ── 5. 레이아웃 계산 ────────────────────────────────────────
-        # 전체 텍스트 블록 높이 계산해서 수직 중앙 정렬
-        f_sub  = _fko(28)
-        f_main = _fko(font_size)
-        f_en   = _fen(48, "italic")
+        f_sub    = _fko(28)
+        f_main   = _fko(font_size)
+        f_en_sub = _fen(26, "regular")   # 영문 보조 (작게)
+        f_en     = _fen(48, "italic")    # 이탤릭 감성 문구
 
-        sub_h  = f_sub.getbbox("A")[3]   + 8   # 부제목 높이
-        line_h = int(font_size * 1.18)          # 메인 타이틀 줄 높이
-        en_h   = f_en.getbbox("A")[3]    + 8    # 영문 서브 높이
-        gap    = 18                             # 요소 간격
+        sub_h    = f_sub.getbbox("A")[3]    + 8   # 부제목 높이
+        line_h   = int(font_size * 1.18)          # 메인 타이틀 줄 높이
+        en_sub_h = f_en_sub.getbbox("A")[3] + 6   # 영문 보조 높이
+        en_h     = f_en.getbbox("A")[3]     + 8   # 영문 서브 높이
+        gap      = 14                             # 요소 간격
 
-        # 1줄이면 line_h 1개, 2줄이면 2개
-        n_lines  = 2 if l2 else 1
-        total_h  = sub_h + gap + line_h*n_lines + gap + en_h
-        y_start  = (H - total_h) // 2
+        n_lines = 2 if l2 else 1
+        # 영문 보조 있을 때만 높이 포함
+        en_sub_total = (en_sub_h + gap) if display_en else 0
+        total_h = sub_h + gap + line_h*n_lines + en_sub_total + gap + en_h
+        y_start = (H - total_h) // 2
 
-        y_sub  = y_start
-        y_l1   = y_sub + sub_h + gap
-        y_l2   = y_l1 + line_h
-        y_en   = (y_l2 + line_h if l2 else y_l1 + line_h) + gap
+        y_sub   = y_start
+        y_l1    = y_sub + sub_h + gap
+        y_l2    = y_l1 + line_h
+        after_main = y_l2 + line_h if l2 else y_l1 + line_h
+        y_en_sub = after_main + 4 if display_en else after_main
+        y_en     = (y_en_sub + en_sub_h + gap) if display_en else (after_main + gap)
 
         # ── 6. 부제목 ────────────────────────────────────────────────
         _stroke_center(draw, title_sub, y_sub, f_sub, W,
@@ -290,14 +300,19 @@ class ThumbnailGenerator:
         draw.line([(W//2-45, y_sub+sub_h+4), (W//2+45, y_sub+sub_h+4)],
                   fill=(*t["glow"],70), width=1)
 
-        # ── 7. 메인 타이틀 ───────────────────────────────────────────
+        # ── 7. 메인 타이틀 (한글) ───────────────────────────────────
         _stroke_center(draw, l1, y_l1, f_main, W,
                        fill=(255,255,255), sc=sc, sw=6)
         if l2:
             _stroke_center(draw, l2, y_l2, f_main, W,
                            fill=(255,255,255), sc=sc, sw=6)
 
-        # ── 8. 영문 서브타이틀 ──────────────────────────────────────
+        # ── 7-1. 영문 보조 (작게, 회색) ─────────────────────────────
+        if display_en:
+            _stroke_center(draw, display_en, y_en_sub, f_en_sub, W,
+                           fill=(200,200,200,180), sc=sc, sw=2)
+
+        # ── 8. 이탤릭 감성 문구 ──────────────────────────────────────
         _stroke_center(draw, subtitle_en, y_en, f_en, W,
                        fill=(*t["en"],225), sc=sc, sw=4)
 

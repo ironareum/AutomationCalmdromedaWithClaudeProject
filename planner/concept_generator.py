@@ -24,6 +24,7 @@ AI 콘셉트 자동 생성기
 2026.04.07 feat: 제목/설명 영문 추가 (글로벌 타겟팅)
 2026.04.07 feat: COMMON_TAGS 고정 태그 추가
 2026.04.07 feat: --category 옵션 추가(로컬수행용), Pexels 사람 포함 영상 필터링
+2026.04.08 feat: 제목 대시 구분으로 썸네일 영문/SEO 분리
 """
 
 import json
@@ -584,22 +585,34 @@ def generate_concept(
 {default_videos_str}
 
 [요구사항]
-1. 제목은 "{title_keyword} 영문키워드 | 감성 문구 | 영문 SEO 키워드" 형식 (파이프로 구분, 100자 이내)
+1. 제목은 "{title_keyword} | 감성 문구 | 영문키워드 - 영문 SEO키워드" 형식 (파이프로 구분, 100자 이내)
    - 반드시 "{title_keyword}"로 시작 — 사람들이 실제 검색하는 단어가 앞에 와야 함
-   - "{title_keyword}" 바로 뒤에 영문 키워드 붙이기 (글로벌 검색 노출용)
-     예: "빗소리 ASMR Rain Sounds", "새소리 ASMR Bird Sounds", "모닥불 ASMR Fireplace"
    - 중간 감성 문구: 듣고 싶어지는 한 줄 (딱딱한 기능 나열 절대 금지)
      좋은 예: "틀어두면 잠드는 소리", "마음이 가라앉는 소리", "머리가 맑아지는 소리",
               "공부할 때 틀어두면 집중되는", "불안한 마음이 녹아드는", "하루가 편안해지는"
      나쁜 예: "1시간 깊은 숙면 & 집중력 향상", "스트레스 해소 & 명상", "학습 몰입"
-   - 마지막 SEO 키워드: 영문으로 (Sleep Music / Study Music / Meditation / Nature Sounds 등)
-   - 예: "{title_keyword} Rain Sounds | 틀어두면 스르르 잠드는 소리 | Sleep Music Study"
+   - 마지막 파트: "썸네일에 보일 영문키워드(2단어) - 영문 SEO 키워드들" 형식으로
+     대시(-) 앞 = 썸네일에 표시될 영문 카테고리명 (2단어 이내)
+     대시(-) 뒤 = SEO용 추가 키워드: 영문으로 (Sleep Music / Study / Meditation / Nature Sounds 등)
+   - 예: "{title_keyword} | 틀어두면 스르르 잠드는 소리 | Bird Sounds - Sleep Music Nature"
+   - 예: "{title_keyword} | 공부할 때 틀어두면 집중되는 소리 | Rain ASMR - Study Music Focus"
 2. 태그는 한국어 위주 10~15개
 3. 제목에 봄/여름/가을/겨울 계절 키워드 사용 금지 — 계절과 무관하게 언제든 시청 가능한 제목
 4. 최근 업로드 제목과 겹치지 않게
 5. title_sub는 썸네일 상단에 들어갈 짧은 문구 (10자 이내)
-6. subtitle_en은 썸네일 하단 영문 (2~4단어, 감성적으로)
-   예: "for Sleep & Focus", "Cozy Rain Ambience", "Deep Ocean Sounds"
+6. subtitle_en은 썸네일 하단 영문 (2~4단어, 반드시 감성적인 시적 표현으로)
+   - 카테고리 직역 금지 (예: "Rain Sounds", "Forest Walk", "Bird Sounds" 같은 직역 절대 금지)
+   - 감각적이고 시적인 문구로 (분위기, 감정, 상황을 담을 것)
+   - 예시:
+     빗소리 → "Let It Rain", "Quiet the Mind", "Cozy & Still"
+     숲소리 → "Breathe & Unwind", "Lost in Green", "Soft Morning Air"
+     수중   → "Drift Into Blue", "Still Waters", "Deep & Quiet"
+     모닥불 → "Just Relax Tonight", "Warm & Unhurried", "Glow & Rest"
+     귀뚜라미 → "Crickets at Dusk", "Summer Fades", "Night Hums"
+     비행기 → "Above It All", "Drift Off to Sleep", "Cloud & Calm"
+     지하철 → "City Lullaby", "Rumble & Rest", "Moving & Still"
+     동굴물 → "Drop by Drop", "Echo & Calm", "Underground Peace"
+     열차  → "Miles & Silence", "Rhythm of Rails", "Fade Away"
 7. description_en은 영문 설명 2~3문장 (글로벌 시청자용)
    - 채널 컨셉 + 이 영상의 특징 + 활용 상황 간단히
    - 예: "Gentle rain sounds for deep sleep and study focus. 
