@@ -41,7 +41,8 @@ class Config:
 
     # Upload 설정
     upload_enabled: bool = os.getenv("UPLOAD_ENABLED", "true").lower() == "true"
-    upload_hour_kst: int = int(os.getenv("UPLOAD_HOUR_KST", "20"))  # 오후 8시 KST
+    upload_hour_kst: int = int(os.getenv("UPLOAD_HOUR_KST", "18"))    # 오후 6시 KST
+    upload_minute_kst: int = int(os.getenv("UPLOAD_MINUTE_KST", "30"))  # 30분
     youtube_token_path: str = os.getenv("YOUTUBE_TOKEN", "credentials/token.json")
 
     # Category → Pexels search query mapping

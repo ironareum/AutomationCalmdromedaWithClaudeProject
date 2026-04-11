@@ -74,17 +74,14 @@ def _get_credentials(client_secret_path: Path, token_path: Path):
     return creds
 
 
-def _next_publish_time(hour_kst: int) -> str:
+def _next_publish_time(hour_kst: int, minute_kst: int = 0) -> str:
     """
-    다음 오후 N시 KST를 RFC 3339 형식으로 반환
-    - 현재 시각이 이미 지났으면 내일로 설정
-    예: "2026-03-29T20:00:00+09:00"
+    다음날 N시 M분 KST를 RFC 3339 형식으로 반환 (항상 익일)
+    예: "2026-03-29T18:30:00+09:00"
     """
     now_kst = datetime.now(KST)
-    target = now_kst.replace(hour=hour_kst, minute=0, second=0, microsecond=0)
-
-    if now_kst >= target:
-        target += timedelta(days=1)
+    tomorrow = now_kst + timedelta(days=1)
+    target = tomorrow.replace(hour=hour_kst, minute=minute_kst, second=0, microsecond=0)
 
     return target.isoformat()
 
@@ -117,7 +114,8 @@ class YouTubeUploader:
         thumbnail_path: Path | None = None,
         category_id:    str = "10",        # 10 = Music
         language:       str = "ko",
-        hour_kst:       int = 20,          # 오후 8시 KST
+        hour_kst:       int = 18,          # 오후 6시 KST
+        minute_kst:     int = 30,          # 30분
     ) -> dict | None:
         """
         영상 업로드 + 썸네일 설정 + 예약 공개
@@ -133,7 +131,7 @@ class YouTubeUploader:
             log.error(f"영상 파일 없음: {video_path}")
             return None
 
-        publish_at = _next_publish_time(hour_kst)
+        publish_at = _next_publish_time(hour_kst, minute_kst)
         log.info(f"예약 공개 시각: {publish_at}")
 
         service = self._get_service()
