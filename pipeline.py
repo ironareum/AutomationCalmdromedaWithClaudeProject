@@ -211,6 +211,7 @@ def run_pipeline(concept: dict):
                 thumbnail_path=thumbnail,
                 language=concept.get("language", "ko"),
                 hour_kst=cfg.upload_hour_kst,
+                minute_kst=cfg.upload_minute_kst,
             )
             if upload_result:
                 metadata["youtube"] = upload_result
@@ -260,7 +261,8 @@ def run_pipeline(concept: dict):
                     tags=shorts_tags,
                     thumbnail_path=thumbnail,
                     language=concept.get("language", "ko"),
-                    hour_kst=cfg.upload_hour_kst,  # 풀영상과 같은 시간 예약
+                    hour_kst=cfg.upload_hour_kst,    # 풀영상과 같은 시간 예약
+                    minute_kst=cfg.upload_minute_kst,
                 )
                 if shorts_result:
                     metadata["youtube_shorts"] = shorts_result
