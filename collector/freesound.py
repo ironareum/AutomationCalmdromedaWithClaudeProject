@@ -471,9 +471,10 @@ class FreesoundCollector:
             log.warning("ANTHROPIC_API_KEY 없음 — AI 사운드 검증 스킵")
             return sound_files
 
-        category = concept.get("category", "")
-        title = concept.get("title", "")
-        mood = concept.get("mood", "")
+        category   = concept.get("category", "")
+        title      = concept.get("title", "")
+        mood       = concept.get("mood", "")
+        sound_hint = concept.get("sound_hint", "")
 
         # 파일 정보 구성 (파일명 + tags + description)
         sound_meta = sound_meta or {}
@@ -497,7 +498,7 @@ class FreesoundCollector:
 [오늘 영상 정보]
 - 카테고리: {category}
 - 제목: {title}
-- 분위기: {mood}
+- 분위기: {mood}{f"{chr(10)}- 사운드 특성: {sound_hint}" if sound_hint else ""}
 
 [다운받은 사운드 파일들]
 {files_str}

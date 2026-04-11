@@ -353,14 +353,15 @@ CATEGORY_SOUNDS = {
         "point": ["snow crunch soft single", "winter silence ambient"],
     },
     "cave_water": {
-        "main":  ["cave dripping water ambient", "cave water drops echo", "underground cave ambient"],
-        "sub":   ["cave echo soft", "water drip cave gentle"],
-        "point": ["cave ambient low hum", "distant water drip"],
+        "main":  ["cave dripping water echo", "water drops cave echo", "dripping water cave ambient"],
+        "sub":   ["cave ambience quiet", "underground cave ambient soft"],
+        "point": ["single drip water echo", "cave hum low ambient"],
     },
     "ice_melt": {
-        "main":  ["ice melting water gentle", "water drips ice calm", "cold water drops ambient"],
-        "sub":   ["ice cracking soft gentle", "water trickle soft"],
-        "point": ["ice ambient quiet", "frozen water ambient"],
+        # 핵심: dripping 키워드 중심 (stream/river 계열 쿼리 제거 → sub으로 이동)
+        "main":  ["water dripping slow gentle", "dripping water drops calm", "water drops falling ambient"],
+        "sub":   ["stream creek gentle close", "water trickle creek soft", "creek water gentle close"],
+        "point": ["ice crack soft single", "water drop single echo"],
     },
     "bath_house": {
         "main":  ["indoor bath water flowing gentle", "bathhouse water ambient calm", "spa indoor water bubbling"],
@@ -373,9 +374,10 @@ CATEGORY_SOUNDS = {
         "point": ["train distant whistle soft", "cabin ambient quiet"],
     },
     "temple_bell": {
-        "main":  ["temple bell ambient calm", "buddhist bell meditation", "zen bell gentle"],
-        "sub":   ["birds temple morning soft", "nature temple ambient"],
-        "point": ["distant temple bell", "wind chime gentle soft"],
+        # 핵심: 목탁(wooden percussion) 중심 → zen bell은 sub으로 이동
+        "main":  ["wooden percussion soft gentle", "wood block mallet gentle calm", "wood percussion strike ambient"],
+        "sub":   ["singing bowl meditation gentle", "zen bell ambient calm", "tibetan bowl soft"],
+        "point": ["distant temple bell chime", "wind chime gentle soft"],
     },
 }
 
@@ -402,10 +404,10 @@ CATEGORY_SOUND_HINTS = {
     "summer_rain":   "여름 소나기. 나뭇잎에 떨어지는 빗소리+흙냄새 느낌.",
     "snow_walk":     "눈밭 발자국. 뽀득뽀득 눈 밟는 소리 위주.",
     "cave_water":    "동굴 물방울. 천천히 떨어지는 물방울+동굴 에코. 고요하고 신비로운 느낌. 심플하게.",
-    "ice_melt":      "얼음 녹는 소리. 물방울 떨어지는 소리+얼음 녹는 소리. 조용하고 차갑고 투명한 느낌.",
+    "ice_melt":      "얼음 녹는 소리. 핵심: 똑똑 물방울 떨어지는 소리(dripping)가 메인. 계곡/시냇물(stream/river)은 서브로만 허용. stream/river 파일이 메인 레이어에 있으면 제거. 차갑고 투명한 느낌.",
     "bath_house":    "실내 대중목욕탕/사우나 전용. 보글보글 물소리+물 찰랑거리는 소리+증기 소리. 야외/자연음 절대 금지. 실내 욕탕 특유의 울림과 물소리만.",
     "train_ride":    "열차 실내. 리드미컬한 레일 소리+기차 진동. 잠들 것 같은 부드러운 기차 주행음. 자연음 절대 금지.",
-    "temple_bell":   "목탁/사찰. 차분한 목탁 소리+잔잔한 새소리. 저음 목탁, 하이 프리퀀시 금지. 명상적이고 고요한 느낌.",
+    "temple_bell":   "목탁/사찰. 핵심: 나무 타악기(wooden percussion, wood block, mallet) 소리가 메인. 싱잉볼/종소리는 서브. 새소리/자연음은 배경으로만 허용. 하이 프리퀀시/강한 타격음 금지. 명상적이고 고요한 느낌.",
 }
 
 
@@ -716,6 +718,7 @@ def generate_concept(
         "description_en": ai.get("description_en", ""),
         "shorts_title": ai.get("shorts_title", f"{category_name} ASMR"),
         "language":     language,
+        "sound_hint":   sound_hint,  # AI 사운드 필터링 시 카테고리별 기준으로 사용
     }
 
     log.info(f"생성된 콘셉트: {concept['title']}")
