@@ -2,6 +2,7 @@
 YouTube Data API v3 Uploader
 2026.03.29 영상 + 썸네일 자동 업로드
 2026.03.29 매일 고정 시각 예약 공개 (기본 오후 8시 KST)
+2026.04.11 set_thumbnail()에 제목 변경 기능 추가, youtube 스코프 추가
 
 [사전 준비]
 1. Google Cloud Console → YouTube Data API v3 활성화
@@ -24,7 +25,12 @@ log = logging.getLogger(__name__)
 KST = timezone(timedelta(hours=9))
 
 # YouTube API 스코프
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+# youtube.upload : 영상 업로드, 썸네일 변경
+# youtube        : 제목 등 영상 메타데이터 수정 (videos.update)
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube",
+]
 
 
 def _get_credentials(client_secret_path: Path, token_path: Path):
@@ -195,10 +201,20 @@ class YouTubeUploader:
             "publish_at": publish_at,
         }
 
-    def set_thumbnail(self, video_id: str, thumbnail_path: Path) -> bool:
+    def set_thumbnail(
+        self,
+        video_id:       str,
+        thumbnail_path: Path,
+        title:          str | None = None,
+    ) -> bool:
         """
-        이미 업로드된 YouTube 영상의 썸네일만 교체
-        영상 재업로드 없이 썸네일 단독 업데이트
+        이미 업로드된 YouTube 영상의 썸네일 교체 + 제목 변경 (선택)
+        영상 재업로드 없이 단독 업데이트
+
+        Args:
+            video_id:       YouTube 영상 ID
+            thumbnail_path: 썸네일 이미지 경로
+            title:          변경할 제목 (None이면 제목 유지)
 
         반환: 성공 시 True, 실패 시 False
         """
@@ -206,16 +222,45 @@ class YouTubeUploader:
             log.error(f"썸네일 파일 없음: {thumbnail_path}")
             return False
 
+        service = self._get_service()
+
         try:
+            # ── 1. 썸네일 교체 ──────────────────────────────────────────
             from googleapiclient.http import MediaFileUpload
-            service = self._get_service()
             thumb_media = MediaFileUpload(str(thumbnail_path), mimetype="image/jpeg")
             service.thumbnails().set(
                 videoId=video_id,
                 media_body=thumb_media
             ).execute()
-            log.info(f"YouTube 썸네일 업데이트 완료: https://www.youtube.com/watch?v={video_id}")
-            return True
+            log.info(f"썸네일 업데이트 완료: https://www.youtube.com/watch?v={video_id}")
         except Exception as e:
             log.error(f"YouTube 썸네일 업데이트 실패 (video_id={video_id}): {e}")
             return False
+
+        # ── 2. 제목 변경 (title 지정 시) ────────────────────────────────
+        if title:
+            try:
+                # 현재 snippet 조회 (기존 설명/태그 등 보존 필요)
+                resp = service.videos().list(
+                    part="snippet",
+                    id=video_id
+                ).execute()
+
+                items = resp.get("items", [])
+                if not items:
+                    log.error(f"영상을 찾을 수 없음: {video_id}")
+                    return False
+
+                snippet = items[0]["snippet"]
+                snippet["title"] = title[:100]  # YouTube 제목 최대 100자
+
+                service.videos().update(
+                    part="snippet",
+                    body={"id": video_id, "snippet": snippet}
+                ).execute()
+                log.info(f"제목 업데이트 완료: {title[:60]}{'...' if len(title) > 60 else ''}")
+            except Exception as e:
+                log.error(f"YouTube 제목 업데이트 실패 (video_id={video_id}): {e}")
+                return False
+
+        return True

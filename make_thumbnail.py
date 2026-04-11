@@ -245,25 +245,31 @@ def main():
     print(f"   subtitle : {subtitle_en}")
 
     # ════════════════════════════════════════════════════════════════
-    # YouTube 썸네일 업데이트 (--video-id 지정 시)
+    # YouTube 썸네일 + 제목 업데이트 (--video-id 지정 시)
     # ════════════════════════════════════════════════════════════════
     if args.youtube_video_id:
         from config import Config
         from uploader.youtube import YouTubeUploader
 
         cfg = Config()
-        log.info(f"YouTube 썸네일 업데이트 시작: {args.youtube_video_id}")
+        log.info(f"YouTube 썸네일 + 제목 업데이트 시작: {args.youtube_video_id}")
+        log.info(f"변경할 제목: {args.title}")
 
         uploader = YouTubeUploader(
             client_secret_path = Path(cfg.youtube_client_secret_path),
             token_path         = Path(cfg.youtube_token_path),
         )
-        success = uploader.set_thumbnail(args.youtube_video_id, thumb)
+        success = uploader.set_thumbnail(
+            video_id       = args.youtube_video_id,
+            thumbnail_path = thumb,
+            title          = args.title,
+        )
 
         if success:
-            print(f"   YouTube  : 썸네일 업데이트 완료 → https://www.youtube.com/watch?v={args.youtube_video_id}")
+            print(f"   YouTube  : 썸네일 + 제목 업데이트 완료 → https://www.youtube.com/watch?v={args.youtube_video_id}")
+            print(f"   변경제목 : {args.title}")
         else:
-            print(f"   YouTube  : 썸네일 업데이트 실패 (로그 확인)")
+            print(f"   YouTube  : 업데이트 실패 (로그 확인)")
             sys.exit(1)
 
 
