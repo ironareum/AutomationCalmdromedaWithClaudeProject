@@ -194,3 +194,28 @@ class YouTubeUploader:
             "url":        video_url,
             "publish_at": publish_at,
         }
+
+    def set_thumbnail(self, video_id: str, thumbnail_path: Path) -> bool:
+        """
+        이미 업로드된 YouTube 영상의 썸네일만 교체
+        영상 재업로드 없이 썸네일 단독 업데이트
+
+        반환: 성공 시 True, 실패 시 False
+        """
+        if not thumbnail_path.exists():
+            log.error(f"썸네일 파일 없음: {thumbnail_path}")
+            return False
+
+        try:
+            from googleapiclient.http import MediaFileUpload
+            service = self._get_service()
+            thumb_media = MediaFileUpload(str(thumbnail_path), mimetype="image/jpeg")
+            service.thumbnails().set(
+                videoId=video_id,
+                media_body=thumb_media
+            ).execute()
+            log.info(f"YouTube 썸네일 업데이트 완료: https://www.youtube.com/watch?v={video_id}")
+            return True
+        except Exception as e:
+            log.error(f"YouTube 썸네일 업데이트 실패 (video_id={video_id}): {e}")
+            return False
