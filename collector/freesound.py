@@ -13,6 +13,7 @@ Freesound.org API Collector
 2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
 2026.04.04 feat: used_assets 신규 세션 quality=pending 기본값 설정
 2026.04.05 feat: category 필드 추가, 순차 카테고리 선택 로직 완성
+2026.04.11 feat: 레이어 수집 결과 1개 이하면 추가 수집으로 최소 2개 보장
 
 """
 
@@ -381,7 +382,12 @@ class FreesoundCollector:
         """
         # sound_layers가 있으면 메인/서브/포인트 구조로 각각 수집
         if sound_layers and not skip_local:
-            return self._collect_by_layers(sound_layers, concept)
+            result = self._collect_by_layers(sound_layers, concept)
+            # 최소 2개 음원 보장: 1개 이하면 sub 쿼리로 추가 수집 시도
+            if len(result) < 2:
+                log.warning(f"레이어 수집 결과 {len(result)}개 — 최소 2개 확보 재시도...")
+                result = self._supplement_sounds(result, sound_layers, target=2)
+            return result
 
         # 실제 사용하는 레이어는 MAX_SOUND_LAYERS(3)개
         # 유효하지 않은 파일 대비 여유분 확보 (최소 5개)
@@ -622,4 +628,39 @@ JSON 형식으로만 응답:
             result = self._ai_filter_sounds(result, concept, sound_meta)
 
         log.info(f"레이어 구조 수집 완료: {len(result)}개")
+        return result
+
+    def _supplement_sounds(self, existing: list[Path], sound_layers: dict, target: int = 2) -> list[Path]:
+        """
+        레이어 수집 결과가 target개 미만일 때 sub → main → point 쿼리 순으로 추가 수집.
+        AI 필터 없이 기본 품질 기준(10초 이상)만 적용 (이미 필터링 후 부족한 상태이므로).
+        """
+        result       = list(existing)
+        existing_names = {f.name for f in result}
+
+        for layer in ["sub", "main", "point"]:
+            if len(result) >= target:
+                break
+            queries = sound_layers.get(layer, [])
+            for query in queries:
+                if len(result) >= target:
+                    break
+                sounds = self.search(query, page_size=15)
+                for sound in sounds:
+                    if len(result) >= target:
+                        break
+                    if sound.get("duration", 0) < 10:
+                        continue
+                    path = self.download(sound)
+                    if path and path.name not in existing_names:
+                        result.append(path)
+                        existing_names.add(path.name)
+                        log.info(f"추가 수집 [{layer}]: {path.name}")
+                        break
+                    time.sleep(0.3)
+
+        if len(result) < target:
+            log.warning(f"추가 수집 후에도 {len(result)}개 — {target}개 확보 실패")
+        else:
+            log.info(f"최소 {target}개 확보 완료: {len(result)}개")
         return result
