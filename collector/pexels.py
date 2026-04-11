@@ -143,6 +143,23 @@ class PexelsCollector:
                 dest.unlink()
             return None
 
+    def fetch_by_id(self, video_id: str) -> dict | None:
+        """
+        Pexels video ID로 단일 영상 정보 조회
+        used_assets에 기록된 ID로 영상을 재다운로드할 때 사용
+        """
+        try:
+            resp = requests.get(
+                f"{self.BASE_URL}/videos/{video_id}",
+                headers=self.headers,
+                timeout=15
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            log.error(f"Pexels video fetch failed (id={video_id}): {e}")
+            return None
+
     def collect_local(self, category: str, count: int = 3) -> list[Path]:
         """assets/video/{category}/ 폴더에서 로컬 영상 수집"""
         local_dir = LOCAL_VIDEO_DIR / category

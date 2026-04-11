@@ -98,6 +98,22 @@ def decrypt_file(input_path: Path, output_path: Path | None = None) -> Path:
     return out
 
 
+def decrypt_to_str(input_path: Path) -> str:
+    """
+    .enc 파일을 복호화하여 문자열로 반환 (파일 쓰기 없이 메모리에서 처리)
+    """
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    key    = _get_key()
+    aesgcm = AESGCM(key)
+
+    data       = input_path.read_bytes()
+    nonce      = data[:12]
+    ciphertext = data[12:]
+
+    return aesgcm.decrypt(nonce, ciphertext, None).decode("utf-8")
+
+
 # ── CLI ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="파일 암호화/복호화 유틸리티")

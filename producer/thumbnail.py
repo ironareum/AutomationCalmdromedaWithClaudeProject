@@ -266,9 +266,11 @@ class ThumbnailGenerator:
         raw_en     = title_parts[2] if len(title_parts) >= 3 else ""
         display_en = raw_en.split("-")[0].strip() if raw_en else ""
 
+        # 2줄 분할
         l1, l2 = _split_two_lines(display)
         longer = l1 if len(l1) >= len(l2) else l2
 
+        # 폰트 크기: W*82% 안에 확실히 들어오도록 실측
         max_w     = int(W * 0.82)
         font_size = _fit_font_size(longer, max_w, max_size=100, min_size=38)
         log.info(f"타이틀: \"{display}\" + en:\"{display_en}\" → {font_size}px  ({l1!r} / {l2!r})")
@@ -312,6 +314,7 @@ class ThumbnailGenerator:
         gap      = 14                             # 요소 간격
 
         n_lines      = 2 if l2 else 1
+        # 영문 보조 있을 때만 높이 포함
         en_sub_total = (en_sub_h + gap) if display_en else 0
         total_h      = sub_h + gap + line_h*n_lines + en_sub_total + gap + en_h
         y_start      = (H - total_h) // 2
