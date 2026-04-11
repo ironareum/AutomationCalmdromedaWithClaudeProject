@@ -5,6 +5,7 @@ FFmpeg Video Producer
 2026.03.29 임시 파일 단계별 즉시 삭제 → 디스크 사용량 최소화
 2026.03.29 오디오 -14 LUFS 정규화 (YouTube 권장)
 2026.03.29 영상 좌상단 heading 로고 + 우하단 원형 로고 동시 삽입
+2026.04.11 feat: 루프 경계 acrossfade 적용 — seamless loop 생성 (연결 부자연스러움 개선)
 
 [디스크 사용 흐름]
   이전: 원본영상 + normalized + video_loop + mixed_audio + merged_no_logo + 최종 = 최종x3~4배
@@ -143,6 +144,40 @@ class VideoProducer:
             log.warning(f"유효성 검사 오류 ({path.name}): {e}")
             return False
 
+    # ── Seamless 루프 처리 ────────────────────────────────────────────
+    def _make_seamless_loop_file(self, sound_file: Path, cf_sec: float = 5.0) -> Path:
+        """
+        파일 끝→시작 경계에 acrossfade를 삽입한 seamless loop 파일 생성.
+        stream_loop 적용 시 루프 경계가 자연스럽게 연결됨.
+
+        원리:
+          - 동일 파일 두 장 로드 → acrossfade(d=cf_sec)
+          - 원본 길이(D)로 트리밍 → 끝 cf_sec 구간에 크로스페이드 내장
+          - stream_loop 시: 파일 끝(A 앞부분 페이드인 완료) → 파일 시작(A 앞부분)
+            → 연속적으로 들림
+        """
+        dur = self.get_duration(sound_file)
+        if dur <= cf_sec * 2 + 1:
+            log.debug(f"파일이 너무 짧아 크로스페이드 스킵 ({dur:.1f}s): {sound_file.name}")
+            return sound_file
+
+        output = self.temp_dir / f"seamless_{sound_file.stem}.mp3"
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", str(sound_file),
+            "-i", str(sound_file),
+            "-filter_complex",
+            f"[0:a][1:a]acrossfade=d={cf_sec}:c1=tri:c2=tri",
+            "-t", str(dur),   # 원본 길이로 트리밍 (끝 cf_sec에 크로스페이드 내장)
+            "-b:a", "192k",
+            str(output)
+        ]
+        if self._run(cmd, f"Seamless 루프 생성: {sound_file.name}"):
+            return output
+
+        log.warning(f"Seamless 루프 생성 실패 — 원본 사용: {sound_file.name}")
+        return sound_file
+
     # ── 오디오 믹싱 ──────────────────────────────────────────────────
     def mix_sounds(self, sound_files: list[Path], target_duration: int) -> tuple | None:
         """
@@ -189,20 +224,25 @@ class VideoProducer:
             log.error("유효한 사운드 파일이 없습니다")
             return None
 
-        if len(layers) == 1:
-            # 단일 사운드: 루프만
+        # ── 루프 경계 크로스페이드 처리 ───────────────────────────────
+        # 각 레이어를 seamless loop 파일로 변환 (끝→시작 연결 자연스럽게)
+        seamless_layers = [self._make_seamless_loop_file(f) for f in layers]
+        log.info(f"Seamless 처리 완료: {len(seamless_layers)}개 레이어")
+
+        if len(seamless_layers) == 1:
+            # 단일 사운드: seamless 루프
             cmd = [
                 "ffmpeg", "-y",
                 "-stream_loop", "-1",       # 무한 루프
-                "-i", str(layers[0]),
+                "-i", str(seamless_layers[0]),
                 "-t", str(target_duration), # 목표 길이로 자름
                 "-b:a", "192k",
                 str(raw_audio)
             ]
         else:
-            # 멀티 레이어 믹싱
+            # 멀티 레이어 믹싱 (seamless 파일 사용)
             inputs = []
-            for f in layers:
+            for f in seamless_layers:
                 inputs += ["-stream_loop", "-1", "-i", str(f)]
 
             # 각 레이어 볼륨 설정 (duration 내림차순 정렬 기반)
@@ -211,13 +251,13 @@ class VideoProducer:
             # 포인트(5~15%): 가장 짧은 파일 = 효과음 (거의 안 들림)
             import random
             vol_ranges = [(0.60, 0.80), (0.10, 0.30), (0.05, 0.15)]
-            volumes = [round(random.uniform(*r), 2) for r in vol_ranges[:len(layers)]]
+            volumes = [round(random.uniform(*r), 2) for r in vol_ranges[:len(seamless_layers)]]
             log.info(f"레이어 볼륨: {list(zip([f.name for f in layers], volumes))}")
-            amix_inputs = "".join(f"[{i}:a]volume={volumes[i]}[a{i}];" for i in range(len(layers)))
-            mix_inputs  = "".join(f"[a{i}]" for i in range(len(layers)))
+            amix_inputs = "".join(f"[{i}:a]volume={volumes[i]}[a{i}];" for i in range(len(seamless_layers)))
+            mix_inputs  = "".join(f"[a{i}]" for i in range(len(seamless_layers)))
             filter_complex = (
                 f"{amix_inputs}"
-                f"{mix_inputs}amix=inputs={len(layers)}:duration=longest"
+                f"{mix_inputs}amix=inputs={len(seamless_layers)}:duration=longest"
             )
 
             cmd = [
