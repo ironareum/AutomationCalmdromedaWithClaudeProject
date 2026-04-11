@@ -1,9 +1,9 @@
 """
 썸네일 단독 생성 스크립트
 사용법:
-  python make_thumbnail.py --title "빗소리 ASMR Rain Sounds | 틀어두면 잠드는 소리" \
+  python make_thumbnail.py --title "빗소리 ASMR | 창밖에 비 올 때 틀어두는 소리 | Rain Sounds - Sleep Music Relaxation" \
                            --category rain \
-                           --title_sub "잠잘때 듣기 좋은" \
+                           --title_sub "빗소리 힐링" \
                            --subtitle_en "Cozy Rain Night"
 
 영상 파일은 assets/thumbnail_source/ 폴더에 넣어두면 자동으로 첫 프레임 사용
