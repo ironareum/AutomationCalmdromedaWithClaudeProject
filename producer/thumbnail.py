@@ -23,6 +23,7 @@ Thumbnail Generator
 
 2026.03.30 신규 신규 카테고리 추가(12개)
 2026.04.08 fix: 타이틀 한글/영문 분리
+2026.04.11 refactor: 공통 렌더링 로직을 _render()로 추출
 """
 
 import logging
@@ -80,6 +81,7 @@ def _paste_logo_tl(base: Image.Image) -> Image.Image:
     layer = Image.new("RGBA", (W,H), (0,0,0,0))
     layer.paste(logo, (8,8), logo)
     return Image.alpha_composite(base.convert("RGBA"), layer)
+
 
 def _paste_logo_br(base: Image.Image) -> Image.Image:
     """우하단 원형 로고"""
@@ -207,6 +209,50 @@ class ThumbnailGenerator:
         subtitle_en: str = "Healing Music",
         output_name: str | None = None,
     ) -> Path:
+        """영상 첫 프레임을 배경으로 썸네일 생성"""
+        bg = None
+        if video_path and video_path.exists():
+            frame_jpg = self.thumb_dir / f"_frame_{video_path.stem}.jpg"
+            if _extract_frame(video_path, frame_jpg):
+                try:
+                    bg = Image.open(frame_jpg).convert("RGB")
+                    log.info(f"썸네일 배경: {video_path.name} 첫 프레임")
+                except Exception as e:
+                    log.warning(f"프레임 로드 실패: {e}")
+        if not bg:
+            log.info("썸네일 배경: 그라디언트 폴백")
+
+        return self._render(bg, title, category, title_sub, subtitle_en, output_name)
+
+    def generate_from_image(
+        self,
+        title:       str,
+        category:    str,
+        image_path:  Path,
+        title_sub:   str = "잠잘때 듣기 좋은",
+        subtitle_en: str = "Healing Music",
+        output_name: str | None = None,
+    ) -> Path:
+        """이미지 파일을 배경으로 썸네일 생성 (jpg/png 지원)"""
+        bg = None
+        try:
+            bg = Image.open(image_path).convert("RGB")
+            log.info(f"썸네일 배경: {image_path.name} (이미지)")
+        except Exception as e:
+            log.warning(f"이미지 로드 실패: {e}")
+
+        return self._render(bg, title, category, title_sub, subtitle_en, output_name)
+
+    def _render(
+        self,
+        bg:          Image.Image | None,
+        title:       str,
+        category:    str,
+        title_sub:   str,
+        subtitle_en: str,
+        output_name: str | None,
+    ) -> Path:
+        """공통 썸네일 렌더링 (배경 이미지를 받아 텍스트/로고/저장까지 처리)"""
         W, H = self.SIZE
         t    = THEMES.get(category, THEMES["forest"])
 
@@ -220,28 +266,14 @@ class ThumbnailGenerator:
         raw_en     = title_parts[2] if len(title_parts) >= 3 else ""
         display_en = raw_en.split("-")[0].strip() if raw_en else ""
 
-        # 2줄 분할
         l1, l2 = _split_two_lines(display)
         longer = l1 if len(l1) >= len(l2) else l2
 
-        # 폰트 크기: W*82% 안에 확실히 들어오도록 실측
         max_w     = int(W * 0.82)
         font_size = _fit_font_size(longer, max_w, max_size=100, min_size=38)
         log.info(f"타이틀: \"{display}\" + en:\"{display_en}\" → {font_size}px  ({l1!r} / {l2!r})")
 
-        # ── 2. 배경 (영상 첫 프레임) ────────────────────────────────
-        bg = None
-        if video_path and video_path.exists():
-            frame_jpg = self.thumb_dir / f"_frame_{video_path.stem}.jpg"
-            if _extract_frame(video_path, frame_jpg):
-                try:
-                    bg = Image.open(frame_jpg).convert("RGB")
-                    log.info(f"썸네일 배경: {video_path.name} 첫 프레임")
-                except Exception as e:
-                    log.warning(f"프레임 로드 실패: {e}")
-        if not bg:
-            log.info("썸네일 배경: 그라디언트 폴백")
-
+        # ── 2. Stroke 색상 ───────────────────────────────────────────
         sc = _stroke_color(bg) if bg else (15,15,15)
         log.info(f"Stroke 색상: RGB{sc}")
 
@@ -279,23 +311,21 @@ class ThumbnailGenerator:
         en_h     = f_en.getbbox("A")[3]     + 8   # 영문 서브 높이
         gap      = 14                             # 요소 간격
 
-        n_lines = 2 if l2 else 1
-        # 영문 보조 있을 때만 높이 포함
+        n_lines      = 2 if l2 else 1
         en_sub_total = (en_sub_h + gap) if display_en else 0
-        total_h = sub_h + gap + line_h*n_lines + en_sub_total + gap + en_h
-        y_start = (H - total_h) // 2
+        total_h      = sub_h + gap + line_h*n_lines + en_sub_total + gap + en_h
+        y_start      = (H - total_h) // 2
 
-        y_sub   = y_start
-        y_l1    = y_sub + sub_h + gap
-        y_l2    = y_l1 + line_h
+        y_sub      = y_start
+        y_l1       = y_sub + sub_h + gap
+        y_l2       = y_l1 + line_h
         after_main = y_l2 + line_h if l2 else y_l1 + line_h
-        y_en_sub = after_main + 4 if display_en else after_main
-        y_en     = (y_en_sub + en_sub_h + gap) if display_en else (after_main + gap)
+        y_en_sub   = after_main + 4 if display_en else after_main
+        y_en       = (y_en_sub + en_sub_h + gap) if display_en else (after_main + gap)
 
         # ── 6. 부제목 ────────────────────────────────────────────────
         _stroke_center(draw, title_sub, y_sub, f_sub, W,
                        fill=(*t["sub"],210), sc=sc, sw=3)
-
         # 구분선
         draw.line([(W//2-45, y_sub+sub_h+4), (W//2+45, y_sub+sub_h+4)],
                   fill=(*t["glow"],70), width=1)
@@ -321,266 +351,6 @@ class ThumbnailGenerator:
         base = _paste_logo_br(base)
 
         # ── 10. 저장 ─────────────────────────────────────────────────
-        fname = output_name or f"thumb_{category}_{random.randint(1000,9999)}.jpg"
-        out   = self.thumb_dir / fname
-        base.convert("RGB").save(out, "JPEG", quality=95)
-        log.info(f"Thumbnail saved: {out.name}")
-        return out
-    def generate_from_image(
-        self,
-        title:       str,
-        category:    str,
-        image_path:  Path,
-        title_sub:   str = "잠잘때 듣기 좋은",
-        subtitle_en: str = "Healing Music",
-        output_name: str | None = None,
-    ) -> Path:
-        """이미지 파일을 배경으로 썸네일 생성 (jpg/png 지원)"""
-        from PIL import Image as PILImage
-        W, H = self.SIZE
-        t    = THEMES.get(category, THEMES["forest"])
-
-        display = title.split("|")[0].strip() if "|" in title else title
-        l1, l2  = _split_two_lines(display)
-        longer  = l1 if len(l1) >= len(l2) else l2
-        max_w   = int(W * 0.82)
-        font_size = _fit_font_size(longer, max_w, max_size=100, min_size=38)
-        log.info(f"타이틀: \"{display}\" → {font_size}px  ({l1!r} / {l2!r})")
-
-        # 이미지 배경 로드
-        try:
-            bg = PILImage.open(image_path).convert("RGB")
-            log.info(f"썸네일 배경: {image_path.name} (이미지)")
-        except Exception as e:
-            log.warning(f"이미지 로드 실패: {e}")
-            bg = None
-
-        sc   = _stroke_color(bg) if bg else (15,15,15)
-        log.info(f"Stroke 색상: RGB{sc}")
-
-        if bg:
-            base = bg.resize((W,H), PILImage.LANCZOS).convert("RGBA")
-            ov   = PILImage.new("RGBA",(W,H),(0,0,0,0))
-            od   = ImageDraw.Draw(ov)
-            for y in range(H):
-                a = int(t["ov"]*0.60 + t["ov"]*0.40*y/H)
-                od.line([(0,y),(W,y)], fill=(0,0,0,a))
-            base = Image.alpha_composite(base, ov)
-        else:
-            base = Image.new("RGBA",(W,H),(15,35,15,255))
-
-        gl = Image.new("RGBA",(W,H),(0,0,0,0))
-        gd = ImageDraw.Draw(gl)
-        cx, cy = W//2, H//2-10
-        for r in range(260,0,-26):
-            a = int(14*(1-r/260))
-            gd.ellipse([(cx-r*2,cy-r),(cx+r*2,cy+r)], fill=(*t["glow"],a))
-        base = Image.alpha_composite(base.convert("RGBA"), gl)
-        draw = ImageDraw.Draw(base)
-
-        f_sub  = _fko(28)
-        f_main = _fko(font_size)
-        f_en   = _fen(48, "italic")
-        sub_h  = f_sub.getbbox("A")[3]  + 8
-        line_h = int(font_size * 1.18)
-        en_h   = f_en.getbbox("A")[3]   + 8
-        gap    = 18
-        n_lines = 2 if l2 else 1
-        total_h = sub_h + gap + line_h*n_lines + gap + en_h
-        y_start = (H - total_h) // 2
-        y_sub  = y_start
-        y_l1   = y_sub + sub_h + gap
-        y_l2   = y_l1 + line_h
-        y_en   = (y_l2 + line_h if l2 else y_l1 + line_h) + gap
-
-        _stroke_center(draw, title_sub, y_sub, f_sub, W,
-                       fill=(*t["sub"],210), sc=sc, sw=3)
-        draw.line([(W//2-45, y_sub+sub_h+4), (W//2+45, y_sub+sub_h+4)],
-                  fill=(*t["glow"],70), width=1)
-        _stroke_center(draw, l1, y_l1, f_main, W,
-                       fill=(255,255,255), sc=sc, sw=6)
-        if l2:
-            _stroke_center(draw, l2, y_l2, f_main, W,
-                           fill=(255,255,255), sc=sc, sw=6)
-        _stroke_center(draw, subtitle_en, y_en, f_en, W,
-                       fill=(*t["en"],225), sc=sc, sw=4)
-
-        base = _paste_logo_tl(base)
-        base = _paste_logo_br(base)
-
-        fname = output_name or f"thumb_{category}_{random.randint(1000,9999)}.jpg"
-        out   = self.thumb_dir / fname
-        base.convert("RGB").save(out, "JPEG", quality=95)
-        log.info(f"Thumbnail saved: {out.name}")
-        return out
-
-
-    def generate_from_image(
-        self,
-        title:       str,
-        category:    str,
-        image_path,
-        title_sub:   str = "잠잘때 듣기 좋은",
-        subtitle_en: str = "Healing Music",
-        output_name = None,
-    ):
-        """이미지 파일을 배경으로 썸네일 생성"""
-        W, H = self.SIZE
-        t    = THEMES.get(category, THEMES["forest"])
-
-        display   = title.split("|")[0].strip() if "|" in title else title
-        l1, l2    = _split_two_lines(display)
-        longer    = l1 if len(l1) >= len(l2) else l2
-        font_size = _fit_font_size(longer, int(W*0.82), max_size=100, min_size=38)
-        log.info(f"타이틀: \"{display}\" → {font_size}px  ({l1!r} / {l2!r})")
-
-        try:
-            bg = Image.open(image_path).convert("RGB")
-            log.info(f"썸네일 배경: {image_path} (이미지)")
-        except Exception as e:
-            log.warning(f"이미지 로드 실패: {e}")
-            bg = None
-
-        sc = _stroke_color(bg) if bg else (15, 15, 15)
-        log.info(f"Stroke 색상: RGB{sc}")
-
-        if bg:
-            base = bg.resize((W, H), Image.LANCZOS).convert("RGBA")
-            ov   = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-            od   = ImageDraw.Draw(ov)
-            for y in range(H):
-                a = int(t["ov"]*0.60 + t["ov"]*0.40*y/H)
-                od.line([(0, y), (W, y)], fill=(0, 0, 0, a))
-            base = Image.alpha_composite(base, ov)
-        else:
-            base = Image.new("RGBA", (W, H), (15, 35, 15, 255))
-
-        gl = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        gd = ImageDraw.Draw(gl)
-        cx, cy = W//2, H//2-10
-        for r in range(260, 0, -26):
-            a = int(14*(1-r/260))
-            gd.ellipse([(cx-r*2, cy-r), (cx+r*2, cy+r)], fill=(*t["glow"], a))
-        base = Image.alpha_composite(base.convert("RGBA"), gl)
-        draw = ImageDraw.Draw(base)
-
-        f_sub  = _fko(28)
-        f_main = _fko(font_size)
-        f_en   = _fen(48, "italic")
-        sub_h  = f_sub.getbbox("A")[3] + 8
-        line_h = int(font_size * 1.18)
-        en_h   = f_en.getbbox("A")[3]  + 8
-        gap    = 18
-        n_lines = 2 if l2 else 1
-        total_h = sub_h + gap + line_h*n_lines + gap + en_h
-        y_start = (H - total_h) // 2
-        y_sub   = y_start
-        y_l1    = y_sub + sub_h + gap
-        y_l2    = y_l1 + line_h
-        y_en    = (y_l2 + line_h if l2 else y_l1 + line_h) + gap
-
-        _stroke_center(draw, title_sub, y_sub, f_sub, W,
-                       fill=(*t["sub"], 210), sc=sc, sw=3)
-        draw.line([(W//2-45, y_sub+sub_h+4), (W//2+45, y_sub+sub_h+4)],
-                  fill=(*t["glow"], 70), width=1)
-        _stroke_center(draw, l1, y_l1, f_main, W,
-                       fill=(255, 255, 255), sc=sc, sw=6)
-        if l2:
-            _stroke_center(draw, l2, y_l2, f_main, W,
-                           fill=(255, 255, 255), sc=sc, sw=6)
-        _stroke_center(draw, subtitle_en, y_en, f_en, W,
-                       fill=(*t["en"], 225), sc=sc, sw=4)
-
-        base = _paste_logo_tl(base)
-        base = _paste_logo_br(base)
-
-        fname = output_name or f"thumb_{category}_{random.randint(1000,9999)}.jpg"
-        out   = self.thumb_dir / fname
-        base.convert("RGB").save(out, "JPEG", quality=95)
-        log.info(f"Thumbnail saved: {out.name}")
-        return out
-    def generate_from_image(
-        self,
-        title:       str,
-        category:    str,
-        image_path:  Path,
-        title_sub:   str = "잠잘때 듣기 좋은",
-        subtitle_en: str = "Healing Music",
-        output_name: str | None = None,
-    ) -> Path:
-        """이미지 파일을 배경으로 썸네일 생성 (jpg/png 지원)"""
-        from PIL import Image as PILImage
-        W, H = self.SIZE
-        t    = THEMES.get(category, THEMES["forest"])
-
-        display = title.split("|")[0].strip() if "|" in title else title
-        l1, l2  = _split_two_lines(display)
-        longer  = l1 if len(l1) >= len(l2) else l2
-        max_w   = int(W * 0.82)
-        font_size = _fit_font_size(longer, max_w, max_size=100, min_size=38)
-        log.info(f"타이틀: \"{display}\" → {font_size}px  ({l1!r} / {l2!r})")
-
-        # 이미지 배경 로드
-        try:
-            bg = PILImage.open(image_path).convert("RGB")
-            log.info(f"썸네일 배경: {image_path.name} (이미지)")
-        except Exception as e:
-            log.warning(f"이미지 로드 실패: {e}")
-            bg = None
-
-        sc   = _stroke_color(bg) if bg else (15,15,15)
-        log.info(f"Stroke 색상: RGB{sc}")
-
-        if bg:
-            base = bg.resize((W,H), PILImage.LANCZOS).convert("RGBA")
-            ov   = PILImage.new("RGBA",(W,H),(0,0,0,0))
-            od   = ImageDraw.Draw(ov)
-            for y in range(H):
-                a = int(t["ov"]*0.60 + t["ov"]*0.40*y/H)
-                od.line([(0,y),(W,y)], fill=(0,0,0,a))
-            base = Image.alpha_composite(base, ov)
-        else:
-            base = Image.new("RGBA",(W,H),(15,35,15,255))
-
-        gl = Image.new("RGBA",(W,H),(0,0,0,0))
-        gd = ImageDraw.Draw(gl)
-        cx, cy = W//2, H//2-10
-        for r in range(260,0,-26):
-            a = int(14*(1-r/260))
-            gd.ellipse([(cx-r*2,cy-r),(cx+r*2,cy+r)], fill=(*t["glow"],a))
-        base = Image.alpha_composite(base.convert("RGBA"), gl)
-        draw = ImageDraw.Draw(base)
-
-        f_sub  = _fko(28)
-        f_main = _fko(font_size)
-        f_en   = _fen(48, "italic")
-        sub_h  = f_sub.getbbox("A")[3]  + 8
-        line_h = int(font_size * 1.18)
-        en_h   = f_en.getbbox("A")[3]   + 8
-        gap    = 18
-        n_lines = 2 if l2 else 1
-        total_h = sub_h + gap + line_h*n_lines + gap + en_h
-        y_start = (H - total_h) // 2
-        y_sub  = y_start
-        y_l1   = y_sub + sub_h + gap
-        y_l2   = y_l1 + line_h
-        y_en   = (y_l2 + line_h if l2 else y_l1 + line_h) + gap
-
-        _stroke_center(draw, title_sub, y_sub, f_sub, W,
-                       fill=(*t["sub"],210), sc=sc, sw=3)
-        draw.line([(W//2-45, y_sub+sub_h+4), (W//2+45, y_sub+sub_h+4)],
-                  fill=(*t["glow"],70), width=1)
-        _stroke_center(draw, l1, y_l1, f_main, W,
-                       fill=(255,255,255), sc=sc, sw=6)
-        if l2:
-            _stroke_center(draw, l2, y_l2, f_main, W,
-                           fill=(255,255,255), sc=sc, sw=6)
-        _stroke_center(draw, subtitle_en, y_en, f_en, W,
-                       fill=(*t["en"],225), sc=sc, sw=4)
-
-        base = _paste_logo_tl(base)
-        base = _paste_logo_br(base)
-
         fname = output_name or f"thumb_{category}_{random.randint(1000,9999)}.jpg"
         out   = self.thumb_dir / fname
         base.convert("RGB").save(out, "JPEG", quality=95)
