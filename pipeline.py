@@ -34,7 +34,7 @@ from producer.ffmpeg_producer import VideoProducer
 from producer.thumbnail import ThumbnailGenerator
 from uploader.youtube import YouTubeUploader
 from uploader.instagram import InstagramUploader, build_caption
-from planner.concept_generator import generate_concept, CATEGORY_SOUNDS as CATEGORY_SOUNDS_FOR_REUSE
+from planner.concept_generator import generate_concept, CATEGORY_SOUNDS as CATEGORY_SOUNDS_FOR_REUSE, CATEGORY_TAGS
 from config import Config
 
 logging.basicConfig(
@@ -241,10 +241,14 @@ def run_pipeline(concept: dict):
 
             if shorts_path:
                 log.info("Step 8: [쇼츠 업로드] YouTube Shorts 업로드 시작...")
-                # 쇼츠용 제목: 감성적 shorts_title 사용
+                # 쇼츠용 제목: 감성적 shorts_title + 카테고리 태그 (100자 미만)
                 shorts_title = concept.get("shorts_title", concept["title"])
-                if len(shorts_title) > 90:
-                    shorts_title = shorts_title[:90]
+                category = concept.get("category", "")
+                cat_tags = CATEGORY_TAGS.get(category, [])[:2]  # 한국어 태그 최대 2개
+                tag_suffix = " ".join(f"#{t.replace(' ', '')}" for t in cat_tags)
+                if tag_suffix:
+                    full = f"{shorts_title} {tag_suffix}"
+                    shorts_title = full[:99] if len(full) >= 100 else full
 
                 # 쇼츠 태그 (원본 태그 + Shorts 태그)
                 shorts_tags = concept["tags"] + ["Shorts", "유튜브쇼츠", "힐링쇼츠", "ASMR쇼츠"]
