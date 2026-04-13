@@ -110,6 +110,10 @@ CATEGORY_TITLE_KEYWORDS = {
     "summer_rain":    "여름 빗소리 ASMR",
     "snow_walk":      "눈밭 발자국 ASMR",
     "moktak":         "목탁 소리 ASMR",
+    "cave_water":     "동굴 물방울 소리 ASMR",
+    "ice_melt":       "얼음 녹는 소리 ASMR",
+    "bath_house":     "목욕탕 소리 ASMR",
+    "train_ride":     "기차 소리 ASMR",
 }
 
 # 지원 카테고리 전체 목록
