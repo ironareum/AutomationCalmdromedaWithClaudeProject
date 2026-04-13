@@ -178,8 +178,33 @@ class VideoProducer:
         log.warning(f"Seamless 루프 생성 실패 — 원본 사용: {sound_file.name}")
         return sound_file
 
+    # ── 포인트 음원 침묵 패딩 ────────────────────────────────────────
+    def _pad_short_sound_with_silence(self, sound_file: Path,
+                                      min_total: float = 8.0,
+                                      max_total: float = 15.0) -> Path:
+        """
+        짧은 포인트 사운드 뒤에 무작위 침묵 추가 → 반복 간격 자연스럽게 확보.
+        예: 3초짜리 page turn + 9초 침묵 = 12초마다 1회 반복
+        """
+        import random
+        dur = self.get_duration(sound_file)
+        total = round(random.uniform(min_total, max_total), 1)
+        pad_dur = max(1.0, total - dur)  # 최소 1초 침묵 보장
+
+        output = self.temp_dir / f"padded_{sound_file.stem}.mp3"
+        cmd = [
+            "ffmpeg", "-y", "-i", str(sound_file),
+            "-af", f"apad=pad_dur={pad_dur}",
+            "-b:a", "192k", str(output)
+        ]
+        if self._run(cmd, f"침묵 패딩: {sound_file.name} ({dur:.1f}s → ~{total}s간격)"):
+            return output
+        log.warning(f"침묵 패딩 실패 — 원본 사용: {sound_file.name}")
+        return sound_file
+
     # ── 오디오 믹싱 ──────────────────────────────────────────────────
-    def mix_sounds(self, sound_files: list[Path], target_duration: int) -> tuple | None:
+    def mix_sounds(self, sound_files: list[Path], target_duration: int,
+                   category: str = "") -> tuple | None:
         """
         여러 사운드 파일을 믹싱하고 목표 길이로 루프
         - 유효성 검사 후 통과한 파일로 최대 3개 레이어 구성
@@ -223,6 +248,15 @@ class VideoProducer:
         if not layers:
             log.error("유효한 사운드 파일이 없습니다")
             return None
+
+        # ── library: 짧은 point 레이어에 침묵 간격 삽입 ──────────────
+        # point 레이어 = 최단 파일(layers[2]). 30초 미만이면 패딩 적용
+        # 결과: 8~15초 간격으로 자연스럽게 반복 (기존: 2~5초마다 반복)
+        if category == "library" and len(layers) >= 3:
+            point_dur = get_duration(layers[2])
+            if point_dur < 30:
+                log.info(f"Library point 레이어 침묵 패딩: {layers[2].name} ({point_dur:.1f}s)")
+                layers[2] = self._pad_short_sound_with_silence(layers[2])
 
         # ── 루프 경계 크로스페이드 처리 ───────────────────────────────
         # 각 레이어를 seamless loop 파일로 변환 (끝→시작 연결 자연스럽게)
@@ -510,7 +544,8 @@ class VideoProducer:
         sound_files: list[Path],
         video_files: list[Path],
         duration_hours: int = 1,
-        title: str = "output"
+        title: str = "output",
+        category: str = "",
     ) -> tuple | None:  # (output_path, used_sounds, used_videos)
         """
         전체 영상 제작 파이프라인
@@ -519,7 +554,7 @@ class VideoProducer:
         log.info(f"Producing {duration_hours}h video...")
 
         # 1. 오디오 믹싱 (유효한 파일만 레이어로 사용)
-        mix_result = self.mix_sounds(sound_files, target_duration)
+        mix_result = self.mix_sounds(sound_files, target_duration, category=category)
         if not mix_result:
             return None
         audio, actual_sounds = mix_result  # 실제 사용된 레이어 추적

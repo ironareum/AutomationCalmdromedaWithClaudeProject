@@ -134,7 +134,8 @@ def run_pipeline(concept: dict):
             sound_files=sound_files,
             video_files=video_files,
             duration_hours=concept["duration_hours"],
-            title=concept["title"]
+            title=concept["title"],
+            category=concept.get("category", ""),
         )
         if not produce_result:
             log.error("Video production failed. Aborting.")
