@@ -124,6 +124,10 @@ jobs:
           UPLOAD_MINUTE_KST:          "30"
           YOUTUBE_TOKEN:              "credentials/token.json"
           YOUTUBE_CLIENT_SECRET:      "credentials/client_secret.json"
+          INSTAGRAM_ENABLED:          "true"
+          INSTAGRAM_ACCESS_TOKEN:     ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID:          ${{ secrets.INSTAGRAM_USER_ID }}
+          IMGBB_API_KEY:              ${{ secrets.IMGBB_API_KEY }}
         run: python pipeline.py
 
       # ── 10. 실행 후 암호화 & data 브랜치에 커밋 ──────────────────────
