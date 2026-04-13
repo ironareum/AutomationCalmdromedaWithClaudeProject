@@ -392,7 +392,7 @@ def _cleanup_assets(
 
 
 def upload_to_gdrive(session_id: str, work_dir: Path, cfg) -> bool:
-    """rclone으로 Google Drive에 업로드"""
+    """rclone으로 Google Drive에 업로드 (음원·영상 파일 제외)"""
     import shutil, subprocess
 
     # rclone 실행 파일 찾기 (로컬: 루트의 rclone.exe, Actions: PATH의 rclone)
@@ -401,19 +401,58 @@ def upload_to_gdrive(session_id: str, work_dir: Path, cfg) -> bool:
     if local_rclone.exists():
         rclone_bin = str(local_rclone)
 
+    # rclone 설치 여부 확인
+    if not shutil.which(rclone_bin) and rclone_bin == "rclone":
+        log.warning("rclone 없음 — Google Drive 업로드 스킵")
+        return False
+
+    # gdrive 리모트 설정 확인
+    try:
+        check = subprocess.run(
+            [rclone_bin, "listremotes"],
+            capture_output=True, encoding="utf-8", errors="replace", timeout=30
+        )
+        remotes = check.stdout.strip().splitlines()
+        if "gdrive:" not in remotes:
+            log.error(
+                f"rclone 설정에 'gdrive' 리모트가 없습니다. "
+                f"현재 리모트: {remotes or '없음'} — "
+                f"RCLONE_CONF 시크릿에 [gdrive] 섹션이 포함되어 있는지 확인하세요."
+            )
+            return False
+    except Exception as e:
+        log.error(f"rclone listremotes 실패: {e}")
+        return False
+
     remote_path = f"gdrive:Calmdromeda/{session_id}"
+
+    # 음원·영상 파일은 제외 (log 파일에 소스 출처 기록됨)
+    exclude_media = [
+        "--exclude=**/*.mp3",
+        "--exclude=**/*.wav",
+        "--exclude=**/*.flac",
+        "--exclude=**/*.aac",
+        "--exclude=**/*.ogg",
+        "--exclude=**/*.m4a",
+        "--exclude=**/*.mp4",
+        "--exclude=**/*.mkv",
+        "--exclude=**/*.avi",
+        "--exclude=**/*.mov",
+        "--exclude=**/*.webm",
+        "--exclude=temp/**",
+    ]
 
     try:
         result = subprocess.run(
             [rclone_bin, "copy", str(work_dir), remote_path,
-             "--progress", "--transfers=4", "--exclude=temp/**"],
+             "--progress", "--transfers=4"] + exclude_media,
             capture_output=True, encoding="utf-8", errors="replace", timeout=600
         )
         if result.returncode == 0:
-            log.info(f"Google Drive 업로드 완료: {remote_path}")
+            log.info(f"Google Drive 업로드 완료: {remote_path} (음원·영상 제외)")
             return True
         else:
-            log.error(f"rclone 업로드 실패: {result.stderr[:300]}")
+            log.error(f"rclone 업로드 실패: {result.stderr[:500]}")
             return False
     except FileNotFoundError:
         log.warning("rclone 없음 — Google Drive 업로드 스킵")
