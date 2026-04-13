@@ -433,7 +433,12 @@ def generate_description(concept: dict) -> str:
 공부, 업무, 명상, 숙면에 최적화되어 있습니다."""
 
     en_section = desc_en if desc_en else f"""Relax, focus, or drift off to sleep with this {hours}-hour soundscape.
-Perfect for studying, working, meditation, or deep sleep."""
+Perfect for studying, working, meditation, or deep sleep.
+Best experienced with headphones. 🎧
+
+━━━━━━━━━━━━━━━━━━━━━━━━━
+🔔 Subscribe for daily calming sounds → @Calmdromeda
+━━━━━━━━━━━━━━━━━━━━━━━━━"""
 
     return f"""{concept['title']}
 
