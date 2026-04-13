@@ -582,10 +582,10 @@ class VideoProducer:
         # (최종영상경로, 실제사용사운드, 실제사용영상) 반환
         return result, actual_sounds, actual_videos
 
-    def extract_shorts_clip(self, video_path: Path, duration: int = 58) -> Path | None:
+    def extract_shorts_clip(self, video_path: Path, duration: int = 40) -> Path | None:
         """
         풀영상 앞부분에서 쇼츠/릴스용 세로 클립 추출
-        - duration: 클립 길이 (기본 58초, YouTube Shorts 60초 제한 여유)
+        - duration: 클립 길이 (기본 40초, 알고리즘 최적화 30~45초)
         - 9:16 세로 비율로 크롭 (1080x1920)
         - 시작점: 3초 (인트로 어두운 부분 스킵)
         """
@@ -601,7 +601,7 @@ class VideoProducer:
             "ffmpeg", "-y",
             "-ss", "3",                    # 3초부터 시작
             "-i", str(video_path),
-            "-t", str(duration),           # 58초
+            "-t", str(duration),           # 40초
             "-vf", (
                 "crop=ih*9/16:ih:(iw-ih*9/16)/2:0,"  # 9:16 크롭
                 "scale=1080:1920"                      # 세로 HD
