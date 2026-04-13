@@ -253,8 +253,8 @@ def run_pipeline(concept: dict):
                 # 쇼츠 태그 (원본 태그 + Shorts 태그)
                 shorts_tags = concept["tags"] + ["Shorts", "유튜브쇼츠", "힐링쇼츠", "ASMR쇼츠"]
 
-                # 쇼츠 설명
-                shorts_desc = concept['title'] + "\n\n#Shorts\n\n" + metadata["description"]
+                # 쇼츠 설명 (title 중복 제거 — description 첫 줄이 이미 title)
+                shorts_desc = "#Shorts\n\n" + metadata["description"]
 
                 shorts_uploader = YouTubeUploader(
                     client_secret_path=Path(cfg.youtube_client_secret_path),
@@ -428,29 +428,24 @@ def generate_description(concept: dict) -> str:
 
     tags_str = " ".join(f"#{t.replace(' ', '')}" for t in concept["tags"])
 
-    ko_section = f"""{concept['title']}
-
-편안하게 쉬거나, 집중하거나, 깊은 잠에 빠져들어 보세요.
+    ko_body = f"""편안하게 쉬거나, 집중하거나, 깊은 잠에 빠져들어 보세요.
 {hours}시간의 {mood} 사운드스케이프입니다.
-공부, 업무, 명상, 숙면에 최적화되어 있습니다.
+공부, 업무, 명상, 숙면에 최적화되어 있습니다."""
+
+    en_section = desc_en if desc_en else f"""Relax, focus, or drift off to sleep with this {hours}-hour soundscape.
+Perfect for studying, working, meditation, or deep sleep."""
+
+    return f"""{concept['title']}
+
+{ko_body}
+
+{en_section}
 
 🎧 이어폰이나 스피커로 들으시면 더욱 좋습니다.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 🔔 매일 새로운 힐링 사운드 → @Calmdromeda 구독
-━━━━━━━━━━━━━━━━━━━━━━━━━"""
-
-    en_section = desc_en if desc_en else f"""Relax, focus, or drift off to sleep with this {hours}-hour soundscape.
-Perfect for studying, working, meditation, or deep sleep.
-Best experienced with headphones. 🎧
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-🔔 Subscribe for daily calming sounds → @Calmdromeda
-━━━━━━━━━━━━━━━━━━━━━━━━━"""
-
-    return f"""{ko_section}
-
-{en_section}
 
 {tags_str}
 
