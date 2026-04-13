@@ -49,7 +49,6 @@ class Config:
     instagram_enabled: bool = os.getenv("INSTAGRAM_ENABLED", "true").lower() == "true"
     instagram_access_token: str = os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
     instagram_user_id: str = os.getenv("INSTAGRAM_USER_ID", "")
-    imgbb_api_key: str = os.getenv("IMGBB_API_KEY", "")
 
     # Category → Pexels search query mapping
     category_queries = {
