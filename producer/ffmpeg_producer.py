@@ -272,12 +272,12 @@ class VideoProducer:
         if not self._run(cmd, f"Mixing {len(layers)} sound layers → {target_duration//3600}h audio"):
             return None
 
-        # -14 LUFS 정규화 + 마지막 5초 페이드아웃
+        # -18 LUFS 정규화 + lowpass 8kHz (화이트노이즈/하이 프리퀀시 제거) + 마지막 5초 페이드아웃
         fade_start = max(0, target_duration - 5)
         cmd_lufs = [
             "ffmpeg", "-y",
             "-i", str(raw_audio),
-            "-af", f"loudnorm=I=-18:TP=-2.0:LRA=11,afade=t=out:st={fade_start}:d=5",
+            "-af", f"lowpass=f=8000,loudnorm=I=-18:TP=-2.0:LRA=11,afade=t=out:st={fade_start}:d=5",
             "-b:a", "192k",
             str(output)
         ]

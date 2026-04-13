@@ -295,7 +295,7 @@ class FreesoundCollector:
                 "page_size": page_size,
                 "page":      page,
                 "fields":    "id,name,duration,license,previews,avg_rating,num_downloads,tags,description",
-                "filter":    'license:"Creative Commons 0" OR license:"Attribution"',
+                "filter":    'license:"Creative Commons 0" OR license:"Attribution" NOT tag:white-noise NOT tag:"white noise" NOT tag:static NOT tag:hiss NOT tag:"pink noise"',
                 "sort":      "downloads_desc",
                 "token":     self.api_key,
             }
@@ -518,9 +518,11 @@ class FreesoundCollector:
   (비행기 컨셉인데 waves/birds, 수중 컨셉인데 rain/wind 등)
 ✗ 긴장감/공포감/불쾌감을 줄 수 있는 소리
 ✗ 반복적이고 자극적인 기계음, 경보음, 사이렌
-✗ 강한 바람 소리, 하이 노이즈, 하이 프리퀀시 소리
-  (wind, gust, howl, noise, hiss, hum high, static 등 — 귀에 거슬리는 고주파 성분)
-✗ 화이트 노이즈, 핑크 노이즈 (브라운 노이즈만 허용)
+✗ 화이트 노이즈, 핑크 노이즈 — 파일명/tags에 whitenoise, white noise, white_noise, pink noise, pink_noise 포함 시 즉시 제거
+  (브라운 노이즈만 예외적으로 허용)
+✗ 하이 프리퀀시 / 하이 노이즈 — 귀에 거슬리는 고주파 성분 포함 파일 제거
+  파일명/tags에 hiss, static, noise, high frequency, harsh, shrill, shriek, screech 포함 시 제거
+  강한 바람 소리 (wind gust, howl, blowing, strong wind 등) — 배경 바람은 허용, 강한 돌풍은 제거
 ✗ 음악적 요소 포함 (멜로디, 비트, 리듬, 악기 연주 등)
   (music, beat, melody, funk, loop with melody, song 등)
 

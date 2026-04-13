@@ -17,7 +17,7 @@ AI 콘셉트 자동 생성기
 2026.04.04 feat: 3레이어 사운드 구조 (main/sub/point) + 볼륨 랜덤화 + calm 쿼리 강화
 2026.04.04 feat: 제목 SEO 키워드 강화, 태그 한/영 통합, 폴백 개선
 2026.04.05 fix: rain/forest 하이노이즈 제거, white_noise brown noise만 허용
-2026.04.05 feat: 신규 카테고리 5개 추가 (cave_water/ice_melt/bath_house/train_ride/temple_bell)
+2026.04.05 feat: 신규 카테고리 5개 추가 (cave_water/ice_melt/bath_house/train_ride/moktak)
 2026.04.05 feat: category 필드 추가, 순차 카테고리 선택 로직 완성
 2026.04.07 fix: 카테고리 그룹 기반 순환 + shorts_title 적용
 2026.04.07 feat: 제목 감성 문구 형식으로 변경, 그룹 기반 순환 로직
@@ -84,6 +84,7 @@ CATEGORY_TAGS = {
     "stream":        ["계곡소리", "시냇물소리", "stream sounds", "river asmr"],
     "summer_rain":   ["여름빗소리", "소나기소리", "summer rain", "rain leaves"],
     "snow_walk":     ["눈밭소리", "발자국소리", "snow walking", "winter walk"],
+    "moktak":        ["목탁소리", "절소리", "사찰ASMR", "사찰소리", "한국절", "Korean temple", "Buddhist moktak"],
 }
 
 # 카테고리별 제목 첫 키워드 (사람들이 실제로 검색하는 단어)
@@ -108,6 +109,7 @@ CATEGORY_TITLE_KEYWORDS = {
     "stream":         "계곡 물소리 ASMR",
     "summer_rain":    "여름 빗소리 ASMR",
     "snow_walk":      "눈밭 발자국 ASMR",
+    "moktak":         "목탁 소리 ASMR",
 }
 
 # 지원 카테고리 전체 목록
@@ -118,7 +120,7 @@ ALL_CATEGORIES = [
     "hot_spring", "fireplace_rain", "summer_night",
     "winter_snow", "study_room", "stream",
     "summer_rain", "snow_walk",
-    "cave_water", "ice_melt", "bath_house", "train_ride", "temple_bell",
+    "cave_water", "ice_melt", "bath_house", "train_ride", "moktak",
 ]
 
 # 비슷한 카테고리 그룹 — 같은 그룹 연속 방지
@@ -131,7 +133,7 @@ CATEGORY_GROUPS = {
     "ambient_group": ["white_noise", "camping"],
     "winter_group":  ["winter_snow", "snow_walk"],
     "water_drip_group": ["cave_water", "ice_melt"],
-    "zen_group":     ["temple_bell", "bath_house"],
+    "zen_group":     ["moktak", "bath_house"],
     "transit_group": ["airplane", "subway", "train_ride"],
 }
 
@@ -169,7 +171,7 @@ CATEGORY_KO = {
     "ice_melt":       "얼음 녹는 소리",
     "bath_house":     "실내 목욕탕/사우나 ASMR",
     "train_ride":     "열차 실내 소리",
-    "temple_bell":    "목탁/사찰 소리",
+    "moktak":         "목탁/한국 사찰 소리",
 }
 
 # 카테고리별 Freesound 검색 쿼리
@@ -240,8 +242,8 @@ CATEGORY_VIDEO_QUERIES = {
                        "steam room interior", "hot tub indoor"],
     "train_ride":     ["train window night", "train interior moving", "railway journey",
                        "train window landscape", "night train window"],
-    "temple_bell":    ["zen temple garden", "buddhist temple", "japanese garden calm",
-                       "temple morning", "buddhist meditation"],
+    "moktak":         ["korean temple morning", "korean buddhist temple", "korean monastery nature",
+                       "korean temple garden", "korean temple forest", "temple korea calm"],
 }
 
 # 카테고리별 검증된 Freesound 쿼리 풀
@@ -373,8 +375,8 @@ CATEGORY_SOUNDS = {
         "sub":   ["train rhythm gentle", "rail track ambient soft"],
         "point": ["train distant whistle soft", "cabin ambient quiet"],
     },
-    "temple_bell": {
-        # 핵심: 목탁(wooden percussion) 중심 → zen bell은 sub으로 이동
+    "moktak": {
+        # 핵심: 목탁(wooden percussion) 중심 → singing bowl/종소리는 sub으로 이동
         "main":  ["wooden percussion soft gentle", "wood block mallet gentle calm", "wood percussion strike ambient"],
         "sub":   ["singing bowl meditation gentle", "zen bell ambient calm", "tibetan bowl soft"],
         "point": ["distant temple bell chime", "wind chime gentle soft"],
@@ -407,7 +409,7 @@ CATEGORY_SOUND_HINTS = {
     "ice_melt":      "얼음 녹는 소리. 핵심: 똑똑 물방울 떨어지는 소리(dripping)가 메인. 계곡/시냇물(stream/river)은 서브로만 허용. stream/river 파일이 메인 레이어에 있으면 제거. 차갑고 투명한 느낌.",
     "bath_house":    "실내 대중목욕탕/사우나 전용. 보글보글 물소리+물 찰랑거리는 소리+증기 소리. 야외/자연음 절대 금지. 실내 욕탕 특유의 울림과 물소리만.",
     "train_ride":    "열차 실내. 리드미컬한 레일 소리+기차 진동. 잠들 것 같은 부드러운 기차 주행음. 자연음 절대 금지.",
-    "temple_bell":   "목탁/사찰. 핵심: 나무 타악기(wooden percussion, wood block, mallet) 소리가 메인. 싱잉볼/종소리는 서브. 새소리/자연음은 배경으로만 허용. 하이 프리퀀시/강한 타격음 금지. 명상적이고 고요한 느낌.",
+    "moktak":        "한국 사찰 목탁 소리. 핵심: 나무 타악기(wooden percussion, wood block, mallet) 소리가 메인. 싱잉볼/종소리는 서브. 새소리/바람/자연음은 배경으로만 허용. 하이 프리퀀시/강한 타격음/일본/동남아 분위기 소리 금지. 명상적이고 고요한 한국 사찰 분위기.",
 }
 
 
