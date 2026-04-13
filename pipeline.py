@@ -33,6 +33,7 @@ from collector.pexels import PexelsCollector
 from producer.ffmpeg_producer import VideoProducer
 from producer.thumbnail import ThumbnailGenerator
 from uploader.youtube import YouTubeUploader
+from uploader.instagram import InstagramUploader, build_caption
 from planner.concept_generator import generate_concept, CATEGORY_SOUNDS as CATEGORY_SOUNDS_FOR_REUSE
 from config import Config
 
@@ -234,6 +235,7 @@ def run_pipeline(concept: dict):
 
         # 8. 쇼츠 클립 추출 + YouTube Shorts 업로드
         shorts_result = None
+        shorts_path   = None  # Step 9 Instagram에서도 접근 가능하도록 블록 밖에서 초기화
         if cfg.upload_enabled:
             log.info("Step 8: [쇼츠 제작] Extracting Shorts clip...")
             shorts_path = producer.extract_shorts_clip(output_video, duration=58)
@@ -262,7 +264,7 @@ def run_pipeline(concept: dict):
                     tags=shorts_tags,
                     thumbnail_path=thumbnail,
                     language=concept.get("language", "ko"),
-                    hour_kst=cfg.upload_hour_kst,    # 풀영상과 같은 시간 예약
+                    hour_kst=cfg.upload_hour_kst,
                     minute_kst=cfg.upload_minute_kst,
                 )
                 if shorts_result:
@@ -279,6 +281,36 @@ def run_pipeline(concept: dict):
         else:
             log.info("Step 7: [쇼츠] UPLOAD_ENABLED=false — 스킵")
 
+        # 9. Instagram Reels 업로드
+        instagram_result = None
+        if cfg.instagram_enabled and cfg.instagram_access_token and cfg.instagram_user_id:
+            if shorts_path and shorts_path.exists():
+                log.info("Step 9: [Instagram Reels] 쇼츠 영상 업로드 시작...")
+                ig_uploader = InstagramUploader(
+                    access_token=cfg.instagram_access_token,
+                    user_id=cfg.instagram_user_id,
+                )
+                # 토큰 갱신 시도 (60일 연장)
+                ig_uploader.refresh_token()
+
+                youtube_url = upload_result.get("url") if upload_result else None
+                caption = build_caption(concept, youtube_url=youtube_url)
+                instagram_result = ig_uploader.post_reel(shorts_path, caption)
+
+                if instagram_result:
+                    metadata["instagram"] = instagram_result
+                    meta_path.write_text(
+                        json.dumps(metadata, indent=2, ensure_ascii=False),
+                        encoding="utf-8"
+                    )
+                    log.info(f"Instagram Reel post_id: {instagram_result['post_id']}")
+                else:
+                    log.warning("Instagram Reels 업로드 실패 — YouTube 업로드는 유지됨")
+            else:
+                log.warning("Step 9: [Instagram Reels] Shorts 파일 없음 — 스킵")
+        else:
+            log.info("Step 9: [Instagram Reels] INSTAGRAM_ENABLED=false 또는 토큰 미설정 — 스킵")
+
         log.info("=== Pipeline Complete ===")
         log.info(f"Video   : {output_video}")
         log.info(f"Thumb   : {thumbnail}")
@@ -288,6 +320,8 @@ def run_pipeline(concept: dict):
             log.info(f"YouTube : {upload_result['url']} (공개: {upload_result['publish_at']})")
         if shorts_result:
             log.info(f"Shorts  : {shorts_result['url']} (공개: {shorts_result['publish_at']})")
+        if instagram_result:
+            log.info(f"Instagram: post_id={instagram_result['post_id']}")
 
         return metadata
 
