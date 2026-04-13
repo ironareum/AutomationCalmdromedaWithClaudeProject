@@ -87,8 +87,25 @@ jobs:
         run: |
           curl https://rclone.org/install.sh | sudo bash
           mkdir -p ~/.config/rclone
+
+          # RCLONE_CONF 시크릿 존재 여부 확인
+          if [ -z "$RCLONE_CONF" ]; then
+            echo "::error::RCLONE_CONF 시크릿이 비어 있습니다. GitHub Secrets에 rclone.conf 내용을 등록하세요."
+            exit 1
+          fi
+
           echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
-          echo "rclone 설정 완료"
+
+          # [gdrive] 섹션 포함 여부 검증
+          if ! rclone listremotes | grep -q "^gdrive:"; then
+            echo "::error::rclone.conf에 'gdrive' 리모트가 없습니다. RCLONE_CONF 값에 [gdrive] 섹션이 포함되어 있는지 확인하세요."
+            echo "--- 현재 등록된 리모트 ---"
+            rclone listremotes
+            exit 1
+          fi
+
+          echo "rclone 설정 완료 — gdrive 리모트 확인됨"
+          rclone listremotes
 
       # ── 7. 자격증명 복원 ─────────────────────────────────────────────
       - name: Restore credentials
