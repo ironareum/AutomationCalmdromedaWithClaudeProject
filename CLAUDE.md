@@ -10,7 +10,7 @@
 3. **커밋/푸시/PR**:
    - 코드 파악(읽기)은 컨펌 없이 진행 가능.
    - 코드 수정 후 commit & push는 반드시 사용자 컨펌 후 진행.
-   - commit & push 시 PR도 함께 생성한다.
+   - PR은 작업이 완전히 마무리됐을 때 사용자가 명시적으로 요청할 때만 생성한다.
    - PR 머지는 사용자가 GitHub에서 직접 검토 후 진행.
 
 4. **개발 브랜치**: `claude/andromeda-development-7Ngar`
