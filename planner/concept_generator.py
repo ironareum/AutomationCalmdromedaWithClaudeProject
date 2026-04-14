@@ -299,9 +299,10 @@ CATEGORY_SOUNDS = {
         "point": ["crickets distant night", "wind trees gentle"],
     },
     "airplane": {
-        "main":  ["airplane cabin ambient", "aircraft interior noise calm", "inflight ambience loop"],
-        "sub":   ["plane engine hum gentle", "airplane interior background"],
-        "point": ["cabin air circulation soft", "flight ambient low"],
+        "intro": ["airplane cabin announcement", "inflight announcement boarding", "flight crew announcement cabin"],
+        "main":  ["airplane cabin interior quiet", "aircraft cabin ambient quiet", "inflight cabin hum soft"],
+        "sub":   ["cabin air conditioning soft", "airplane pressurization ambient gentle"],
+        "point": ["seatbelt sign chime airplane", "fasten seatbelt bell soft", "cabin chime ding soft"],
     },
     "subway": {
         "main":  ["subway train interior calm", "metro train ride ambient", "underground train gentle"],
@@ -397,7 +398,7 @@ CATEGORY_SOUND_HINTS = {
     "white_noise":   "브라운 노이즈만 허용. 화이트/핑크 노이즈 절대 금지. 저음 위주의 부드럽고 묵직한 소리. 아주 작은 볼륨으로.",
     "cafe":          "카페 실내음. 대화소리+커피머신+배경음악 없는 분위기.",
     "camping":       "캠핑. 모닥불 타는 소리+밤 자연음.",
-    "airplane":      "비행기 기내. 엔진소음+기내 공기소리. 파도/새소리 절대 금지.",
+    "airplane":      "비행기 기내. 시작 시 기내 안내방송 1회(한국어/영어). 이후 조용한 기내 실내음만. 큰 엔진음 절대 금지. 가끔 안전벨트 벨소리만 허용. 파도/새소리 절대 금지.",
     "subway":        "지하철/기차 주행음. 철로 소리+진동음. 자연음 절대 금지.",
     "library":       "도서관 실내. 조용한 환경+책 넘기는 소리+먼 발소리.",
     "underwater":    "수중/바닷속. 물속 기포+수압음+수중 특유의 울림. 파도/해변 소리 절대 금지.",
@@ -548,7 +549,7 @@ def generate_concept(
     season         = _get_season(today)
     recent_cats    = _get_recent_categories(used_assets_path)
     recent_titles  = _get_recent_titles(used_assets_path)
-    category       = _pick_category(recent_cats)
+    category       = force_category if force_category else _pick_category(recent_cats)
     category_name  = CATEGORY_KO.get(category, category)
     # 메인/서브/포인트 구조에서 각 레이어 쿼리 추출
     cat_sounds = CATEGORY_SOUNDS.get(category, {})
@@ -711,6 +712,7 @@ def generate_concept(
         "category":     category,
         "sounds":       ai_sounds,
         "sound_layers": {
+            "intro": cat_sounds.get("intro", []),
             "main":  cat_sounds.get("main",  [ai_sounds[0]] if ai_sounds else ["nature ambient calm"]),
             "sub":   cat_sounds.get("sub",   [ai_sounds[1]] if len(ai_sounds) > 1 else ["wind gentle soft"]),
             "point": cat_sounds.get("point", [ai_sounds[2]] if len(ai_sounds) > 2 else ["birds distant quiet"]),
