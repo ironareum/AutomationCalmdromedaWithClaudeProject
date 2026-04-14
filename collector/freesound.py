@@ -295,7 +295,7 @@ class FreesoundCollector:
                 "page_size": page_size,
                 "page":      page,
                 "fields":    "id,name,duration,license,previews,avg_rating,num_downloads,tags,description",
-                "filter":    'license:"Creative Commons 0" OR license:"Attribution" NOT tag:white-noise NOT tag:"white noise" NOT tag:static NOT tag:hiss NOT tag:"pink noise"',
+                "filter":    '+(license:"Creative Commons 0" OR license:"Attribution") -tag:white-noise -tag:"white noise" -tag:static -tag:hiss -tag:"pink noise"',
                 "sort":      "downloads_desc",
                 "token":     self.api_key,
             }
