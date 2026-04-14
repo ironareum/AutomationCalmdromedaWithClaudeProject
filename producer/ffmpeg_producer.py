@@ -220,13 +220,11 @@ class VideoProducer:
             if f.exists():
                 f.unlink()
 
-        # 유효성 검사 통과한 파일로 최대 3개 레이어 구성
-        # duration 내림차순 정렬: 긴 파일(앰비언스) → 메인, 짧은 파일(효과음) → 포인트
-        valid_files = []
+        # intro 파일 분리 (prefix 기준) — 1회 재생, seamless loop 제외
+        intro_files   = [f for f in sound_files if f.name.startswith("intro_") and self._is_valid_audio(f)]
+        regular_files = [f for f in sound_files if not f.name.startswith("intro_") and self._is_valid_audio(f)]
         for f in sound_files:
-            if self._is_valid_audio(f):
-                valid_files.append(f)
-            else:
+            if not self._is_valid_audio(f):
                 log.warning(f"사운드 건너뜀: {f.name}")
 
         # duration 기반 정렬 (ffprobe로 길이 확인)
@@ -242,8 +240,8 @@ class VideoProducer:
             except Exception:
                 return 0.0
 
-        valid_files.sort(key=get_duration, reverse=True)
-        layers = valid_files[:3]
+        regular_files.sort(key=get_duration, reverse=True)
+        layers = regular_files[:3]
 
         if not layers:
             log.error("유효한 사운드 파일이 없습니다")
@@ -263,13 +261,50 @@ class VideoProducer:
         seamless_layers = [self._make_seamless_loop_file(f) for f in layers]
         log.info(f"Seamless 처리 완료: {len(seamless_layers)}개 레이어")
 
-        if len(seamless_layers) == 1:
+        import random
+        vol_ranges = [(0.60, 0.80), (0.10, 0.30), (0.05, 0.15)]
+        volumes = [round(random.uniform(*r), 2) for r in vol_ranges[:len(seamless_layers)]]
+        log.info(f"레이어 볼륨: {list(zip([f.name for f in layers], volumes))}")
+
+        if intro_files and seamless_layers:
+            # ── intro 1회 재생 + 메인 루프 믹싱 ──────────────────────
+            # intro: stream_loop 없이 1회 재생, 2~3초 지연 후 시작
+            intro_file = intro_files[0]
+            delay_ms   = random.randint(2000, 3000)
+            log.info(f"Intro 레이어: {intro_file.name} (delay={delay_ms}ms)")
+
+            inputs = ["-i", str(intro_file)]  # no stream_loop
+            for f in seamless_layers:
+                inputs += ["-stream_loop", "-1", "-i", str(f)]
+
+            total = 1 + len(seamless_layers)
+            intro_filter   = f"[0:a]adelay={delay_ms}|{delay_ms},volume=0.85[a0];"
+            regular_filter = "".join(
+                f"[{i+1}:a]volume={volumes[i]}[a{i+1}];"
+                for i in range(len(seamless_layers))
+            )
+            mix_inputs     = "".join(f"[a{i}]" for i in range(total))
+            filter_complex = (
+                f"{intro_filter}"
+                f"{regular_filter}"
+                f"{mix_inputs}amix=inputs={total}:duration=longest"
+            )
+            cmd = [
+                "ffmpeg", "-y",
+                *inputs,
+                "-filter_complex", filter_complex,
+                "-t", str(target_duration),
+                "-b:a", "192k",
+                str(raw_audio)
+            ]
+
+        elif len(seamless_layers) == 1:
             # 단일 사운드: seamless 루프
             cmd = [
                 "ffmpeg", "-y",
-                "-stream_loop", "-1",       # 무한 루프
+                "-stream_loop", "-1",
                 "-i", str(seamless_layers[0]),
-                "-t", str(target_duration), # 목표 길이로 자름
+                "-t", str(target_duration),
                 "-b:a", "192k",
                 str(raw_audio)
             ]
@@ -279,21 +314,12 @@ class VideoProducer:
             for f in seamless_layers:
                 inputs += ["-stream_loop", "-1", "-i", str(f)]
 
-            # 각 레이어 볼륨 설정 (duration 내림차순 정렬 기반)
-            # 메인(60~80%): 가장 긴 파일 = 앰비언스
-            # 서브(10~30%): 중간 파일 = 배경 보완음
-            # 포인트(5~15%): 가장 짧은 파일 = 효과음 (거의 안 들림)
-            import random
-            vol_ranges = [(0.60, 0.80), (0.10, 0.30), (0.05, 0.15)]
-            volumes = [round(random.uniform(*r), 2) for r in vol_ranges[:len(seamless_layers)]]
-            log.info(f"레이어 볼륨: {list(zip([f.name for f in layers], volumes))}")
             amix_inputs = "".join(f"[{i}:a]volume={volumes[i]}[a{i}];" for i in range(len(seamless_layers)))
             mix_inputs  = "".join(f"[a{i}]" for i in range(len(seamless_layers)))
             filter_complex = (
                 f"{amix_inputs}"
                 f"{mix_inputs}amix=inputs={len(seamless_layers)}:duration=longest"
             )
-
             cmd = [
                 "ffmpeg", "-y",
                 *inputs,
@@ -306,12 +332,15 @@ class VideoProducer:
         if not self._run(cmd, f"Mixing {len(layers)} sound layers → {target_duration//3600}h audio"):
             return None
 
-        # -18 LUFS 정규화 + lowpass 8kHz (화이트노이즈/하이 프리퀀시 제거) + 마지막 5초 페이드아웃
+        # -18 LUFS 정규화 + 노이즈 제거 + lowpass 8kHz + 마지막 5초 페이드아웃
+        # highpass=f=80  : 80Hz 이하 저주파 잡음(진동/바닥 소음) 제거
+        # afftdn=nf=-25  : FFT 기반 노이즈 리덕션 (지지직/백색소음/TV잡음 제거)
+        # lowpass=f=8000 : 8kHz 이상 고주파 제거
         fade_start = max(0, target_duration - 5)
         cmd_lufs = [
             "ffmpeg", "-y",
             "-i", str(raw_audio),
-            "-af", f"lowpass=f=8000,loudnorm=I=-18:TP=-2.0:LRA=11,afade=t=out:st={fade_start}:d=5",
+            "-af", f"highpass=f=80,afftdn=nf=-25,lowpass=f=8000,loudnorm=I=-18:TP=-2.0:LRA=11,afade=t=out:st={fade_start}:d=5",
             "-b:a", "192k",
             str(output)
         ]

@@ -585,19 +585,28 @@ JSON 형식으로만 응답:
             return sound_files
     def _collect_by_layers(self, sound_layers: dict, concept: dict = None) -> list[Path]:
         """
-        메인/서브/포인트 구조로 각 레이어별 최적 파일 1개씩 수집
-        - main:  앰비언스 핵심음 → duration 가장 긴 파일
-        - sub:   배경 보완음
-        - point: 포인트 효과음 → duration 짧아도 OK
+        인트로/메인/서브/포인트 구조로 각 레이어별 최적 파일 1개씩 수집
+        - intro: 기내 안내방송 등 1회성 인트로 → 5초 이상, intro_ prefix 저장
+        - main:  앰비언스 핵심음 → 60초 이상
+        - sub:   배경 보완음 → 10초 이상
+        - point: 포인트 효과음 → 10초 이상
         """
         result = []
         sound_meta = {}
-        layer_names = ["main", "sub", "point"]
+        layer_names = ["intro", "main", "sub", "point"]
 
         for layer in layer_names:
             queries = sound_layers.get(layer, [])
             if not queries:
                 continue
+
+            # 레이어별 최소 길이
+            if layer == "main":
+                min_dur = 60
+            elif layer == "intro":
+                min_dur = 5
+            else:
+                min_dur = 10
 
             found = None
             for query in queries:
@@ -605,12 +614,15 @@ JSON 형식으로만 응답:
                     break
                 results = self.search(query, page_size=12)
                 for sound in results:
-                    # 메인은 최소 60초, 서브/포인트는 10초 이상
-                    min_dur = 60 if layer == "main" else 10
                     if sound.get("duration", 0) < min_dur:
                         continue
                     path = self.download(sound)
                     if path:
+                        # intro 파일: ffmpeg에서 1회 재생 구분을 위해 prefix 추가
+                        if layer == "intro":
+                            intro_path = path.parent / f"intro_{path.name}"
+                            path.rename(intro_path)
+                            path = intro_path
                         found = path
                         sound_meta[path.name] = {
                             "tags": sound.get("tags", []),
@@ -626,11 +638,14 @@ JSON 형식으로만 응답:
             else:
                 log.warning(f"레이어 [{layer}] 수집 실패 — 쿼리: {queries[:2]}")
 
-        # AI 검증
-        if concept and result:
-            result = self._ai_filter_sounds(result, concept, sound_meta)
+        # AI 검증 (intro 파일 제외하고 검증)
+        non_intro = [f for f in result if not f.name.startswith("intro_")]
+        intro     = [f for f in result if f.name.startswith("intro_")]
+        if concept and non_intro:
+            non_intro = self._ai_filter_sounds(non_intro, concept, sound_meta)
+        result = intro + non_intro
 
-        log.info(f"레이어 구조 수집 완료: {len(result)}개")
+        log.info(f"레이어 구조 수집 완료: {len(result)}개 (intro: {len(intro)}개)")
         return result
 
     def _supplement_sounds(self, existing: list[Path], sound_layers: dict, target: int = 2) -> list[Path]:

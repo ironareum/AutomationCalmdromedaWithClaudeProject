@@ -589,6 +589,7 @@ if __name__ == "__main__":
             used_assets_path=USED_ASSETS_FILE,
             duration_hours=1,
             language="ko",
+            force_category=args.category,  # --category 지정 시 해당 카테고리로 강제 기획
         )
     else:
         # ── 수동 콘셉트 모드 (기존 방식) ─────────────────────────────
