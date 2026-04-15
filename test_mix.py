@@ -43,7 +43,7 @@ PRESETS = {
     "none":           "",                                                                   # 필터 없음 (raw 믹스 그대로)
     "normalize_only": "loudnorm=I=-20:TP=-2.0:LRA=11",                                    # 정규화만 (-20 LUFS 기준)
     "minimal":        "highpass=f=40,loudnorm=I=-20:TP=-2.0:LRA=11",                      # 초저역 컷 + 정규화
-    "current":        "highpass=f=40,loudnorm=I=-22:TP=-2.0:LRA=11,equalizer=f=3000:t=q:w=1:g=-2",  # 현재 적용 설정
+    "current":        "highpass=f=80,equalizer=f=3000:t=q:w=1:g=-2",                                 # 현재 적용 설정 (loudnorm 제거)
     "prev_original":  "highpass=f=80,afftdn=nf=-25,lowpass=f=8000,loudnorm=I=-18:TP=-2.0:LRA=11",   # 이전 설정 (비교용)
 }
 

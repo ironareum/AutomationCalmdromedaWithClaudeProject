@@ -332,16 +332,14 @@ class VideoProducer:
         if not self._run(cmd, f"Mixing {len(layers)} sound layers → {target_duration//3600}h audio"):
             return None
 
-        # 수면/ASMR 기준 최소 처리 — "안 건드릴수록 좋다"
-        # highpass=f=40          : 40Hz 이하 초저역(진동·녹음 노이즈)만 제거, 그 이상 건드리지 않음
-        # loudnorm=I=-22:LRA=11  : -22 LUFS (깊은 수면용 부드러운 레벨), 다이나믹 보존
-        # equalizer=f=3000:g=-2  : 3kHz 귀 찌르는 고역 2dB만 살짝 줄임 (선택적 보정)
-        # afade 페이드아웃       : 마지막 5초 자연스럽게 종료
+        # 수면/ASMR 최소 처리 — loudnorm 제거 (원본 레벨 강제 부스트 방지)
+        # highpass=f=80          : 80Hz 이하 초저역(진동·녹음 노이즈)만 제거
+        # equalizer=f=3000:g=-2  : 3kHz 귀 찌르는 고역 2dB 살짝 줄임
         fade_start = max(0, target_duration - 5)
         cmd_lufs = [
             "ffmpeg", "-y",
             "-i", str(raw_audio),
-            "-af", f"highpass=f=40,loudnorm=I=-22:TP=-2.0:LRA=11,equalizer=f=3000:t=q:w=1:g=-2,afade=t=out:st={fade_start}:d=5",
+            "-af", f"highpass=f=80,equalizer=f=3000:t=q:w=1:g=-2,afade=t=out:st={fade_start}:d=5",
             "-b:a", "192k",
             str(output)
         ]
