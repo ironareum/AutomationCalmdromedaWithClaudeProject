@@ -209,8 +209,8 @@ CATEGORY_VIDEO_QUERIES = {
         "peaceful landscape", "calm water", "zen nature"
     ],
     "cafe": [
-        "cafe window", "coffee shop", "cozy interior",
-        "cafe rain", "warm interior", "coffee morning"
+        "cafe interior table", "coffee shop interior cozy",
+        "cafe window seat", "coffee cup table wood", "cozy cafe inside"
     ],
     "camping":        ["campfire night", "tent camping", "forest night",
                        "campfire outdoor", "starry night camping", "bonfire nature"],

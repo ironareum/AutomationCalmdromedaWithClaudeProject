@@ -60,7 +60,7 @@ class Config:
         "forest":        ["forest nature", "misty forest", "green forest", "forest morning"],
         "birds":         ["birds nature", "morning forest", "peaceful garden", "bird wildlife"],
         "white_noise":   ["abstract calm", "minimalist nature", "soft light nature", "peaceful landscape"],
-        "cafe":          ["cafe window rain", "coffee shop", "cozy interior", "cafe ambience"],
+        "cafe":          ["cafe interior table", "coffee shop interior", "cafe counter indoor", "cozy coffee cup table", "cafe window seat"],
         "camping":       ["campfire night", "tent camping", "forest campfire", "camping nature"],
         # 신규 카테고리
         "airplane":      ["airplane window", "plane cabin", "aircraft interior", "flying clouds"],
