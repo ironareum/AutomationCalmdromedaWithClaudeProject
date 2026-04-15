@@ -40,11 +40,11 @@ log = logging.getLogger(__name__)
 SOUND_EXTENSIONS = {".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac"}
 
 PRESETS = {
-    "none": "",
-    "normalize_only": "loudnorm=I=-18:TP=-2.0:LRA=11",
-    "minimal":        "highpass=f=100,lowpass=f=7000,loudnorm=I=-18:TP=-2.0:LRA=11",
-    "original":       "highpass=f=80,afftdn=nf=-25,lowpass=f=8000,loudnorm=I=-18:TP=-2.0:LRA=11",
-    "current":        "highpass=f=100,afftdn=nf=-25,anlmdn=s=7:p=0.002:r=0.002,lowpass=f=7000,loudnorm=I=-18:TP=-2.0:LRA=7",
+    "none":           "",                                                                   # 필터 없음 (raw 믹스 그대로)
+    "normalize_only": "loudnorm=I=-20:TP=-2.0:LRA=11",                                    # 정규화만 (-20 LUFS 기준)
+    "minimal":        "highpass=f=40,loudnorm=I=-20:TP=-2.0:LRA=11",                      # 초저역 컷 + 정규화
+    "current":        "highpass=f=40,loudnorm=I=-22:TP=-2.0:LRA=11,equalizer=f=3000:t=q:w=1:g=-2",  # 현재 적용 설정
+    "prev_original":  "highpass=f=80,afftdn=nf=-25,lowpass=f=8000,loudnorm=I=-18:TP=-2.0:LRA=11",   # 이전 설정 (비교용)
 }
 
 
