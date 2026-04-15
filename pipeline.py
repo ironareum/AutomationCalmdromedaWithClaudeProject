@@ -427,18 +427,19 @@ def upload_to_gdrive(session_id: str, work_dir: Path, cfg) -> bool:
     remote_path = f"gdrive:Calmdromeda/{session_id}"
 
     # 음원·영상 파일은 제외 (log 파일에 소스 출처 기록됨)
+    # *.ext: 루트 포함 모든 depth 제외 (**/*.ext는 루트 파일 미매칭)
     exclude_media = [
-        "--exclude=**/*.mp3",
-        "--exclude=**/*.wav",
-        "--exclude=**/*.flac",
-        "--exclude=**/*.aac",
-        "--exclude=**/*.ogg",
-        "--exclude=**/*.m4a",
-        "--exclude=**/*.mp4",
-        "--exclude=**/*.mkv",
-        "--exclude=**/*.avi",
-        "--exclude=**/*.mov",
-        "--exclude=**/*.webm",
+        "--exclude=*.mp3",
+        "--exclude=*.wav",
+        "--exclude=*.flac",
+        "--exclude=*.aac",
+        "--exclude=*.ogg",
+        "--exclude=*.m4a",
+        "--exclude=*.mp4",
+        "--exclude=*.mkv",
+        "--exclude=*.avi",
+        "--exclude=*.mov",
+        "--exclude=*.webm",
         "--exclude=temp/**",
     ]
 
