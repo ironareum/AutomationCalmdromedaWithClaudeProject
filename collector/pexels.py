@@ -166,9 +166,9 @@ class PexelsCollector:
         if not local_dir.exists():
             return []
         files = sorted(local_dir.glob("*.mp4"))[:count]
+        result = []
         if files:
             # work_dir/videos/ 로 복사
-            result = []
             for f in files:
                 dest = self.video_dir / f.name
                 if not dest.exists():

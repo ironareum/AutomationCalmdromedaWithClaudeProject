@@ -332,17 +332,14 @@ class VideoProducer:
         if not self._run(cmd, f"Mixing {len(layers)} sound layers → {target_duration//3600}h audio"):
             return None
 
-        # -18 LUFS 정규화 + 노이즈 제거 + lowpass 7kHz + 마지막 5초 페이드아웃
-        # highpass=f=100  : 100Hz 이하 저주파 잡음(진동/바닥 소음) 제거
-        # afftdn=nf=-25  : FFT 기반 노이즈 리덕션 (지지직/하이스/배경잡음)
-        # anlmdn=s=7      : 비정상 노이즈 2차 제거 (afftdn이 못 잡는 간헐적 잡음)
-        # lowpass=f=7000  : 7kHz 이상 고주파 제거
-        # LRA=7           : 다이나믹 레인지 좁혀 에코 느낌 억제
+        # 수면/ASMR 최소 처리 — loudnorm 제거 (원본 레벨 강제 부스트 방지)
+        # highpass=f=80          : 80Hz 이하 초저역(진동·녹음 노이즈)만 제거
+        # equalizer=f=3000:g=-2  : 3kHz 귀 찌르는 고역 2dB 살짝 줄임
         fade_start = max(0, target_duration - 5)
         cmd_lufs = [
             "ffmpeg", "-y",
             "-i", str(raw_audio),
-            "-af", f"highpass=f=100,afftdn=nf=-25,anlmdn=s=7:p=0.002:r=0.002,lowpass=f=7000,loudnorm=I=-18:TP=-2.0:LRA=7,afade=t=out:st={fade_start}:d=5",
+            "-af", f"highpass=f=80,equalizer=f=3000:t=q:w=1:g=-2,afade=t=out:st={fade_start}:d=5",
             "-b:a", "192k",
             str(output)
         ]
