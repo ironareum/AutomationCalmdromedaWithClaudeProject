@@ -143,7 +143,7 @@ def run_pipeline(concept: dict):
             return None
 
         # produce()가 반환한 실제 사용 파일 목록으로 정리
-        output_video, used_sounds, used_videos = produce_result
+        output_video, used_sounds, used_videos, audio_lufs = produce_result
         log.info(f"실제 사용: sounds={[f.name for f in used_sounds]}, "
                  f"videos={[f.name for f in used_videos]}")
 
@@ -161,6 +161,7 @@ def run_pipeline(concept: dict):
             sound_files=used_sounds,
             video_files=used_videos,
             category=concept.get("category", ""),
+            audio_lufs=audio_lufs,
         )
 
         # 4. 썸네일 생성 — 수집된 영상 중 첫 번째 파일의 첫 프레임을 배경으로 사용

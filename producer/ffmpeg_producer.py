@@ -26,6 +26,7 @@ FFmpeg Video Producer
 
 """
 
+import re
 import subprocess
 import logging
 import json
@@ -203,6 +204,27 @@ class VideoProducer:
         return sound_file
 
     # ── 오디오 믹싱 ──────────────────────────────────────────────────
+    def _measure_lufs(self, audio_path: Path) -> float | None:
+        """오디오 파일의 실제 LUFS 측정 (인코딩 없이 분석만)"""
+        cmd = [
+            "ffmpeg", "-hide_banner", "-nostats",
+            "-i", str(audio_path),
+            "-af", "loudnorm=I=-18:TP=-1.5:LRA=11:print_format=json",
+            "-f", "null", "-"
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        match = re.search(r'\{[^{}]+\}', result.stderr, re.DOTALL)
+        if match:
+            try:
+                data = json.loads(match.group())
+                val = data.get("input_i", "")
+                if val and val not in ("-inf", "+inf"):
+                    return round(float(val), 1)
+            except (json.JSONDecodeError, ValueError):
+                pass
+        log.warning(f"LUFS 측정 실패: {audio_path.name}")
+        return None
+
     def mix_sounds(self, sound_files: list[Path], target_duration: int,
                    category: str = "") -> tuple | None:
         """
@@ -332,25 +354,48 @@ class VideoProducer:
         if not self._run(cmd, f"Mixing {len(layers)} sound layers → {target_duration//3600}h audio"):
             return None
 
-        # 수면/ASMR 최소 처리 — loudnorm 제거 (원본 레벨 강제 부스트 방지)
-        # highpass=f=80          : 80Hz 이하 초저역(진동·녹음 노이즈)만 제거
-        # equalizer=f=3000:g=-2  : 3kHz 귀 찌르는 고역 2dB 살짝 줄임
+        # 믹싱 결과 LUFS 측정 후 3단계 조건 처리
+        # highpass=f=80         : 80Hz 이하 초저역(진동·녹음 노이즈) 제거
+        # equalizer=f=3000:g=-2 : 3kHz 귀 찌르는 고역 2dB 감쇄
         fade_start = max(0, target_duration - 5)
+        base_af = f"highpass=f=80,equalizer=f=3000:t=q:w=1:g=-2,afade=t=out:st={fade_start}:d=5"
+
+        measured_lufs = self._measure_lufs(raw_audio)
+
+        if measured_lufs is None:
+            # 측정 실패 → 안전을 위해 loudnorm 적용
+            af_filter  = f"loudnorm=I=-18:TP=-1.5:LRA=11,{base_af}"
+            norm_label = "loudnorm 적용 (측정 실패)"
+        elif measured_lufs >= -20:
+            # 충분히 적당 → loudnorm 스킵, 원본 레벨 유지
+            af_filter  = base_af
+            norm_label = f"loudnorm 스킵 ({measured_lufs} LUFS, 적당)"
+        elif measured_lufs >= -24:
+            # 조금 조용 → loudnorm 적용 (부스트 6dB 이내, 안전 범위)
+            af_filter  = f"loudnorm=I=-18:TP=-1.5:LRA=11,{base_af}"
+            norm_label = f"loudnorm 적용 ({measured_lufs} → -18 LUFS)"
+        else:
+            # 너무 조용 → loudnorm 스킵 (부스트 과다 시 왜곡 위험)
+            af_filter  = base_af
+            norm_label = f"loudnorm 스킵 ({measured_lufs} LUFS, 왜곡 위험 — 음원 점검 필요)"
+            log.warning(f"오디오 레벨 매우 낮음: {measured_lufs} LUFS (<-24). "
+                        "loudnorm 스킵. measure_lufs.py로 소스 음원 점검 권장.")
+
         cmd_lufs = [
             "ffmpeg", "-y",
             "-i", str(raw_audio),
-            "-af", f"loudnorm=I=-18:TP=-1.5:LRA=11,highpass=f=80,equalizer=f=3000:t=q:w=1:g=-2,afade=t=out:st={fade_start}:d=5",
+            "-af", af_filter,
             "-b:a", "192k",
             str(output)
         ]
 
-        ok = self._run(cmd_lufs, "Normalizing audio → -18 LUFS")
+        ok = self._run(cmd_lufs, f"오디오 후처리 → {norm_label}")
         self._delete(raw_audio)
 
         if ok:
-            log.info(f"Audio mixed: {output.name} ({output.stat().st_size // (1024*1024)}MB) @ -18 LUFS")
+            log.info(f"Audio mixed: {output.name} ({output.stat().st_size // (1024*1024)}MB)")
             log.info(f"실제 사용 레이어: {[f.name for f in layers]}")
-            return output, layers
+            return output, layers, measured_lufs
         return None
 
     # ── 영상 루프 ──────────────────────────────────────────────────────
@@ -585,7 +630,7 @@ class VideoProducer:
         mix_result = self.mix_sounds(sound_files, target_duration, category=category)
         if not mix_result:
             return None
-        audio, actual_sounds = mix_result  # 실제 사용된 레이어 추적
+        audio, actual_sounds, audio_lufs = mix_result  # 실제 사용된 레이어 + LUFS 추적
 
         # 2. 영상 루프 (실제 필요한 클립만 사용)
         loop_result = self.prepare_video_loop(video_files, target_duration)
@@ -607,8 +652,8 @@ class VideoProducer:
 
         if result is None:
             return None
-        # (최종영상경로, 실제사용사운드, 실제사용영상) 반환
-        return result, actual_sounds, actual_videos
+        # (최종영상경로, 실제사용사운드, 실제사용영상, 믹스LUFS) 반환
+        return result, actual_sounds, actual_videos, audio_lufs
 
     def extract_shorts_clip(self, video_path: Path, duration: int = 40) -> Path | None:
         """
