@@ -45,10 +45,10 @@ class Config:
     upload_minute_kst: int = int(os.getenv("UPLOAD_MINUTE_KST", "30"))  # 30분
     youtube_token_path: str = os.getenv("YOUTUBE_TOKEN", "credentials/token.json")
 
-    # Instagram 설정
-    instagram_enabled: bool = os.getenv("INSTAGRAM_ENABLED", "true").lower() == "true"
-    instagram_access_token: str = os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
-    instagram_user_id: str = os.getenv("INSTAGRAM_USER_ID", "")
+    # [미사용] Instagram 설정
+    # instagram_enabled: bool = os.getenv("INSTAGRAM_ENABLED", "true").lower() == "true"
+    # instagram_access_token: str = os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
+    # instagram_user_id: str = os.getenv("INSTAGRAM_USER_ID", "")
 
     # Category → Pexels search query mapping
     category_queries = {
