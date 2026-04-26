@@ -11,6 +11,7 @@ Pexels API Video Collector
 2026.04.07 feat: Pexels 긴 영상 우선 정렬, bath_house 실내 전용으로 변경
 """
 
+import json
 import time
 import logging
 import requests
@@ -20,6 +21,17 @@ from collector.freesound import load_used_assets, save_used_assets, is_video_use
 LOCAL_VIDEO_DIR = Path(__file__).parent.parent / "assets" / "video"
 
 log = logging.getLogger(__name__)
+
+
+def _save_source(work_dir: Path, kind: str, file_id: str, creator: str):
+    """work_dir/sources.json 에 크리에이터 정보 누적 저장"""
+    path = work_dir / "sources.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        data.setdefault(kind, {})[file_id] = {"creator": creator}
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as e:
+        log.warning(f"sources.json 저장 실패: {e}")
 
 
 class PexelsCollector:
@@ -133,6 +145,9 @@ class PexelsCollector:
 
             size_mb = dest.stat().st_size / (1024 * 1024)
             log.info(f"Downloaded: {dest.name} ({size_mb:.1f}MB)")
+
+            _save_source(self.video_dir.parent, "videos", str(video["id"]),
+                         video.get("user", {}).get("name", ""))
 
             # 사용 완료 → 기록
             # 사용 기록은 pipeline._cleanup_assets() 완료 후 register_used_session()으로 일괄 등록

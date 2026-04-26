@@ -186,7 +186,7 @@ def run_pipeline(concept: dict):
             "title_sub": concept.get("title_sub", ""),
             "subtitle_en": concept.get("subtitle_en", ""),
             "tags": concept["tags"],
-            "description": generate_description(concept, used_sounds=used_sounds, used_videos=used_videos),
+            "description": generate_description(concept, used_sounds=used_sounds, used_videos=used_videos, work_dir=work_dir),
             "language": language,
             "video_path": str(output_video),
             "thumbnail_path": str(thumbnail),
@@ -463,8 +463,18 @@ def upload_to_gdrive(session_id: str, work_dir: Path, cfg) -> bool:
         return False
 
 
-def _build_attribution(used_sounds: list, used_videos: list) -> str:
-    """음원/영상 출처 텍스트 생성 (Freesound / Pexels URL)"""
+def _build_attribution(used_sounds: list, used_videos: list,
+                       work_dir: Path = None) -> str:
+    """음원/영상 출처 텍스트 생성 (크리에이터 이름 + URL)"""
+    sources = {}
+    if work_dir:
+        sources_path = work_dir / "sources.json"
+        if sources_path.exists():
+            try:
+                sources = json.loads(sources_path.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
     lines = []
 
     # 음원 출처 (Freesound)
@@ -478,7 +488,11 @@ def _build_attribution(used_sounds: list, used_videos: list) -> str:
             sound_ids.append(part)
     if sound_ids:
         lines.append("📻 Sound Sources (Freesound.org — CC0 / Attribution)")
-        lines.extend(f"- https://freesound.org/s/{sid}/" for sid in sound_ids)
+        for i, sid in enumerate(sound_ids, 1):
+            creator = sources.get("sounds", {}).get(sid, {}).get("creator", "")
+            if creator:
+                lines.append(f"Track {i} — by {creator}")
+            lines.append(f"https://freesound.org/s/{sid}/")
 
     # 영상 출처 (Pexels)
     video_ids = []
@@ -490,14 +504,19 @@ def _build_attribution(used_sounds: list, used_videos: list) -> str:
                 video_ids.append(parts[1])
     if video_ids:
         lines.append("\n🎬 Video Sources (Pexels.com — Free License)")
-        lines.extend(f"- https://www.pexels.com/video/{vid}/" for vid in video_ids)
+        for i, vid in enumerate(video_ids, 1):
+            creator = sources.get("videos", {}).get(vid, {}).get("creator", "")
+            if creator:
+                lines.append(f"Clip {i} — by {creator}")
+            lines.append(f"https://www.pexels.com/video/{vid}/")
 
     return "\n".join(lines)
 
 
 def generate_description(concept: dict,
                          used_sounds: list = None,
-                         used_videos: list = None) -> str:
+                         used_videos: list = None,
+                         work_dir: Path = None) -> str:
     language = concept.get("language", "ko")
     hours = concept["duration_hours"]
     mood = concept.get("mood", "calming")
@@ -517,7 +536,7 @@ Best experienced with headphones. 🎧
 🔔 Subscribe for daily calming sounds → @Calmdromeda
 ━━━━━━━━━━━━━━━━━━━━━━━━━"""
 
-    attribution = _build_attribution(used_sounds, used_videos)
+    attribution = _build_attribution(used_sounds, used_videos, work_dir=work_dir)
     attribution_section = f"\n\n{attribution}\n" if attribution else ""
 
     return f"""{concept['title']}
