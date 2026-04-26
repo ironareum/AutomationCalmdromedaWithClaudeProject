@@ -186,7 +186,7 @@ def run_pipeline(concept: dict):
             "title_sub": concept.get("title_sub", ""),
             "subtitle_en": concept.get("subtitle_en", ""),
             "tags": concept["tags"],
-            "description": generate_description(concept),
+            "description": generate_description(concept, used_sounds=used_sounds, used_videos=used_videos),
             "language": language,
             "video_path": str(output_video),
             "thumbnail_path": str(thumbnail),
@@ -463,7 +463,41 @@ def upload_to_gdrive(session_id: str, work_dir: Path, cfg) -> bool:
         return False
 
 
-def generate_description(concept: dict) -> str:
+def _build_attribution(used_sounds: list, used_videos: list) -> str:
+    """음원/영상 출처 텍스트 생성 (Freesound / Pexels URL)"""
+    lines = []
+
+    # 음원 출처 (Freesound)
+    sound_ids = []
+    for f in (used_sounds or []):
+        name = f.name if hasattr(f, "name") else str(f)
+        if name.startswith("intro_"):
+            name = name[6:]
+        part = name.split("_")[0]
+        if part.isdigit() and part not in sound_ids:
+            sound_ids.append(part)
+    if sound_ids:
+        lines.append("📻 Sound Sources (Freesound.org — CC0 / Attribution)")
+        lines.extend(f"- https://freesound.org/s/{sid}/" for sid in sound_ids)
+
+    # 영상 출처 (Pexels)
+    video_ids = []
+    for f in (used_videos or []):
+        name = f.name if hasattr(f, "name") else str(f)
+        if name.startswith("pexels_"):
+            parts = name.split("_")
+            if len(parts) >= 2 and parts[1].isdigit() and parts[1] not in video_ids:
+                video_ids.append(parts[1])
+    if video_ids:
+        lines.append("\n🎬 Video Sources (Pexels.com — Free License)")
+        lines.extend(f"- https://www.pexels.com/video/{vid}/" for vid in video_ids)
+
+    return "\n".join(lines)
+
+
+def generate_description(concept: dict,
+                         used_sounds: list = None,
+                         used_videos: list = None) -> str:
     language = concept.get("language", "ko")
     hours = concept["duration_hours"]
     mood = concept.get("mood", "calming")
@@ -483,6 +517,9 @@ Best experienced with headphones. 🎧
 🔔 Subscribe for daily calming sounds → @Calmdromeda
 ━━━━━━━━━━━━━━━━━━━━━━━━━"""
 
+    attribution = _build_attribution(used_sounds, used_videos)
+    attribution_section = f"\n\n{attribution}\n" if attribution else ""
+
     return f"""{concept['title']}
 
 {ko_body}
@@ -494,7 +531,7 @@ Best experienced with headphones. 🎧
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 🔔 매일 새로운 힐링 사운드 → @Calmdromeda 구독
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-
+{attribution_section}
 {tags_str}
 
 #힐링음악 #ASMR #수면음악 #백색소음 #자연소리 #집중음악 #calmsounds #sleepsounds #relaxation #naturesounds
