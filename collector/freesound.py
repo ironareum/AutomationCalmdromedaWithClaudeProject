@@ -26,6 +26,18 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
+
+def _save_source(work_dir: Path, kind: str, file_id: str, creator: str):
+    """work_dir/sources.json 에 크리에이터 정보 누적 저장"""
+    path = work_dir / "sources.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        data.setdefault(kind, {})[file_id] = {"creator": creator}
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as e:
+        log.warning(f"sources.json 저장 실패: {e}")
+
+
 # 사용한 asset 관리
 USED_ASSETS_FILE  = Path(__file__).parent.parent / "used_assets.json"
 BLACKLIST_FILE    = Path(__file__).parent.parent / "blacklist.json"
@@ -294,7 +306,7 @@ class FreesoundCollector:
                 "query":     query,
                 "page_size": page_size,
                 "page":      page,
-                "fields":    "id,name,duration,license,previews,avg_rating,num_downloads,tags,description",
+                "fields":    "id,name,duration,license,previews,avg_rating,num_downloads,tags,description,username",
                 "filter":    '+(license:"Creative Commons 0" OR license:"Attribution") avg_rating:[4 TO *] -tag:white-noise -tag:"white noise" -tag:static -tag:hiss -tag:"pink noise" -tag:wind-noise -tag:"wind noise" -tag:noisy',
                 "sort":      "downloads_desc",
                 "token":     self.api_key,
@@ -368,7 +380,7 @@ class FreesoundCollector:
                 for chunk in resp.iter_content(chunk_size=8192):
                     f.write(chunk)
             log.info(f"Downloaded: {dest.name} ({dest.stat().st_size // 1024}KB)")
-            # 사용 기록은 pipeline._cleanup_assets() 완료 후 register_used_session()으로 일괄 등록
+            _save_source(self.sound_dir.parent, "sounds", str(sound["id"]), sound.get("username", ""))
             return dest
         except Exception as e:
             log.error(f"Sound download failed {sound['id']}: {e}")
