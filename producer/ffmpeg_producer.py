@@ -35,6 +35,8 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
+LUFS_SOURCE_MIN = -28.0  # 소스 음원 최소 LUFS — 내일 measure_lufs.py 결과 보고 재조정 예정
+
 # 로고 파일 경로 (프로젝트 루트 기준)
 LOGO_PATH         = Path(__file__).parent.parent / "assets" / "logo.png"           # 우하단 원형 로고
 LOGO_HEADING_PATH = Path(__file__).parent.parent / "assets" / "logo_heading.png"   # 좌상단 가로형 로고
@@ -262,8 +264,30 @@ class VideoProducer:
             except Exception:
                 return 0.0
 
-        regular_files.sort(key=get_duration, reverse=True)
-        layers = regular_files[:3]
+        # ── 소스 LUFS pre-screening (믹싱 전 개별 측정) ──────────────────
+        source_lufs: dict[str, float | None] = {}
+        excluded_sources: dict[str, float] = {}
+        screened_files: list[Path] = []
+
+        for f in regular_files:
+            lufs = self._measure_lufs(f)
+            source_lufs[f.name] = lufs
+            if lufs is not None and lufs < LUFS_SOURCE_MIN:
+                log.warning(f"소스 제외 ({lufs} LUFS < {LUFS_SOURCE_MIN}): {f.name} "
+                            "— measure_lufs.py로 점검 권장")
+                excluded_sources[f.name] = lufs
+            else:
+                screened_files.append(f)
+
+        if not screened_files:
+            log.error("LUFS 필터링 후 유효한 소스 파일 없음 (모든 소스가 너무 조용함)")
+            return None
+
+        if excluded_sources:
+            log.info(f"제외된 소스: {excluded_sources}")
+
+        screened_files.sort(key=get_duration, reverse=True)
+        layers = screened_files[:3]
 
         if not layers:
             log.error("유효한 사운드 파일이 없습니다")
@@ -395,7 +419,7 @@ class VideoProducer:
         if ok:
             log.info(f"Audio mixed: {output.name} ({output.stat().st_size // (1024*1024)}MB)")
             log.info(f"실제 사용 레이어: {[f.name for f in layers]}")
-            return output, layers, measured_lufs
+            return output, layers, measured_lufs, source_lufs, excluded_sources
         return None
 
     # ── 영상 루프 ──────────────────────────────────────────────────────
@@ -630,7 +654,7 @@ class VideoProducer:
         mix_result = self.mix_sounds(sound_files, target_duration, category=category)
         if not mix_result:
             return None
-        audio, actual_sounds, audio_lufs = mix_result  # 실제 사용된 레이어 + LUFS 추적
+        audio, actual_sounds, audio_lufs, source_lufs, excluded_sources = mix_result
 
         # 2. 영상 루프 (실제 필요한 클립만 사용)
         loop_result = self.prepare_video_loop(video_files, target_duration)
@@ -652,8 +676,7 @@ class VideoProducer:
 
         if result is None:
             return None
-        # (최종영상경로, 실제사용사운드, 실제사용영상, 믹스LUFS) 반환
-        return result, actual_sounds, actual_videos, audio_lufs
+        return result, actual_sounds, actual_videos, audio_lufs, source_lufs, excluded_sources
 
     def extract_shorts_clip(self, video_path: Path, duration: int = 40) -> Path | None:
         """
