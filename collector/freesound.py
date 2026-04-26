@@ -105,7 +105,10 @@ def save_used_assets(data: dict):
 
 def register_used_session(session_id: str, title: str,
                            sound_files: list, video_files: list,
-                           category: str = ""):
+                           category: str = "",
+                           audio_lufs: float | None = None,
+                           source_lufs: dict | None = None,
+                           excluded_sources: dict | None = None):
     """
     파이프라인 완료 후 실제 사용한 소스를 used_assets.json에 등록
     키: session_id (output 폴더명과 동일)
@@ -115,15 +118,20 @@ def register_used_session(session_id: str, title: str,
     data = load_used_assets()
 
     data[session_id] = {
-        "title":      title,
-        "category":   category,
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "quality":    "pending",
-        "sounds":     [f.name for f in sound_files],
-        "videos":     [f.name for f in video_files],
+        "title":            title,
+        "category":         category,
+        "created_at":       datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "quality":          "pending",
+        "sounds":           [f.name for f in sound_files],
+        "videos":           [f.name for f in video_files],
+        "audio_lufs":       audio_lufs,
+        "source_lufs":      source_lufs or {},
+        "excluded_sources": excluded_sources or {},
     }
     save_used_assets(data)
-    log.info(f"used_assets 등록: [{session_id}] sounds={len(sound_files)}, videos={len(video_files)}")
+    lufs_str = f"{audio_lufs} LUFS" if audio_lufs is not None else "측정없음"
+    excl_str = f", 제외={list(excluded_sources.keys())}" if excluded_sources else ""
+    log.info(f"used_assets 등록: [{session_id}] sounds={len(sound_files)}, videos={len(video_files)}, {lufs_str}{excl_str}")
 
 
 def is_sound_used(filename: str) -> bool:
