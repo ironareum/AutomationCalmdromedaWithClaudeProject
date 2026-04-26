@@ -339,7 +339,7 @@ class VideoProducer:
         cmd_lufs = [
             "ffmpeg", "-y",
             "-i", str(raw_audio),
-            "-af", f"highpass=f=80,equalizer=f=3000:t=q:w=1:g=-2,afade=t=out:st={fade_start}:d=5",
+            "-af", f"loudnorm=I=-18:TP=-1.5:LRA=11,highpass=f=80,equalizer=f=3000:t=q:w=1:g=-2,afade=t=out:st={fade_start}:d=5",
             "-b:a", "192k",
             str(output)
         ]
