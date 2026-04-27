@@ -26,6 +26,18 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
+
+def _save_source(work_dir: Path, kind: str, file_id: str, creator: str):
+    """work_dir/sources.json 에 크리에이터 정보 누적 저장"""
+    path = work_dir / "sources.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        data.setdefault(kind, {})[file_id] = {"creator": creator}
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as e:
+        log.warning(f"sources.json 저장 실패: {e}")
+
+
 # 사용한 asset 관리
 USED_ASSETS_FILE  = Path(__file__).parent.parent / "used_assets.json"
 BLACKLIST_FILE    = Path(__file__).parent.parent / "blacklist.json"
@@ -93,7 +105,10 @@ def save_used_assets(data: dict):
 
 def register_used_session(session_id: str, title: str,
                            sound_files: list, video_files: list,
-                           category: str = ""):
+                           category: str = "",
+                           audio_lufs: float | None = None,
+                           source_lufs: dict | None = None,
+                           excluded_sources: dict | None = None):
     """
     파이프라인 완료 후 실제 사용한 소스를 used_assets.json에 등록
     키: session_id (output 폴더명과 동일)
@@ -103,15 +118,20 @@ def register_used_session(session_id: str, title: str,
     data = load_used_assets()
 
     data[session_id] = {
-        "title":      title,
-        "category":   category,
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "quality":    "pending",
-        "sounds":     [f.name for f in sound_files],
-        "videos":     [f.name for f in video_files],
+        "title":            title,
+        "category":         category,
+        "created_at":       datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "quality":          "pending",
+        "sounds":           [f.name for f in sound_files],
+        "videos":           [f.name for f in video_files],
+        "audio_lufs":       audio_lufs,
+        "source_lufs":      source_lufs or {},
+        "excluded_sources": excluded_sources or {},
     }
     save_used_assets(data)
-    log.info(f"used_assets 등록: [{session_id}] sounds={len(sound_files)}, videos={len(video_files)}")
+    lufs_str = f"{audio_lufs} LUFS" if audio_lufs is not None else "측정없음"
+    excl_str = f", 제외={list(excluded_sources.keys())}" if excluded_sources else ""
+    log.info(f"used_assets 등록: [{session_id}] sounds={len(sound_files)}, videos={len(video_files)}, {lufs_str}{excl_str}")
 
 
 def is_sound_used(filename: str) -> bool:
@@ -294,7 +314,7 @@ class FreesoundCollector:
                 "query":     query,
                 "page_size": page_size,
                 "page":      page,
-                "fields":    "id,name,duration,license,previews,avg_rating,num_downloads,tags,description",
+                "fields":    "id,name,duration,license,previews,avg_rating,num_downloads,tags,description,username",
                 "filter":    '+(license:"Creative Commons 0" OR license:"Attribution") avg_rating:[4 TO *] -tag:white-noise -tag:"white noise" -tag:static -tag:hiss -tag:"pink noise" -tag:wind-noise -tag:"wind noise" -tag:noisy',
                 "sort":      "downloads_desc",
                 "token":     self.api_key,
@@ -368,7 +388,7 @@ class FreesoundCollector:
                 for chunk in resp.iter_content(chunk_size=8192):
                     f.write(chunk)
             log.info(f"Downloaded: {dest.name} ({dest.stat().st_size // 1024}KB)")
-            # 사용 기록은 pipeline._cleanup_assets() 완료 후 register_used_session()으로 일괄 등록
+            _save_source(self.sound_dir.parent, "sounds", str(sound["id"]), sound.get("username", ""))
             return dest
         except Exception as e:
             log.error(f"Sound download failed {sound['id']}: {e}")

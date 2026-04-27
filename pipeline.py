@@ -33,7 +33,7 @@ from collector.pexels import PexelsCollector
 from producer.ffmpeg_producer import VideoProducer
 from producer.thumbnail import ThumbnailGenerator
 from uploader.youtube import YouTubeUploader
-from uploader.instagram import InstagramUploader, build_caption
+# [미사용] from uploader.instagram import InstagramUploader, build_caption
 from planner.concept_generator import generate_concept, CATEGORY_SOUNDS as CATEGORY_SOUNDS_FOR_REUSE, CATEGORY_TAGS
 from config import Config
 
@@ -143,7 +143,7 @@ def run_pipeline(concept: dict):
             return None
 
         # produce()가 반환한 실제 사용 파일 목록으로 정리
-        output_video, used_sounds, used_videos = produce_result
+        output_video, used_sounds, used_videos, audio_lufs, source_lufs, excluded_sources = produce_result
         log.info(f"실제 사용: sounds={[f.name for f in used_sounds]}, "
                  f"videos={[f.name for f in used_videos]}")
 
@@ -161,6 +161,9 @@ def run_pipeline(concept: dict):
             sound_files=used_sounds,
             video_files=used_videos,
             category=concept.get("category", ""),
+            audio_lufs=audio_lufs,
+            source_lufs=source_lufs,
+            excluded_sources=excluded_sources,
         )
 
         # 4. 썸네일 생성 — 수집된 영상 중 첫 번째 파일의 첫 프레임을 배경으로 사용
@@ -186,7 +189,7 @@ def run_pipeline(concept: dict):
             "title_sub": concept.get("title_sub", ""),
             "subtitle_en": concept.get("subtitle_en", ""),
             "tags": concept["tags"],
-            "description": generate_description(concept),
+            "description": generate_description(concept, used_sounds=used_sounds, used_videos=used_videos, work_dir=work_dir),
             "language": language,
             "video_path": str(output_video),
             "thumbnail_path": str(thumbnail),
@@ -235,7 +238,7 @@ def run_pipeline(concept: dict):
 
         # 8. 쇼츠 클립 추출 + YouTube Shorts 업로드
         shorts_result = None
-        shorts_path   = None  # Step 9 Instagram에서도 접근 가능하도록 블록 밖에서 초기화
+        shorts_path   = None
         if cfg.upload_enabled:
             log.info("Step 8: [쇼츠 제작] Extracting Shorts clip...")
             shorts_path = producer.extract_shorts_clip(output_video, duration=40)
@@ -285,35 +288,35 @@ def run_pipeline(concept: dict):
         else:
             log.info("Step 7: [쇼츠] UPLOAD_ENABLED=false — 스킵")
 
-        # 9. Instagram Reels 업로드
-        instagram_result = None
-        if cfg.instagram_enabled and cfg.instagram_access_token and cfg.instagram_user_id:
-            if shorts_path and shorts_path.exists():
-                log.info("Step 9: [Instagram Reels] 쇼츠 영상 업로드 시작...")
-                ig_uploader = InstagramUploader(
-                    access_token=cfg.instagram_access_token,
-                    user_id=cfg.instagram_user_id,
-                )
-                # 토큰 갱신 시도 (60일 연장)
-                ig_uploader.refresh_token()
-
-                youtube_url = upload_result.get("url") if upload_result else None
-                caption = build_caption(concept, youtube_url=youtube_url)
-                instagram_result = ig_uploader.post_reel(shorts_path, caption)
-
-                if instagram_result:
-                    metadata["instagram"] = instagram_result
-                    meta_path.write_text(
-                        json.dumps(metadata, indent=2, ensure_ascii=False),
-                        encoding="utf-8"
-                    )
-                    log.info(f"Instagram Reel post_id: {instagram_result['post_id']}")
-                else:
-                    log.warning("Instagram Reels 업로드 실패 — YouTube 업로드는 유지됨")
-            else:
-                log.warning("Step 9: [Instagram Reels] Shorts 파일 없음 — 스킵")
-        else:
-            log.info("Step 9: [Instagram Reels] INSTAGRAM_ENABLED=false 또는 토큰 미설정 — 스킵")
+        # [미사용] Step 9: Instagram Reels 업로드
+        # instagram_result = None
+        # if cfg.instagram_enabled and cfg.instagram_access_token and cfg.instagram_user_id:
+        #     if shorts_path and shorts_path.exists():
+        #         log.info("Step 9: [Instagram Reels] 쇼츠 영상 업로드 시작...")
+        #         ig_uploader = InstagramUploader(
+        #             access_token=cfg.instagram_access_token,
+        #             user_id=cfg.instagram_user_id,
+        #         )
+        #         # 토큰 갱신 시도 (60일 연장)
+        #         ig_uploader.refresh_token()
+        #
+        #         youtube_url = upload_result.get("url") if upload_result else None
+        #         caption = build_caption(concept, youtube_url=youtube_url)
+        #         instagram_result = ig_uploader.post_reel(shorts_path, caption)
+        #
+        #         if instagram_result:
+        #             metadata["instagram"] = instagram_result
+        #             meta_path.write_text(
+        #                 json.dumps(metadata, indent=2, ensure_ascii=False),
+        #                 encoding="utf-8"
+        #             )
+        #             log.info(f"Instagram Reel post_id: {instagram_result['post_id']}")
+        #         else:
+        #             log.warning("Instagram Reels 업로드 실패 — YouTube 업로드는 유지됨")
+        #     else:
+        #         log.warning("Step 9: [Instagram Reels] Shorts 파일 없음 — 스킵")
+        # else:
+        #     log.info("Step 9: [Instagram Reels] INSTAGRAM_ENABLED=false 또는 토큰 미설정 — 스킵")
 
         log.info("=== Pipeline Complete ===")
         log.info(f"Video   : {output_video}")
@@ -324,8 +327,8 @@ def run_pipeline(concept: dict):
             log.info(f"YouTube : {upload_result['url']} (공개: {upload_result['publish_at']})")
         if shorts_result:
             log.info(f"Shorts  : {shorts_result['url']} (공개: {shorts_result['publish_at']})")
-        if instagram_result:
-            log.info(f"Instagram: post_id={instagram_result['post_id']}")
+        # [미사용] if instagram_result:
+        #     log.info(f"Instagram: post_id={instagram_result['post_id']}")
 
         return metadata
 
@@ -463,7 +466,60 @@ def upload_to_gdrive(session_id: str, work_dir: Path, cfg) -> bool:
         return False
 
 
-def generate_description(concept: dict) -> str:
+def _build_attribution(used_sounds: list, used_videos: list,
+                       work_dir: Path = None) -> str:
+    """음원/영상 출처 텍스트 생성 (크리에이터 이름 + URL)"""
+    sources = {}
+    if work_dir:
+        sources_path = work_dir / "sources.json"
+        if sources_path.exists():
+            try:
+                sources = json.loads(sources_path.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
+    lines = []
+
+    # 음원 출처 (Freesound)
+    sound_ids = []
+    for f in (used_sounds or []):
+        name = f.name if hasattr(f, "name") else str(f)
+        if name.startswith("intro_"):
+            name = name[6:]
+        part = name.split("_")[0]
+        if part.isdigit() and part not in sound_ids:
+            sound_ids.append(part)
+    if sound_ids:
+        lines.append("📻 Sound Sources (Freesound.org — CC0 / Attribution)")
+        for i, sid in enumerate(sound_ids, 1):
+            creator = sources.get("sounds", {}).get(sid, {}).get("creator", "")
+            if creator:
+                lines.append(f"Track {i} — by {creator}")
+            lines.append(f"https://freesound.org/s/{sid}/")
+
+    # 영상 출처 (Pexels)
+    video_ids = []
+    for f in (used_videos or []):
+        name = f.name if hasattr(f, "name") else str(f)
+        if name.startswith("pexels_"):
+            parts = name.split("_")
+            if len(parts) >= 2 and parts[1].isdigit() and parts[1] not in video_ids:
+                video_ids.append(parts[1])
+    if video_ids:
+        lines.append("\n🎬 Video Sources (Pexels.com — Free License)")
+        for i, vid in enumerate(video_ids, 1):
+            creator = sources.get("videos", {}).get(vid, {}).get("creator", "")
+            if creator:
+                lines.append(f"Clip {i} — by {creator}")
+            lines.append(f"https://www.pexels.com/video/{vid}/")
+
+    return "\n".join(lines)
+
+
+def generate_description(concept: dict,
+                         used_sounds: list = None,
+                         used_videos: list = None,
+                         work_dir: Path = None) -> str:
     language = concept.get("language", "ko")
     hours = concept["duration_hours"]
     mood = concept.get("mood", "calming")
@@ -483,6 +539,9 @@ Best experienced with headphones. 🎧
 🔔 Subscribe for daily calming sounds → @Calmdromeda
 ━━━━━━━━━━━━━━━━━━━━━━━━━"""
 
+    attribution = _build_attribution(used_sounds, used_videos, work_dir=work_dir)
+    attribution_section = f"\n\n{attribution}\n" if attribution else ""
+
     return f"""{concept['title']}
 
 {ko_body}
@@ -494,7 +553,7 @@ Best experienced with headphones. 🎧
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 🔔 매일 새로운 힐링 사운드 → @Calmdromeda 구독
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-
+{attribution_section}
 {tags_str}
 
 #힐링음악 #ASMR #수면음악 #백색소음 #자연소리 #집중음악 #calmsounds #sleepsounds #relaxation #naturesounds
