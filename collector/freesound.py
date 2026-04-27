@@ -17,7 +17,9 @@ Freesound.org API Collector
 
 """
 
+import re
 import shutil
+import subprocess
 import time
 import json
 import logging
@@ -25,6 +27,30 @@ import requests
 from pathlib import Path
 
 log = logging.getLogger(__name__)
+
+LUFS_SOURCE_MIN = -35.0  # ffmpeg_producer.py와 동일 기준
+
+
+def _measure_lufs_quick(audio_path: Path) -> float | None:
+    """ffmpeg loudnorm 분석 모드로 소스 LUFS 측정 (수집 단계 스크리닝용, 처음 60초 샘플링)"""
+    cmd = [
+        "ffmpeg", "-hide_banner", "-nostats",
+        "-t", "60",
+        "-i", str(audio_path),
+        "-af", "loudnorm=I=-18:TP=-1.5:LRA=11:print_format=json",
+        "-f", "null", "-",
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+        match = re.search(r'\{[^{}]+\}', result.stderr, re.DOTALL)
+        if match:
+            data = json.loads(match.group())
+            val = data.get("input_i", "")
+            if val and val not in ("-inf", "+inf"):
+                return round(float(val), 1)
+    except Exception as e:
+        log.warning(f"LUFS 측정 실패 ({audio_path.name}): {e}")
+    return None
 
 
 def _save_source(work_dir: Path, kind: str, file_id: str, creator: str):
@@ -638,6 +664,13 @@ JSON 형식으로만 응답:
                         continue
                     path = self.download(sound)
                     if path:
+                        # LUFS 스크리닝: -35 미만 소스는 수집 단계에서 즉시 교체
+                        lufs = _measure_lufs_quick(path)
+                        if lufs is not None and lufs < LUFS_SOURCE_MIN:
+                            log.warning(f"소스 LUFS 미달 ({lufs} < {LUFS_SOURCE_MIN}) — 스킵: {path.name}")
+                            path.unlink(missing_ok=True)
+                            time.sleep(0.3)
+                            continue
                         # intro 파일: ffmpeg에서 1회 재생 구분을 위해 prefix 추가
                         if layer == "intro":
                             intro_path = path.parent / f"intro_{path.name}"
@@ -691,6 +724,12 @@ JSON 형식으로만 응답:
                         continue
                     path = self.download(sound)
                     if path and path.name not in existing_names:
+                        lufs = _measure_lufs_quick(path)
+                        if lufs is not None and lufs < LUFS_SOURCE_MIN:
+                            log.warning(f"추가수집 LUFS 미달 ({lufs}) — 스킵: {path.name}")
+                            path.unlink(missing_ok=True)
+                            time.sleep(0.3)
+                            continue
                         result.append(path)
                         existing_names.add(path.name)
                         log.info(f"추가 수집 [{layer}]: {path.name}")
