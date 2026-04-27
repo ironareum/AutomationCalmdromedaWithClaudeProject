@@ -39,12 +39,14 @@ PIXABAY_QUERIES = {
 }
 
 # Freesound 폴백 쿼리 (Pixabay 실패 시)
+# - music/melody/composition 키워드 우선 → SFX가 아닌 긴 멜로딕 트랙 타겟
+# - loopable/loop 키워드로 루프에 적합한 트랙 유도
 FREESOUND_FALLBACK = {
-    "moktak_melodic":   ["singing bowl meditation gentle", "zen bell harmony ambient", "tibetan bowl soft"],
-    "tibetan_bowl":     ["tibetan singing bowl crystal", "himalayan bowl meditation calm", "crystal bowl gentle"],
-    "temple_chant":     ["buddhist chanting soft ambient", "om meditation gentle", "monk chanting peaceful"],
-    "zen_instrumental": ["bamboo flute meditation gentle", "shakuhachi flute calm ambient", "asian flute peaceful"],
-    "oriental_ambient": ["zen ambient music calm", "asian flute background gentle", "oriental meditation soft"],
+    "moktak_melodic":   ["tibetan singing bowl music loop", "buddhist meditation music bells", "singing bowl meditation music long"],
+    "tibetan_bowl":     ["singing bowl meditation music", "tibetan bowl music healing loop", "crystal singing bowl music ambient"],
+    "temple_chant":     ["buddhist chanting music loop", "om chanting meditation music", "tibetan monk chanting music"],
+    "zen_instrumental": ["bamboo flute music meditation loop", "shakuhachi meditation music", "koto music zen ambient loop"],
+    "oriental_ambient": ["asian meditation music ambient loop", "zen music oriental ambient", "chinese meditation music loop"],
 }
 
 # Pexels 영상 쿼리 (모든 카테고리 공통 + 카테고리별 특화)
