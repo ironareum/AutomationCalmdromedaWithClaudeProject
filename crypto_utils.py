@@ -20,6 +20,25 @@
 
 [GitHub Secrets 설정]
   ENCRYPTION_KEY = (--generate-key로 출력된 값)
+  # 로컬 .env의 키 확인
+    python -c "import os; from dotenv import load_dotenv; load_dotenv(); print(os.environ.get('ENCRYPTION_KEY', 'NOT SET')[:20])"
+-------------------------------------------------
+ 파일 복호화 하기
+-------------------------------------------------
+1. (Git bash에서 실행하기)
+# data 브랜치에서 최신 used_assets 가져오기
+    git fetch origin data  # GitHub에서 최신 정보를 로컬 캐시로 다운로드 파일을 꺼내지는 않음, 정보만 업데이트(origin/data 포인터를 최신으로 갱신)
+    git show origin/data:used_assets.json.enc > used_assets_from_data.json.enc
+# 복호화
+    python crypto_utils.py --decrypt used_assets_from_data.json.enc
+# (local에서 실행) 로컬파일 백업 먼저
+    cp used_assets.json used_assets_local_backup.json
+    cp history.txt history_local_backup.txt
+# (수기작업) 로컬 used_assets 과 데이터 합치기
+
+
+
+
 """
 
 import argparse

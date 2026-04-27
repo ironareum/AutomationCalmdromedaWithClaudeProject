@@ -1,8 +1,50 @@
+# ============================================================
+#  config.py  —  파이프라인 설정(Configuration for calmdromeda pipeline)
+# ============================================================
+#  API 키는 .env 파일에 저장하세요 (git에 올라가지 않음)
+#  .env.example 참고
+#
+# ============================================================
 """
-Configuration for calmdromeda pipeline
-환경변수 or .env 파일로 API 키 관리
+# Homebrew 설치
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    설치 후 반드시 셋팅
+    ==> Next steps:
+    - Run these commands in your terminal to add Homebrew to your PATH:
+        echo >> /Users/areumkang/.zprofile
+        echo 'eval "$(/opt/homebrew/bin/brew shellenv zsh)"' >> /Users/areumkang/.zprofile
+        eval "$(/opt/homebrew/bin/brew shellenv zsh)"
 
+1. 파이썬 버전 설정 : 3.1.0 (3.1.20 설치됨)
+1) 파이썬 버전 업그레이드
+    brew install python@3.10
+    brew info python@3.10 # 설치경로 확인
+
+2) 가상환경 다시 생성
+    /opt/homebrew/opt/python@3.10/bin/python3.10 -m venv .venv # 무조건 3.10으로 강제생성
+    source .venv/bin/activate # 가상환경 활성화
+    /Users/areumkang/PycharmProjects/AutomationCalmdromedaWithClaudeProject/.venv/bin/python # 프로젝트 내 파이썬 버전 확인
+
+    # 가상환경 삭제(파이썬 버전 잘못 만들었을경우 수행)
+    rm -rf .venv
+    python3.10 -m venv .venv
+    source .venv/bin/activate
+    pip install -r requirements.txt
+
+2. requirements 설치
+    pip install -r requirements.txt
+
+3. FFmpeg 설치
+    brew install ffmpeg
+
+    설치 후 확인
+    which ffmpeg ( /opt/homebrew/bin/ffmpeg 나오면 정상)
+    ffmpeg -version :
+
+============================================================
 2026.03.30 신규 신규 카테고리 추가(12개)
+
+============================================================
 """
 
 import os
