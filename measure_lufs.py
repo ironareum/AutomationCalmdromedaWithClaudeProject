@@ -89,6 +89,12 @@ def fetch_lufs(sound_id: str, api_key: str, debug: bool = False) -> float | None
 # ── 메인 ──────────────────────────────────────────────────────────────────
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="소스 오디오 LUFS 조회")
+    parser.add_argument("--debug", metavar="N", type=int, nargs="?", const=3,
+                        help="API 응답 구조 확인용: N개 ID만 조회 (기본 3개)")
+    args = parser.parse_args()
+
     if not USED_ASSETS_FILE.exists():
         print(f"[오류] used_assets.json 없음: {USED_ASSETS_FILE}")
         sys.exit(1)
@@ -106,12 +112,17 @@ def main():
                     id_map[fname] = sid
 
     unique_ids = list({v for v in id_map.values()})
-    print(f"\n총 {len(id_map)}개 음원 / 고유 ID {len(unique_ids)}개 → Freesound API 조회 시작\n")
 
-    # 고유 ID만 API 조회 (중복 호출 방지) — 첫 번째 ID는 debug 출력
+    if args.debug is not None:
+        unique_ids = unique_ids[:args.debug]
+        print(f"\n[DEBUG 모드] {args.debug}개 ID만 조회\n")
+    else:
+        print(f"\n총 {len(id_map)}개 음원 / 고유 ID {len(unique_ids)}개 → Freesound API 조회 시작\n")
+
+    # 고유 ID만 API 조회 (중복 호출 방지)
     lufs_cache: dict[str, float | None] = {}
     for i, sid in enumerate(unique_ids):
-        lufs_cache[sid] = fetch_lufs(sid, api_key, debug=(i == 0))
+        lufs_cache[sid] = fetch_lufs(sid, api_key, debug=(args.debug is not None))
         if (i + 1) % 10 == 0:
             time.sleep(0.5)  # rate limit 방지
 
