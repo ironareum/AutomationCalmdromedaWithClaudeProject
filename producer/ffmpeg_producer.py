@@ -308,9 +308,25 @@ class VideoProducer:
         log.info(f"Seamless 처리 완료: {len(seamless_layers)}개 레이어")
 
         import random
-        vol_ranges = [(0.60, 0.80), (0.10, 0.30), (0.05, 0.15)]
-        volumes = [round(random.uniform(*r), 2) for r in vol_ranges[:len(seamless_layers)]]
-        log.info(f"레이어 볼륨: {list(zip([f.name for f in layers], volumes))}")
+        _role_targets = [-20.0, -28.0, -34.0]   # main / sub / point 목표 LUFS
+        _fallback_vol = [(0.60, 0.80), (0.10, 0.30), (0.05, 0.15)]
+
+        volumes = []
+        for i, layer in enumerate(layers):
+            target   = _role_targets[i] if i < len(_role_targets) else _role_targets[-1]
+            src_lufs = source_lufs.get(layer.name)
+            if src_lufs is not None:
+                diff = target - src_lufs
+                vol  = min(1.0, max(0.05, 10 ** (diff / 20.0)))
+            else:
+                vol = random.uniform(*_fallback_vol[i])
+            volumes.append(round(vol, 2))
+
+        log.info(
+            f"레이어 볼륨 (LUFS 기반): "
+            + str([(layer.name, source_lufs.get(layer.name), vol)
+                   for layer, vol in zip(layers, volumes)])
+        )
 
         if intro_files and seamless_layers:
             # ── intro 1회 재생 + 메인 루프 믹싱 ──────────────────────
