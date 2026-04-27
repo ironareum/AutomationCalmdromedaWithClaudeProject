@@ -60,7 +60,7 @@ def get_api_key() -> str:
     return key
 
 
-def fetch_lufs(sound_id: str, api_key: str) -> float | None:
+def fetch_lufs(sound_id: str, api_key: str, debug: bool = False) -> float | None:
     """Freesound API analysis 엔드포인트로 EBU R128 통합 라우드니스(LUFS) 조회"""
     url = f"{FREESOUND_BASE}/sounds/{sound_id}/analysis/"
     try:
@@ -69,6 +69,9 @@ def fetch_lufs(sound_id: str, api_key: str) -> float | None:
             params={"token": api_key, "descriptors": "lowlevel.loudness_ebu128.integrated"},
             timeout=10,
         )
+        if debug:
+            print(f"\n[DEBUG] ID={sound_id} status={resp.status_code}")
+            print(f"[DEBUG] response: {resp.text[:500]}\n")
         if resp.status_code == 404:
             return None
         resp.raise_for_status()
@@ -105,10 +108,10 @@ def main():
     unique_ids = list({v for v in id_map.values()})
     print(f"\n총 {len(id_map)}개 음원 / 고유 ID {len(unique_ids)}개 → Freesound API 조회 시작\n")
 
-    # 고유 ID만 API 조회 (중복 호출 방지)
+    # 고유 ID만 API 조회 (중복 호출 방지) — 첫 번째 ID는 debug 출력
     lufs_cache: dict[str, float | None] = {}
     for i, sid in enumerate(unique_ids):
-        lufs_cache[sid] = fetch_lufs(sid, api_key)
+        lufs_cache[sid] = fetch_lufs(sid, api_key, debug=(i == 0))
         if (i + 1) % 10 == 0:
             time.sleep(0.5)  # rate limit 방지
 
