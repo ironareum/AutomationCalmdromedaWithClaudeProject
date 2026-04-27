@@ -1,13 +1,16 @@
 """
-소스 오디오 LUFS 조회 스크립트
+소스 오디오 LUFS 측정 스크립트
 
 [사용법]
-  python measure_lufs.py
+  python measure_lufs.py              # 전체 측정
+  python measure_lufs.py --debug N   # N개 ID만 측정 (기본 3개)
 
 [동작]
-  used_assets.json의 파일명에서 Freesound ID 파싱 → API 분석 엔드포인트 조회.
-  파일이 없어도 기존 이력 전체 확인 가능.
-  PR #25 이후 파이프라인이 source_lufs를 직접 기록한 세션은 API 호출 없이 출력.
+  used_assets.json의 파일명에서 Freesound ID 파싱
+  → GET /apiv2/sounds/{id}/?fields=previews 로 HQ 미리보기 URL 획득
+  → 임시 다운로드 후 ffmpeg 로컬 측정 → 임시파일 삭제
+  → lufs_cache.json 캐시 저장 (재실행 시 API·다운로드 생략)
+  → lufs_report.txt 결과 파일 저장
 
 [출력 판정 기준]
   ✅  -20 이상        → loudnorm 스킵 (적당)
@@ -17,7 +20,9 @@
 
 import json
 import os
+import re
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -28,6 +33,8 @@ load_dotenv()
 
 ROOT             = Path(__file__).parent
 USED_ASSETS_FILE = ROOT / "used_assets.json"
+CACHE_FILE       = ROOT / "lufs_cache.json"
+REPORT_FILE      = ROOT / "lufs_report.txt"
 FREESOUND_BASE   = "https://freesound.org/apiv2"
 
 
@@ -50,6 +57,22 @@ def parse_freesound_id(filename: str) -> str | None:
     return part if part.isdigit() else None
 
 
+def load_cache() -> dict[str, float | None]:
+    if CACHE_FILE.exists():
+        try:
+            return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+
+def save_cache(cache: dict[str, float | None]):
+    CACHE_FILE.write_text(
+        json.dumps(cache, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
 # ── Freesound API ──────────────────────────────────────────────────────────
 
 def get_api_key() -> str:
@@ -60,39 +83,83 @@ def get_api_key() -> str:
     return key
 
 
-def fetch_lufs(sound_id: str, api_key: str, debug: bool = False) -> float | None:
-    """Freesound API analysis 엔드포인트로 EBU R128 통합 라우드니스(LUFS) 조회"""
-    url = f"{FREESOUND_BASE}/sounds/{sound_id}/analysis/"
+def fetch_preview_url(sound_id: str, api_key: str) -> str | None:
+    """Freesound API에서 HQ MP3 미리보기 URL 획득"""
+    url = f"{FREESOUND_BASE}/sounds/{sound_id}/"
     try:
         resp = requests.get(
             url,
-            params={"token": api_key, "descriptors": "lowlevel.loudness_ebu128.integrated"},
+            params={"token": api_key, "fields": "id,name,previews"},
             timeout=10,
         )
-        if debug:
-            print(f"\n[DEBUG] ID={sound_id} status={resp.status_code}")
-            print(f"[DEBUG] response: {resp.text[:500]}\n")
         if resp.status_code == 404:
             return None
         resp.raise_for_status()
         data = resp.json()
-        lufs = (data
-                .get("lowlevel", {})
-                .get("loudness_ebu128", {})
-                .get("integrated"))
-        return round(float(lufs), 1) if lufs is not None else None
+        return data.get("previews", {}).get("preview-hq-mp3")
     except Exception as e:
         print(f"    [API 오류] ID={sound_id}: {e}")
         return None
+
+
+# ── ffmpeg 로컬 측정 ────────────────────────────────────────────────────────
+
+def measure_lufs_from_file(audio_path: Path) -> float | None:
+    """ffmpeg loudnorm 분석 모드로 LUFS 측정"""
+    import subprocess
+    cmd = [
+        "ffmpeg", "-hide_banner", "-nostats",
+        "-i", str(audio_path),
+        "-af", "loudnorm=I=-18:TP=-1.5:LRA=11:print_format=json",
+        "-f", "null", "-",
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        match = re.search(r'\{[^{}]+\}', result.stderr, re.DOTALL)
+        if match:
+            data = json.loads(match.group())
+            val = data.get("input_i", "")
+            if val and val not in ("-inf", "+inf"):
+                return round(float(val), 1)
+    except Exception as e:
+        print(f"    [측정 오류] {audio_path.name}: {e}")
+    return None
+
+
+def download_and_measure(sound_id: str, preview_url: str) -> float | None:
+    """미리보기 MP3 다운로드 → LUFS 측정 → 임시파일 삭제"""
+    try:
+        resp = requests.get(preview_url, timeout=30, stream=True)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"    [다운로드 오류] ID={sound_id}: {e}")
+        return None
+
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+        for chunk in resp.iter_content(chunk_size=8192):
+            tmp.write(chunk)
+
+    try:
+        return measure_lufs_from_file(tmp_path)
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+
+# ── 보고서 저장 ────────────────────────────────────────────────────────────
+
+def save_report(lines: list[str]):
+    REPORT_FILE.write_text("\n".join(lines), encoding="utf-8")
+    print(f"\n보고서 저장 완료 → {REPORT_FILE}")
 
 
 # ── 메인 ──────────────────────────────────────────────────────────────────
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="소스 오디오 LUFS 조회")
+    parser = argparse.ArgumentParser(description="소스 오디오 LUFS 측정")
     parser.add_argument("--debug", metavar="N", type=int, nargs="?", const=3,
-                        help="API 응답 구조 확인용: N개 ID만 조회 (기본 3개)")
+                        help="N개 ID만 측정 (기본 3개)")
     args = parser.parse_args()
 
     if not USED_ASSETS_FILE.exists():
@@ -101,6 +168,7 @@ def main():
 
     data    = json.loads(USED_ASSETS_FILE.read_text(encoding="utf-8"))
     api_key = get_api_key()
+    cache   = load_cache()
 
     # 파일명 → Freesound ID 매핑 (중복 제거)
     id_map: dict[str, str] = {}
@@ -112,24 +180,48 @@ def main():
                     id_map[fname] = sid
 
     unique_ids = list({v for v in id_map.values()})
+    cached_ids = [sid for sid in unique_ids if sid in cache]
+    new_ids    = [sid for sid in unique_ids if sid not in cache]
 
     if args.debug is not None:
-        unique_ids = unique_ids[:args.debug]
-        print(f"\n[DEBUG 모드] {args.debug}개 ID만 조회\n")
+        new_ids = new_ids[:args.debug]
+        print(f"\n[DEBUG 모드] 신규 {args.debug}개 ID만 측정\n")
     else:
-        print(f"\n총 {len(id_map)}개 음원 / 고유 ID {len(unique_ids)}개 → Freesound API 조회 시작\n")
+        print(f"\n총 고유 ID {len(unique_ids)}개 "
+              f"(캐시 {len(cached_ids)}개 / 신규 측정 {len(new_ids)}개)\n")
 
-    # 고유 ID만 API 조회 (중복 호출 방지)
-    lufs_cache: dict[str, float | None] = {}
-    for i, sid in enumerate(unique_ids):
-        lufs_cache[sid] = fetch_lufs(sid, api_key, debug=(args.debug is not None))
-        if (i + 1) % 10 == 0:
-            time.sleep(0.5)  # rate limit 방지
+    # 신규 ID: 미리보기 다운로드 + ffmpeg 측정
+    for i, sid in enumerate(new_ids):
+        print(f"  [{i+1}/{len(new_ids)}] ID={sid} 측정 중...", end=" ", flush=True)
+        preview_url = fetch_preview_url(sid, api_key)
+        if not preview_url:
+            print("미리보기 URL 없음")
+            cache[sid] = None
+            continue
+        lufs = download_and_measure(sid, preview_url)
+        cache[sid] = lufs
+        label = f"{lufs:.1f} LUFS  {zone(lufs)}" if lufs is not None else "측정 실패"
+        print(label)
+        if (i + 1) % 5 == 0:
+            save_cache(cache)
+            time.sleep(0.5)
 
-    # 세션별 출력
+    save_cache(cache)
+
+    # ── 세션별 출력 및 보고서 작성 ──────────────────────────────────────────
     name_w  = 45
     buckets = {"safe": [], "warn": [], "danger": []}
     no_id, no_data = [], []
+    report_lines: list[str] = []
+
+    def rprint(line: str = ""):
+        print(line)
+        report_lines.append(line)
+
+    rprint(f"{'=' * 70}")
+    rprint(f"LUFS 측정 보고서  ({time.strftime('%Y-%m-%d %H:%M:%S')})")
+    rprint(f"{'=' * 70}")
+    rprint()
 
     for session_id, entry in sorted(data.items()):
         title    = entry.get("title", session_id)
@@ -137,52 +229,62 @@ def main():
         quality  = entry.get("quality", "pending")
         recorded = entry.get("source_lufs", {})
 
-        print(f"▶ [{session_id}] {title}  ({quality})")
+        rprint(f"▶ [{session_id}] {title}  ({quality})")
 
         for fname in sounds:
-            # 파이프라인이 직접 기록한 데이터 우선 (API 호출 불필요)
+            # 파이프라인 직접 기록 데이터 우선
             if fname in recorded and recorded[fname] is not None:
-                lufs  = recorded[fname]
-                print(f"  {fname:<{name_w}} {lufs:>7.1f}  {zone(lufs)}  (기록됨)")
+                lufs = recorded[fname]
+                line = f"  {fname:<{name_w}} {lufs:>7.1f}  {zone(lufs)}  (기록됨)"
+                rprint(line)
                 _add_bucket(buckets, fname, lufs)
                 continue
 
             sid = id_map.get(fname)
             if sid is None:
-                print(f"  {fname:<{name_w}} {'ID없음':>7}  (Freesound ID 파싱 불가)")
+                line = f"  {fname:<{name_w}} {'ID없음':>7}  (Freesound ID 파싱 불가)"
+                rprint(line)
                 no_id.append(fname)
                 continue
 
-            lufs = lufs_cache.get(sid)
+            lufs = cache.get(sid)
             if lufs is None:
-                print(f"  {fname:<{name_w}} {'분석없음':>7}  (Freesound 분석 데이터 없음)")
+                line = f"  {fname:<{name_w}} {'측정불가':>7}  (미리보기 없음 또는 측정 실패)"
+                rprint(line)
                 no_data.append(fname)
                 continue
 
-            print(f"  {fname:<{name_w}} {lufs:>7.1f}  {zone(lufs)}")
+            line = f"  {fname:<{name_w}} {lufs:>7.1f}  {zone(lufs)}"
+            rprint(line)
             _add_bucket(buckets, fname, lufs)
 
         for fname, lufs in entry.get("excluded_sources", {}).items():
-            print(f"  {fname:<{name_w}} {lufs:>7.1f}  ❌  파이프라인 자동 제외")
+            line = f"  {fname:<{name_w}} {lufs:>7.1f}  ❌  파이프라인 자동 제외"
+            rprint(line)
             _add_bucket(buckets, fname, lufs)
 
-        print()
+        rprint()
 
     # 요약
     total = sum(len(v) for v in buckets.values())
-    print("=" * 70)
-    print(f"조회 완료: {total}개  |  ID 없음: {len(no_id)}개  |  분석 없음: {len(no_data)}개\n")
-    print(f"  ✅  적당          {len(buckets['safe']):>3}개  (-20 LUFS 이상)")
-    print(f"  ⚠️   loudnorm 필요 {len(buckets['warn']):>3}개  (-20 ~ -24 LUFS)")
-    print(f"  ❌  제외 권장     {len(buckets['danger']):>3}개  (-24 LUFS 미만)\n")
+    rprint("=" * 70)
+    rprint(f"조회 완료: {total}개  |  ID 없음: {len(no_id)}개  |  측정 불가: {len(no_data)}개")
+    rprint()
+    rprint(f"  ✅  적당          {len(buckets['safe']):>3}개  (-20 LUFS 이상)")
+    rprint(f"  ⚠️   loudnorm 필요 {len(buckets['warn']):>3}개  (-20 ~ -24 LUFS)")
+    rprint(f"  ❌  제외 권장     {len(buckets['danger']):>3}개  (-24 LUFS 미만)")
+    rprint()
 
     if buckets["danger"]:
-        print("[ 제외 권장 파일 ]")
+        rprint("[ 제외 권장 파일 ]")
         seen = set()
         for name, lufs in sorted(buckets["danger"], key=lambda x: x[1]):
             if name not in seen:
-                print(f"  {lufs:>7.1f} LUFS  {name}")
+                rprint(f"  {lufs:>7.1f} LUFS  {name}")
                 seen.add(name)
+        rprint()
+
+    save_report(report_lines)
 
 
 def _add_bucket(buckets, item, lufs):
