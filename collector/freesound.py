@@ -612,17 +612,19 @@ JSON 형식으로만 응답:
             if removed:
                 log.info(f"AI 사운드 검증 — 제거: {removed}")
                 log.info(f"AI 사운드 검증 — 이유: {reason}")
-                # 제거된 파일 삭제
-                for f in sound_files:
-                    if f.name not in keep_names:
-                        try:
-                            f.unlink()
-                        except Exception:
-                            pass
 
+            # 필터 결과가 충분할 때만 사용 — 파일 삭제도 그 이후에
             if len(filtered) < 3:
                 log.warning(f"AI 검증 후 파일 부족 ({len(filtered)}개) — 원본 유지")
                 return sound_files
+
+            # 필터 결과 사용 확정 후 제거 파일 삭제
+            for f in sound_files:
+                if f.name not in keep_names:
+                    try:
+                        f.unlink()
+                    except Exception:
+                        pass
 
             return filtered
 
