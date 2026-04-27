@@ -207,14 +207,15 @@ class VideoProducer:
 
     # ── 오디오 믹싱 ──────────────────────────────────────────────────
     def _measure_lufs(self, audio_path: Path) -> float | None:
-        """오디오 파일의 실제 LUFS 측정 (인코딩 없이 분석만)"""
+        """오디오 파일의 실제 LUFS 측정 (인코딩 없이 분석만, 처음 60초 샘플링)"""
         cmd = [
             "ffmpeg", "-hide_banner", "-nostats",
+            "-t", "60",
             "-i", str(audio_path),
             "-af", "loudnorm=I=-18:TP=-1.5:LRA=11:print_format=json",
             "-f", "null", "-"
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
         match = re.search(r'\{[^{}]+\}', result.stderr, re.DOTALL)
         if match:
             try:
