@@ -32,15 +32,16 @@ LUFS_SOURCE_MIN = -35.0  # ffmpeg_producer.py와 동일 기준
 
 
 def _measure_lufs_quick(audio_path: Path) -> float | None:
-    """ffmpeg loudnorm 분석 모드로 소스 LUFS 측정 (수집 단계 스크리닝용)"""
+    """ffmpeg loudnorm 분석 모드로 소스 LUFS 측정 (수집 단계 스크리닝용, 처음 60초 샘플링)"""
     cmd = [
         "ffmpeg", "-hide_banner", "-nostats",
+        "-t", "60",
         "-i", str(audio_path),
         "-af", "loudnorm=I=-18:TP=-1.5:LRA=11:print_format=json",
         "-f", "null", "-",
     ]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
         match = re.search(r'\{[^{}]+\}', result.stderr, re.DOTALL)
         if match:
             data = json.loads(match.group())
