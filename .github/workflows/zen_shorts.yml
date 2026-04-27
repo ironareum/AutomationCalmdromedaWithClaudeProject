@@ -1,0 +1,146 @@
+# ================================================================
+# Zen Shorts Pipeline
+# ================================================================
+# 60s 숏폼만 생성 — GitHub Actions 6h 제한 내 완료 가능
+# 8h 롱폼은 로컬에서 python pipeline_zen.py --mode longform 실행
+#
+# 2026.04.27 신규
+# ================================================================
+
+name: Zen Shorts Pipeline
+
+on:
+  schedule:
+    # 월·수·금 오전 10시 KST (= UTC 01:00)
+    - cron: '0 1 * * 1,3,5'
+  workflow_dispatch:
+    inputs:
+      category:
+        description: '카테고리 강제 지정 (비워두면 자동)'
+        required: false
+        default: ''
+
+jobs:
+  zen-shorts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # 60s 숏폼은 2시간이면 충분
+
+    steps:
+      # ── 1. 코드 체크아웃 ────────────────────────────────────────────
+      - name: Checkout master branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      # ── 2. data 브랜치에서 used_assets 복원 ─────────────────────────
+      - name: Fetch encrypted data files
+        run: |
+          git fetch origin data 2>/dev/null || echo "data 브랜치 없음"
+          if git show origin/data:used_assets.json.enc > used_assets.json.enc 2>/dev/null; then
+            echo "used_assets.json.enc 복원됨"
+          else
+            echo "used_assets.json.enc 없음 — 새로 시작"
+          fi
+
+      # ── 3. 복호화 ─────────────────────────────────────────────────
+      - name: Decrypt data files
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          pip install cryptography python-dotenv --quiet
+          [ -f used_assets.json.enc ] && python crypto_utils.py --decrypt used_assets.json.enc
+
+      # ── 4. Python 환경 ────────────────────────────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # ── 5. FFmpeg ─────────────────────────────────────────────────
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+
+      # ── 6. 자격증명 복원 ────────────────────────────────────────────
+      - name: Restore credentials
+        env:
+          YOUTUBE_TOKEN_JSON:        ${{ secrets.YOUTUBE_TOKEN_JSON }}
+          GOOGLE_CLIENT_SECRET_JSON: ${{ secrets.GOOGLE_CLIENT_SECRET_JSON }}
+        run: |
+          mkdir -p credentials
+          echo "$YOUTUBE_TOKEN_JSON"        > credentials/token.json
+          echo "$GOOGLE_CLIENT_SECRET_JSON" > credentials/client_secret.json
+
+      # ── 7. Zen Shorts 실행 ──────────────────────────────────────────
+      - name: Run Zen Shorts pipeline
+        env:
+          PIXABAY_API_KEY:   ${{ secrets.PIXABAY_API_KEY }}
+          FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
+          PEXELS_API_KEY:    ${{ secrets.PEXELS_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ENCRYPTION_KEY:    ${{ secrets.ENCRYPTION_KEY }}
+          UPLOAD_ENABLED:    "true"
+          YOUTUBE_TOKEN:     "credentials/token.json"
+          YOUTUBE_CLIENT_SECRET: "credentials/client_secret.json"
+        run: |
+          CATEGORY="${{ github.event.inputs.category }}"
+          if [ -n "$CATEGORY" ]; then
+            python pipeline_zen.py --mode shorts --category "$CATEGORY"
+          else
+            python pipeline_zen.py --mode shorts
+          fi
+
+      # ── 8. used_assets 암호화 & data 브랜치 커밋 ───────────────────
+      - name: Encrypt and commit data files
+        if: always()
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          if [ -f used_assets.json ]; then
+            python crypto_utils.py --encrypt used_assets.json
+            cp used_assets.json.enc /tmp/used_assets.json.enc
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin data 2>/dev/null || true
+          rm -f used_assets.json.enc
+          if git ls-remote --heads origin data | grep -q data; then
+            git checkout -B data origin/data
+          else
+            git checkout --orphan data
+            git rm -rf . --quiet 2>/dev/null || true
+          fi
+
+          [ -f /tmp/used_assets.json.enc ] && cp /tmp/used_assets.json.enc used_assets.json.enc
+          [ -f used_assets.json.enc ] && git add used_assets.json.enc
+
+          TODAY=$(date -u '+%Y-%m-%d %H:%M UTC')
+          git diff --cached --quiet || git commit -m "zen-data: ${TODAY}"
+          git push origin data
+
+      # ── 9. 아티팩트 저장 ────────────────────────────────────────────
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zen-shorts-${{ github.run_id }}
+          path: |
+            output/zen_**/pipeline_zen.log
+            output/zen_**/metadata.json
+          retention-days: 14
+          if-no-files-found: warn
+
+      # ── 10. 민감 파일 정리 ──────────────────────────────────────────
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -rf output/
+          rm -f credentials/token.json credentials/client_secret.json
+          rm -f used_assets.json
