@@ -607,18 +607,21 @@ JSON 형식으로만 응답:
                 log.warning(f"AI가 존재하지 않는 파일 반환 (무시): {unmatched}")
 
             filtered = [f for f in sound_files if f.name in matched_names]
-            removed = [f.name for f in sound_files if f.name not in matched_names]
+            removed  = [f.name for f in sound_files if f.name not in matched_names]
 
             if removed:
                 log.info(f"AI 사운드 검증 — 제거: {removed}")
                 log.info(f"AI 사운드 검증 — 이유: {reason}")
 
-            # 필터 결과가 충분할 때만 사용 — 파일 삭제도 그 이후에
+            # 필터 결과가 3개 미만이면 원본 전체 사용 (안전장치)
+            # ※ 주의: 파일 삭제는 반드시 이 판단 이후에 수행해야 함.
+            #   삭제를 먼저 하면 원본 반환 시 이미 없는 파일 경로가 섞여
+            #   Step 3에서 "유효하지 않은 파일" 오류 발생.
             if len(filtered) < 3:
                 log.warning(f"AI 검증 후 파일 부족 ({len(filtered)}개) — 원본 유지")
                 return sound_files
 
-            # 필터 결과 사용 확정 후 제거 파일 삭제
+            # 필터 결과 사용 확정 후 제거 대상 파일 삭제
             for f in sound_files:
                 if f.name not in keep_names:
                     try:
