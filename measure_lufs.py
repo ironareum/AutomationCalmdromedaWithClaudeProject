@@ -12,10 +12,10 @@
   → lufs_cache.json 캐시 저장 (재실행 시 API·다운로드 생략)
   → lufs_report.txt 결과 파일 저장
 
-[출력 판정 기준]
-  ✅  -20 이상        → loudnorm 스킵 (적당)
-  ⚠️  -20 ~ -24 사이  → loudnorm 적용 (안전 범위)
-  ❌  -24 미만        → 제외 권장 (왜곡 위험)
+[출력 판정 기준]  ※ 파이프라인 소스 제외 임계값 기준
+  ✅  -28 이상        → 소스 통과 (사용 가능)
+  ⚠️  -28 ~ -35 사이  → loudnorm 주의 (17 dB 이내 증폭)
+  ❌  -35 미만        → 제외 권장 (왜곡 위험)
 """
 
 import json
@@ -41,10 +41,10 @@ FREESOUND_BASE   = "https://freesound.org/apiv2"
 # ── 공통 유틸 ──────────────────────────────────────────────────────────────
 
 def zone(lufs: float) -> str:
-    if lufs >= -20:
-        return "✅  적당"
-    elif lufs >= -24:
-        return "⚠️  loudnorm 적용"
+    if lufs >= -28:
+        return "✅  통과"
+    elif lufs >= -35:
+        return "⚠️  loudnorm 주의"
     else:
         return "❌  제외 권장"
 
@@ -270,9 +270,9 @@ def main():
     rprint("=" * 70)
     rprint(f"조회 완료: {total}개  |  ID 없음: {len(no_id)}개  |  측정 불가: {len(no_data)}개")
     rprint()
-    rprint(f"  ✅  적당          {len(buckets['safe']):>3}개  (-20 LUFS 이상)")
-    rprint(f"  ⚠️   loudnorm 필요 {len(buckets['warn']):>3}개  (-20 ~ -24 LUFS)")
-    rprint(f"  ❌  제외 권장     {len(buckets['danger']):>3}개  (-24 LUFS 미만)")
+    rprint(f"  ✅  통과          {len(buckets['safe']):>3}개  (-28 LUFS 이상)")
+    rprint(f"  ⚠️   loudnorm 주의 {len(buckets['warn']):>3}개  (-28 ~ -35 LUFS)")
+    rprint(f"  ❌  제외 권장     {len(buckets['danger']):>3}개  (-35 LUFS 미만)")
     rprint()
 
     if buckets["danger"]:
@@ -288,9 +288,9 @@ def main():
 
 
 def _add_bucket(buckets, item, lufs):
-    if lufs >= -20:
+    if lufs >= -28:
         buckets["safe"].append((item, lufs))
-    elif lufs >= -24:
+    elif lufs >= -35:
         buckets["warn"].append((item, lufs))
     else:
         buckets["danger"].append((item, lufs))
