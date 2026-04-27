@@ -4,7 +4,7 @@ Zen/Oriental 롱폼 전용 콘셉트 생성기
 
 대상 포맷: 8시간 롱폼 + 60초 숏폼
 카테고리: moktak_melodic / tibetan_bowl / temple_chant / zen_instrumental / oriental_ambient
-음원 소스: Pixabay Music(기본) → Freesound(폴백)
+음원 소스: Jamendo Music(기본) → Freesound(폴백)
 """
 
 import json
@@ -29,13 +29,14 @@ ZEN_CATEGORIES = [
     "oriental_ambient",
 ]
 
-# Pixabay Music API 검색 쿼리 (기본 음원 소스)
-PIXABAY_QUERIES = {
-    "moktak_melodic":   ["meditation bells zen", "tibetan meditation music", "buddhist bells meditation"],
-    "tibetan_bowl":     ["tibetan singing bowl", "crystal bowl meditation", "singing bowl healing"],
-    "temple_chant":     ["buddhist chanting meditation", "om chanting peaceful", "monk chanting calm"],
-    "zen_instrumental": ["bamboo flute meditation", "japanese flute zen music", "koto meditation"],
-    "oriental_ambient": ["asian meditation music", "oriental relaxing music", "zen ambient music"],
+# Jamendo Music API 태그 쿼리 (기본 음원 소스)
+# Jamendo API는 space로 구분된 AND 태그 검색 — 최대 3개 권장
+JAMENDO_QUERIES = {
+    "moktak_melodic":   ["meditation bells zen", "tibetan meditation", "buddhist bells"],
+    "tibetan_bowl":     ["tibetan singing bowl", "crystal bowl meditation", "singing bowl"],
+    "temple_chant":     ["buddhist chanting", "om meditation", "monk chanting"],
+    "zen_instrumental": ["bamboo flute zen", "japanese flute meditation", "koto relaxing"],
+    "oriental_ambient": ["asian meditation", "oriental ambient", "zen ambient"],
 }
 
 # Freesound 폴백 쿼리 (Pixabay 실패 시)
@@ -49,8 +50,14 @@ FREESOUND_FALLBACK = {
     "oriental_ambient": ["asian meditation music ambient loop", "zen music oriental ambient", "chinese meditation music loop"],
 }
 
-# Pexels 영상 쿼리 (모든 카테고리 공통 + 카테고리별 특화)
+# Pexels 영상 쿼리 (모든 카테고리 공통 + 신비로운/몽환적 분위기 강화)
 PEXELS_QUERIES_COMMON = [
+    "night sky stars timelapse",
+    "milky way galaxy slow",
+    "aurora night sky",
+    "candle flame dark background",
+    "firefly night forest",
+    "fog mist dark forest night",
     "temple incense smoke",
     "singing bowl close up",
     "incense smoke dark",
@@ -154,7 +161,7 @@ def generate_zen_concept(
     cat_name = CATEGORY_KO.get(category, category)
     title_kw = TITLE_KEYWORDS.get(category, cat_name)
     sound_hint = SOUND_HINTS.get(category, "")
-    pixabay_q = PIXABAY_QUERIES.get(category, [])
+    jamendo_q = JAMENDO_QUERIES.get(category, [])
     freesound_q = FREESOUND_FALLBACK.get(category, [])
 
     # 최근 zen 제목 참조 (중복 방지)
@@ -236,7 +243,7 @@ JSON만 응답:
         "subtitle_en":       ai.get("subtitle_en", "Ancient & Calm"),
         "description_en":    ai.get("description_en", ""),
         "tags":              merged_tags,
-        "pixabay_queries":   pixabay_q,
+        "jamendo_queries":   jamendo_q,
         "freesound_fallback": freesound_q,
         "pexels_queries":    PEXELS_QUERIES_COMMON,
         "duration_hours":    8,

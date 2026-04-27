@@ -28,8 +28,8 @@ from dotenv import load_dotenv
 from collector.freesound import (
     FreesoundCollector, register_used_session, USED_ASSETS_FILE,
 )
+from collector.jamendo import JamendoMusicCollector
 from collector.pexels import PexelsCollector
-from collector.pixabay import PixabayMusicCollector
 from config import Config
 from planner.zen_concept import generate_zen_concept
 from producer.ffmpeg_producer import VideoProducer, LOGO_PATH, LOGO_HEADING_PATH
@@ -96,34 +96,87 @@ def _logo_inputs_and_filter(producer: VideoProducer) -> tuple[list, str, str]:
     return extra_inputs, ";".join(parts), final
 
 
+# ── Zen 전용 AI 음원 필터 ─────────────────────────────────────────────────
+
+def _zen_ai_filter(sounds: list[dict]) -> list[dict]:
+    """
+    Freesound 검색 결과에서 zen 파이프라인에 적합한 음원만 허용.
+    기존 _ai_filter_sounds()와 반대로 멜로딕/악기/챈팅을 허용하고
+    harsh/비명상적 소리만 제거.
+    """
+    if not sounds:
+        return sounds
+
+    REJECT_TAGS = {
+        "gunshot", "explosion", "scream", "crowd", "traffic",
+        "engine", "alarm", "notification", "video game",
+        "electronic", "techno", "heavy metal", "drum kit", "percussion",
+    }
+    REJECT_NAME_WORDS = [
+        "noise", "sfx", "effect", "click", "beep", "ring", "alert",
+        "horn", "bark", "laugh", "shout", "bang", "crash",
+    ]
+
+    filtered = []
+    for s in sounds:
+        tags = {t.lower() for t in s.get("tags", [])}
+        name = s.get("name", "").lower()
+
+        if tags & REJECT_TAGS:
+            log.debug(f"zen filter REJECT (tag): {s.get('name')}")
+            continue
+        if any(w in name for w in REJECT_NAME_WORDS):
+            log.debug(f"zen filter REJECT (name): {s.get('name')}")
+            continue
+        filtered.append(s)
+
+    log.info(f"zen AI 필터: {len(sounds)} → {len(filtered)}")
+    return filtered
+
+
 # ── Step 1: 음원 수집 ─────────────────────────────────────────────────────
 
 def collect_audio(concept: dict, work_dir: Path, cfg: Config) -> list[Path]:
-    """Pixabay Music 우선 → 실패 시 Freesound 폴백"""
-    pixabay_key = os.environ.get("PIXABAY_API_KEY", "")
+    """Jamendo Music 우선 → 실패 시 Freesound 폴백 (zen AI 필터 적용)"""
+    jamendo_id = os.environ.get("JAMENDO_CLIENT_ID", "")
 
-    if pixabay_key:
-        log.info("Step 1a: [음원] Pixabay Music API...")
-        pb = PixabayMusicCollector(api_key=pixabay_key, work_dir=work_dir)
-        sounds = pb.collect(concept["pixabay_queries"], count=1)
+    if jamendo_id:
+        log.info("Step 1a: [음원] Jamendo Music API...")
+        jm = JamendoMusicCollector(client_id=jamendo_id, work_dir=work_dir)
+        sounds = jm.collect(concept["jamendo_queries"], count=1)
         if sounds:
             return sounds
-        log.warning("Pixabay 수집 실패 → Freesound 폴백")
+        log.warning("Jamendo 수집 실패 → Freesound 폴백")
     else:
-        log.info("PIXABAY_API_KEY 없음 → Freesound 폴백")
+        log.info("JAMENDO_CLIENT_ID 없음 → Freesound 폴백")
 
-    log.info("Step 1b: [음원] Freesound...")
+    log.info("Step 1b: [음원] Freesound (zen 필터)...")
     fc = FreesoundCollector(
         api_key=cfg.freesound_api_key,
         work_dir=work_dir,
         session_id=work_dir.name,
     )
-    return fc.collect(
-        queries=concept["freesound_fallback"],
-        count_per_query=2,
-        skip_local=True,
-        concept=concept,
-    )
+    # concept 인자 제거 → 기존 AI 필터(_ai_filter_sounds) 우회
+    # zen 전용 필터는 collect() 후처리 대신 FreesoundCollector 내부 콜백 없이
+    # 직접 search → filter → download 순으로 처리
+    results: list[Path] = []
+    seen: set[str] = set()
+    for query in concept["freesound_fallback"]:
+        if len(results) >= 2:
+            break
+        raw = fc.search(query, page_size=20)
+        for s in _zen_ai_filter(raw):
+            if len(results) >= 2:
+                break
+            sid = str(s.get("id", ""))
+            if not sid or sid in seen:
+                continue
+            path = fc.download(s)
+            if path:
+                results.append(path)
+                seen.add(sid)
+
+    return results
 
 
 # ── Step 2: 영상 수집 (단일 최적 클립) ────────────────────────────────────
