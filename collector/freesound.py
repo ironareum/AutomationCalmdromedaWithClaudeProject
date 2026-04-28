@@ -613,21 +613,16 @@ JSON 형식으로만 응답:
                 log.info(f"AI 사운드 검증 — 제거: {removed}")
                 log.info(f"AI 사운드 검증 — 이유: {reason}")
 
-            # 필터 결과가 3개 미만이면 원본 전체 사용 (안전장치)
-            # ※ 주의: 파일 삭제는 반드시 이 판단 이후에 수행해야 함.
-            #   삭제를 먼저 하면 원본 반환 시 이미 없는 파일 경로가 섞여
-            #   Step 3에서 "유효하지 않은 파일" 오류 발생.
-            if len(filtered) < 3:
-                log.warning(f"AI 검증 후 파일 부족 ({len(filtered)}개) — 원본 유지")
-                return sound_files
-
-            # 필터 결과 사용 확정 후 제거 대상 파일 삭제
+            # AI 결정을 항상 존중: 제거 대상 파일 즉시 삭제 (폴백 없음)
             for f in sound_files:
                 if f.name not in keep_names:
                     try:
                         f.unlink()
                     except Exception:
                         pass
+
+            if len(filtered) < 3:
+                log.warning(f"AI 검증 후 파일 부족 ({len(filtered)}개) — AI 필터 결과 그대로 사용")
 
             return filtered
 
@@ -644,6 +639,7 @@ JSON 형식으로만 응답:
         """
         result = []
         sound_meta = {}
+        selected_names: set[str] = set()  # 레이어 간 중복 방지
         layer_names = ["intro", "main", "sub", "point"]
 
         for layer in layer_names:
@@ -669,6 +665,11 @@ JSON 형식으로만 응답:
                         continue
                     path = self.download(sound)
                     if path:
+                        # 레이어 간 중복 방지
+                        if path.name in selected_names:
+                            log.warning(f"레이어 중복 스킵 [{layer}]: {path.name}")
+                            path.unlink(missing_ok=True)
+                            continue
                         # LUFS 스크리닝: -35 미만 소스는 수집 단계에서 즉시 교체
                         lufs = _measure_lufs_quick(path)
                         if lufs is not None and lufs < LUFS_SOURCE_MIN:
@@ -681,6 +682,7 @@ JSON 형식으로만 응답:
                             intro_path = path.parent / f"intro_{path.name}"
                             path.rename(intro_path)
                             path = intro_path
+                        selected_names.add(path.name)
                         found = path
                         sound_meta[path.name] = {
                             "tags": sound.get("tags", []),
