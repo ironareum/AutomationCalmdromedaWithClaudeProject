@@ -371,9 +371,9 @@ CATEGORY_SOUNDS = {
         "point": ["ice crack soft single", "water drop single echo"],
     },
     "bath_house": {
-        "main":  ["indoor bath water flowing gentle", "bathhouse water ambient calm", "spa indoor water bubbling"],
-        "sub":   ["steam room ambient soft", "water ripple indoor gentle"],
-        "point": ["water drip indoor soft", "bath steam hiss low"],
+        "main":  ["water indoor ambient calm", "bath water gentle loop", "indoor water flowing calm"],
+        "sub":   ["steam ambient soft", "water ripple gentle"],
+        "point": ["water drip indoor", "water drop single gentle"],
     },
     "train_ride": {
         "main":  ["train interior ambient calm", "railway ride ambient", "train window moving gentle"],
