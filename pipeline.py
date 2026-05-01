@@ -271,8 +271,8 @@ def run_pipeline(concept: dict):
                     tags=shorts_tags,
                     thumbnail_path=thumbnail,
                     language=concept.get("language", "ko"),
-                    hour_kst=cfg.upload_hour_kst,
-                    minute_kst=cfg.upload_minute_kst,
+                    hour_kst=cfg.shorts_upload_hour_kst,
+                    minute_kst=cfg.shorts_upload_minute_kst,
                 )
                 if shorts_result:
                     metadata["youtube_shorts"] = shorts_result
