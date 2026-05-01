@@ -17,9 +17,9 @@ name: Daily Calmdromeda Pipeline
 
 on:
   schedule:
-    # 매일 오전 9시 KST (= UTC 00:00) 실행
-    # 영상 제작 후 YouTube 익일 오후 6시 30분 KST 예약 공개
-    - cron: '0 0 * * *'
+    # 매주 화·토 오전 9시 KST (= UTC 00:00) 실행
+    # 영상 제작 후 YouTube 익일(수·일) 오후 7시 30분 KST 예약 공개
+    - cron: '0 0 * * 2,6'
   workflow_dispatch:  # 수동 실행 버튼 (테스트용)
 
 jobs:
@@ -137,8 +137,10 @@ jobs:
           ANTHROPIC_API_KEY:          ${{ secrets.ANTHROPIC_API_KEY }}
           ENCRYPTION_KEY:             ${{ secrets.ENCRYPTION_KEY }}
           UPLOAD_ENABLED:             "true"
-          UPLOAD_HOUR_KST:            "18"
+          UPLOAD_HOUR_KST:            "19"
           UPLOAD_MINUTE_KST:          "30"
+          SHORTS_UPLOAD_HOUR_KST:     "18"
+          SHORTS_UPLOAD_MINUTE_KST:   "30"
           YOUTUBE_TOKEN:              "credentials/token.json"
           YOUTUBE_CLIENT_SECRET:      "credentials/client_secret.json"
           INSTAGRAM_ENABLED:          "true"

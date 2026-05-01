@@ -83,8 +83,10 @@ class Config:
 
     # Upload 설정
     upload_enabled: bool = os.getenv("UPLOAD_ENABLED", "true").lower() == "true"
-    upload_hour_kst: int = int(os.getenv("UPLOAD_HOUR_KST", "18"))    # 오후 6시 KST
-    upload_minute_kst: int = int(os.getenv("UPLOAD_MINUTE_KST", "30"))  # 30분
+    upload_hour_kst: int = int(os.getenv("UPLOAD_HOUR_KST", "19"))          # 롱폼 오후 7시 KST
+    upload_minute_kst: int = int(os.getenv("UPLOAD_MINUTE_KST", "30"))       # 30분
+    shorts_upload_hour_kst: int = int(os.getenv("SHORTS_UPLOAD_HOUR_KST", "18"))    # 숏폼 오후 6시 KST
+    shorts_upload_minute_kst: int = int(os.getenv("SHORTS_UPLOAD_MINUTE_KST", "30"))  # 30분
     youtube_token_path: str = os.getenv("YOUTUBE_TOKEN", "credentials/token.json")
 
     # [미사용] Instagram 설정
