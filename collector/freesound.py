@@ -283,9 +283,10 @@ class LocalSoundCollector:
 class FreesoundCollector:
     BASE_URL = "https://freesound.org/apiv2"
 
-    def __init__(self, api_key: str, work_dir: Path, session_id: str = ""):
-        self.api_key    = api_key
-        self.session_id = session_id  # used_assets 기록에 사용
+    def __init__(self, api_key: str, work_dir: Path, session_id: str = "", allow_melody: bool = False):
+        self.api_key      = api_key
+        self.session_id   = session_id  # used_assets 기록에 사용
+        self.allow_melody = allow_melody  # True: gen_pipeline 등 멜로디 허용 파이프라인용
         self.sound_dir  = work_dir / "sounds"
         self.sound_dir.mkdir(parents=True, exist_ok=True)
         self.used      = load_used_assets()
@@ -341,7 +342,13 @@ class FreesoundCollector:
                 "page_size": page_size,
                 "page":      page,
                 "fields":    "id,name,duration,license,previews,avg_rating,num_downloads,tags,description,username",
-                "filter":    '+(license:"Creative Commons 0" OR license:"Attribution") avg_rating:[3.5 TO *] -tag:white-noise -tag:"white noise" -tag:static -tag:hiss -tag:"pink noise" -tag:wind-noise -tag:"wind noise" -tag:noisy',
+                "filter":    (
+                    '+(license:"Creative Commons 0" OR license:"Attribution") avg_rating:[3.5 TO *]'
+                    ' -tag:white-noise -tag:"white noise" -tag:static -tag:hiss -tag:"pink noise"'
+                    ' -tag:wind-noise -tag:"wind noise" -tag:noisy'
+                    + ('' if self.allow_melody else
+                       ' -tag:melody -tag:musical -tag:music -tag:instrumental -tag:beat')
+                ),
                 "sort":      "downloads_desc",
                 "token":     self.api_key,
             }
@@ -613,14 +620,6 @@ JSON 형식으로만 응답:
                 log.info(f"AI 사운드 검증 — 제거: {removed}")
                 log.info(f"AI 사운드 검증 — 이유: {reason}")
 
-            # 필터 결과가 3개 미만이면 원본 전체 사용 (안전장치)
-            # ※ 주의: 파일 삭제는 반드시 이 판단 이후에 수행해야 함.
-            #   삭제를 먼저 하면 원본 반환 시 이미 없는 파일 경로가 섞여
-            #   Step 3에서 "유효하지 않은 파일" 오류 발생.
-            if len(filtered) < 3:
-                log.warning(f"AI 검증 후 파일 부족 ({len(filtered)}개) — 원본 유지")
-                return sound_files
-
             # 필터 결과 사용 확정 후 제거 대상 파일 삭제
             for f in sound_files:
                 if f.name not in keep_names:
@@ -659,6 +658,7 @@ JSON 형식으로만 응답:
             else:
                 min_dur = 10
 
+            _MELODY_TAGS = {"melody", "musical", "music", "instrumental", "beat", "song", "vocals", "singing"}
             found = None
             for query in queries:
                 if found:
@@ -667,6 +667,12 @@ JSON 형식으로만 응답:
                 for sound in results:
                     if sound.get("duration", 0) < min_dur:
                         continue
+                    if not self.allow_melody:
+                        sound_tags = {t.lower() for t in sound.get("tags", [])}
+                        overlap = sound_tags & _MELODY_TAGS
+                        if overlap:
+                            log.info(f"멜로디 태그 감지 — 스킵: {sound.get('name', '')} {overlap}")
+                            continue
                     path = self.download(sound)
                     if path:
                         # LUFS 스크리닝: -35 미만 소스는 수집 단계에서 즉시 교체
@@ -701,6 +707,9 @@ JSON 형식으로만 응답:
         intro     = [f for f in result if f.name.startswith("intro_")]
         if concept and non_intro:
             non_intro = self._ai_filter_sounds(non_intro, concept, sound_meta)
+            if len(non_intro) < 2:
+                log.warning(f"AI 검증 후 파일 부족 ({len(non_intro)}개) — main 레이어만 사용")
+                non_intro = [f for f in result if sound_meta.get(f.name, {}).get("layer") == "main"]
         result = intro + non_intro
 
         log.info(f"레이어 구조 수집 완료: {len(result)}개 (intro: {len(intro)}개)")
