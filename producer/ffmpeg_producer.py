@@ -658,14 +658,16 @@ class VideoProducer:
         sound_files: list[Path],
         video_files: list[Path],
         duration_hours: int = 1,
+        duration_seconds: int | None = None,
         title: str = "output",
         category: str = "",
     ) -> tuple | None:  # (output_path, used_sounds, used_videos)
         """
         전체 영상 제작 파이프라인
         """
-        target_duration = duration_hours * 3600
-        log.info(f"Producing {duration_hours}h video...")
+        target_duration = duration_seconds if duration_seconds else duration_hours * 3600
+        label = f"{duration_seconds}s" if duration_seconds else f"{duration_hours}h"
+        log.info(f"Producing {label} video...")
 
         # 1. 오디오 믹싱 (유효한 파일만 레이어로 사용)
         mix_result = self.mix_sounds(sound_files, target_duration, category=category)
