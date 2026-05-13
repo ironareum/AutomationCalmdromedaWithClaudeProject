@@ -429,31 +429,22 @@ def upload_to_gdrive(session_id: str, work_dir: Path, cfg) -> bool:
 
     remote_path = f"gdrive:Calmdromeda/{session_id}"
 
-    # 음원·영상 파일은 제외 (log 파일에 소스 출처 기록됨)
-    # *.ext: 루트 포함 모든 depth 제외 (**/*.ext는 루트 파일 미매칭)
-    exclude_media = [
-        "--exclude=*.mp3",
-        "--exclude=*.wav",
-        "--exclude=*.flac",
-        "--exclude=*.aac",
-        "--exclude=*.ogg",
-        "--exclude=*.m4a",
-        "--exclude=*.mp4",
-        "--exclude=*.mkv",
-        "--exclude=*.avi",
-        "--exclude=*.mov",
-        "--exclude=*.webm",
-        "--exclude=temp/**",
+    # 메타데이터 파일만 명시적으로 포함 (음원·영상 등 대용량 파일 제외)
+    include_metadata = [
+        "--include=metadata.json",
+        "--include=pipeline.log",
+        "--include=thumbnails/**",
+        "--exclude=*",
     ]
 
     try:
         result = subprocess.run(
             [rclone_bin, "copy", str(work_dir), remote_path,
-             "--progress", "--transfers=4"] + exclude_media,
+             "--progress", "--transfers=4"] + include_metadata,
             capture_output=True, encoding="utf-8", errors="replace", timeout=600
         )
         if result.returncode == 0:
-            log.info(f"Google Drive 업로드 완료: {remote_path} (음원·영상 제외)")
+            log.info(f"Google Drive 업로드 완료: {remote_path} (메타데이터만)")
             return True
         else:
             log.error(f"rclone 업로드 실패: {result.stderr[:500]}")
