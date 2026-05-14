@@ -12,7 +12,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from collector.freesound import FreesoundCollector, register_used_session
+from collector.freesound import FreesoundCollector, register_used_session, USED_ASSETS_FILE
 from collector.pexels import PexelsCollector
 from producer.ffmpeg_producer import VideoProducer
 from producer.thumbnail import ThumbnailGenerator
@@ -44,8 +44,8 @@ def run_shorts_pipeline():
         # Step 1: AI 기획 (메인 파이프라인과 동일한 used_assets.json 사용 → 카테고리 순환 공유)
         log.info("Step 1: [AI 기획] 카테고리 선택 및 콘셉트 생성...")
         concept = generate_concept(
-            api_key=cfg.anthropic_api_key,
-            used_assets_path=cfg.used_assets_path,
+            api_key=cfg.claude_api_key,
+            used_assets_path=USED_ASSETS_FILE,
             duration_hours=1,
         )
         log.info(f"생성된 콘셉트: {concept['title']}")
