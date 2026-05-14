@@ -434,7 +434,8 @@ class FreesoundCollector:
         3단계: API도 안 되면 로컬 파일만으로 진행
         """
         # sound_layers가 있으면 메인/서브/포인트 구조로 각각 수집
-        if sound_layers and not skip_local:
+        # _collect_by_layers는 API만 사용하므로 skip_local과 무관
+        if sound_layers:
             result = self._collect_by_layers(sound_layers, concept)
             # 최소 2개 음원 보장: 1개 이하면 sub 쿼리로 추가 수집 시도
             if len(result) < 2:
