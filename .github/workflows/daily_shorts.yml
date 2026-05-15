@@ -17,7 +17,7 @@ on:
 jobs:
   run-shorts:
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # 40초 영상이므로 1시간 이내 충분
+    timeout-minutes: 90  # 음원 수집 지연 대비 여유 확보
 
     steps:
       # ── 1. 코드 체크아웃 ──────────────────────────────────────────

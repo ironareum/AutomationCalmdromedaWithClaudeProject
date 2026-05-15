@@ -28,7 +28,8 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-LUFS_SOURCE_MIN = -35.0  # ffmpeg_producer.py와 동일 기준
+LUFS_SOURCE_MIN = -35.0      # ffmpeg_producer.py와 동일 기준
+MAX_DOWNLOAD_SIZE_MB = 50   # 이 크기 초과 파일은 다운로드 전 스킵
 
 
 def _measure_lufs_quick(audio_path: Path) -> float | None:
@@ -415,6 +416,16 @@ class FreesoundCollector:
             return dest
 
         try:
+            # 파일 크기 사전 체크 (HEAD 요청) — 대용량 파일 다운로드 낭비 방지
+            head = requests.head(preview_url, timeout=10)
+            size_bytes = int(head.headers.get("Content-Length", 0))
+            if size_bytes and size_bytes / (1024 * 1024) > MAX_DOWNLOAD_SIZE_MB:
+                log.info(
+                    f"파일 크기 초과 — 스킵: {sound.get('name', '')} "
+                    f"({size_bytes / (1024*1024):.1f}MB > {MAX_DOWNLOAD_SIZE_MB}MB)"
+                )
+                return None
+
             resp = requests.get(preview_url, timeout=30, stream=True)
             resp.raise_for_status()
             with open(dest, "wb") as f:
