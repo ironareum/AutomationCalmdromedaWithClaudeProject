@@ -613,16 +613,13 @@ JSON 형식으로만 응답:
                 log.info(f"AI 사운드 검증 — 제거: {removed}")
                 log.info(f"AI 사운드 검증 — 이유: {reason}")
 
-            # AI 결정을 항상 존중: 제거 대상 파일 즉시 삭제 (폴백 없음)
+            # 필터 결과 사용 확정 후 제거 대상 파일 삭제
             for f in sound_files:
                 if f.name not in keep_names:
                     try:
                         f.unlink()
                     except Exception:
                         pass
-
-            if len(filtered) < 3:
-                log.warning(f"AI 검증 후 파일 부족 ({len(filtered)}개) — AI 필터 결과 그대로 사용")
 
             return filtered
 
