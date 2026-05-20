@@ -655,6 +655,7 @@ JSON 형식으로만 응답:
         """
         result = []
         sound_meta = {}
+        selected_names: set[str] = set()  # 레이어 간 중복 방지
         layer_names = ["intro", "main", "sub", "point"]
 
         for layer in layer_names:
@@ -687,6 +688,11 @@ JSON 형식으로만 응답:
                             continue
                     path = self.download(sound)
                     if path:
+                        # 레이어 간 중복 방지
+                        if path.name in selected_names:
+                            log.warning(f"레이어 중복 스킵 [{layer}]: {path.name}")
+                            path.unlink(missing_ok=True)
+                            continue
                         # LUFS 스크리닝: -35 미만 소스는 수집 단계에서 즉시 교체
                         lufs = _measure_lufs_quick(path)
                         if lufs is not None and lufs < LUFS_SOURCE_MIN:
@@ -699,6 +705,7 @@ JSON 형식으로만 응답:
                             intro_path = path.parent / f"intro_{path.name}"
                             path.rename(intro_path)
                             path = intro_path
+                        selected_names.add(path.name)
                         found = path
                         sound_meta[path.name] = {
                             "tags": sound.get("tags", []),
