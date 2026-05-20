@@ -28,7 +28,7 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-LUFS_SOURCE_MIN = -35.0      # ffmpeg_producer.py와 동일 기준
+LUFS_SOURCE_MIN = -50.0      # 조용한 환경음 카테고리 대응 (-35→-50 완화)
 MAX_DOWNLOAD_SIZE_MB = 50   # 이 크기 초과 파일은 다운로드 전 스킵
 
 

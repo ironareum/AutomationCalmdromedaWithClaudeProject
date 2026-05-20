@@ -41,34 +41,43 @@ def run_shorts_pipeline():
     log.info(f"=== Shorts Pipeline Start: {session_id} ===")
 
     try:
-        # Step 1: AI 기획 (메인 파이프라인과 동일한 used_assets.json 사용 → 카테고리 순환 공유)
-        log.info("Step 1: [AI 기획] 카테고리 선택 및 콘셉트 생성...")
-        concept = generate_concept(
-            api_key=cfg.claude_api_key,
-            used_assets_path=USED_ASSETS_FILE,
-            duration_hours=1,
-        )
-        log.info(f"생성된 콘셉트: {concept['title']}")
-
-        # Step 2: 음원 수집 — main + sub 레이어만 (point 제외)
-        log.info("Step 2: [음원 수집] main + sub 레이어...")
-        sound_layers = concept.get("sound_layers", {})
-        shorts_sound_layers = {
-            "main": sound_layers.get("main", []),
-            "sub":  sound_layers.get("sub",  []),
-        }
+        # Step 1+2: AI 기획 + 음원 수집 (실패 시 최대 3회 다른 카테고리로 재시도)
+        failed_categories: list[str] = []
+        sound_files: list = []
+        concept = None
         sound_collector = FreesoundCollector(
             cfg.freesound_api_key, work_dir, session_id=session_id
         )
-        sound_files = sound_collector.collect(
-            concept["sounds"],
-            count_per_query=2,
-            skip_local=True,
-            concept=concept,
-            sound_layers=shorts_sound_layers,
-        )
+        for attempt in range(3):
+            log.info(f"Step 1: [AI 기획] 카테고리 선택 및 콘셉트 생성... (시도 {attempt+1}/3)")
+            concept = generate_concept(
+                api_key=cfg.claude_api_key,
+                used_assets_path=USED_ASSETS_FILE,
+                duration_hours=1,
+                skip_categories=failed_categories,
+            )
+            log.info(f"생성된 콘셉트: {concept['title']}")
+
+            log.info(f"Step 2: [음원 수집] main + sub 레이어... (시도 {attempt+1}/3)")
+            sound_layers = concept.get("sound_layers", {})
+            shorts_sound_layers = {
+                "main": sound_layers.get("main", []),
+                "sub":  sound_layers.get("sub",  []),
+            }
+            sound_files = sound_collector.collect(
+                concept["sounds"],
+                count_per_query=2,
+                skip_local=True,
+                concept=concept,
+                sound_layers=shorts_sound_layers,
+            )
+            if sound_files:
+                break
+            log.warning(f"음원 수집 실패 ({concept['category']}) — 다음 카테고리 재시도 ({attempt+1}/3)")
+            failed_categories.append(concept["category"])
+
         if not sound_files:
-            log.error("음원 수집 실패 — 파이프라인 중단")
+            log.error("3회 재시도 후에도 음원 수집 실패 — 파이프라인 중단")
             return None
 
         # Step 3: 영상 수집 — 2클립

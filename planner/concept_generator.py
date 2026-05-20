@@ -528,6 +528,7 @@ def generate_concept(
     duration_hours: float = 1,
     language: str = "ko",
     force_category: str | None = None,
+    skip_categories: list[str] | None = None,
 ) -> dict:
     """
     Claude Haiku로 오늘의 영상 콘셉트 자동 생성
@@ -548,6 +549,8 @@ def generate_concept(
     today          = date.today()
     season         = _get_season(today)
     recent_cats    = _get_recent_categories(used_assets_path)
+    if skip_categories:
+        recent_cats = list(skip_categories) + recent_cats
     recent_titles  = _get_recent_titles(used_assets_path)
     category       = force_category if force_category else _pick_category(recent_cats)
     category_name  = CATEGORY_KO.get(category, category)
