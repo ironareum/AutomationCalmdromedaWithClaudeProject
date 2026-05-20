@@ -590,7 +590,7 @@ def generate_concept(
 [사운드 쿼리 풀 — 이 중에서만 3개 선택]
 {default_sounds_str}
 
-[영상 쿼리 풀 — 이 중에서만 3~4개 선택]
+[영상 쿼리 풀 — 이 중에서만 1개 선택]
 {default_videos_str}
 
 [요구사항]
@@ -607,6 +607,7 @@ def generate_concept(
    - 예: "{title_keyword} | 공부할 때 틀어두면 집중되는 소리 | Rain ASMR - Study Music Focus"
 2. 태그는 한국어 위주 10~15개
 3. 제목에 봄/여름/가을/겨울 계절 키워드 사용 금지 — 계절과 무관하게 언제든 시청 가능한 제목
+   - 어색한 의태어/의성어 금지: "소복이", "사르르", "포슬포슬" 등 문맥과 맞지 않는 표현
 4. 최근 업로드 제목과 겹치지 않게
 5. title_sub는 썸네일 상단에 들어갈 짧은 문구 (10자 이내)
 6. subtitle_en은 썸네일 하단 영문 (2~4단어, 반드시 감성적인 시적 표현으로)
@@ -633,7 +634,8 @@ def generate_concept(
    - sounds[2]: [포인트 효과음] 목록에서 1개 선택 (거의 안 들리는 세부음)
    - 반드시 목록에 있는 것만 선택 (임의 생성 금지)
    - 카테고리 특성에 어긋나는 쿼리 절대 선택 금지
-9. video_queries는 [영상 쿼리 풀] 목록에서 오늘 콘셉트/계절/mood에 맞는 것 3~4개 선택
+9. video_queries는 [영상 쿼리 풀] 목록에서 제목/mood와 가장 일치하는 것 1개만 선택
+   - 쿼리 범위가 좁을수록 제목-영상 일치율이 높아짐
    - 반드시 목록에 있는 것만 선택 (임의 생성 금지)
 10. shorts_title은 쇼츠/릴스용 감성적 제목 (풀영상 제목과 완전히 다르게)
    - 검색어 대신 공감/감성을 자극하는 문구
@@ -659,7 +661,7 @@ def generate_concept(
   "subtitle_en": "...",
   "description_en": "...",
   "sounds": ["...", "...", "..."],
-  "video_queries": ["...", "...", "...", "..."],
+  "video_queries": ["..."],
   "tags": ["...", "..."]
 }}"""
 
@@ -683,7 +685,14 @@ def generate_concept(
         ai = json.loads(raw.strip())
 
     except Exception as e:
-        log.error(f"Claude API 오류: {e} — 기본 콘셉트로 폴백")
+        log.error(f"Claude API 오류: {e} — 다음 카테고리로 교체 후 폴백")
+        category      = _pick_category([category] + recent_cats)
+        category_name = CATEGORY_KO.get(category, category)
+        cat_sounds    = CATEGORY_SOUNDS.get(category, {})
+        sounds_main   = cat_sounds.get("main",  ["nature ambient calm"])
+        sounds_sub    = cat_sounds.get("sub",   sounds_main[:1])
+        sounds_point  = cat_sounds.get("point", sounds_main[:1])
+        log.info(f"대체 카테고리: {category}")
         ai = _fallback_concept(category, season)
 
     # ── 최종 콘셉트 조합 ─────────────────────────────────────────────

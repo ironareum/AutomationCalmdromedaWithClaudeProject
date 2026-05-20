@@ -728,7 +728,8 @@ JSON 형식으로만 응답:
             non_intro = self._ai_filter_sounds(non_intro, concept, sound_meta)
             if len(non_intro) < 2:
                 log.warning(f"AI 검증 후 파일 부족 ({len(non_intro)}개) — main 레이어만 사용")
-                non_intro = [f for f in result if sound_meta.get(f.name, {}).get("layer") == "main"]
+                main_files = [f for f in non_intro if sound_meta.get(f.name, {}).get("layer") == "main"]
+                non_intro = main_files if main_files else non_intro
         result = intro + non_intro
 
         log.info(f"레이어 구조 수집 완료: {len(result)}개 (intro: {len(intro)}개)")
