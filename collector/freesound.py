@@ -446,12 +446,9 @@ class FreesoundCollector:
         """
         # sound_layers가 있으면 메인/서브/포인트 구조로 각각 수집
         # _collect_by_layers는 API만 사용하므로 skip_local과 무관
+        # supplement 미사용: AI 거부 파일 재수집 방지 + 0개 시 재시도 루프가 카테고리 교체 담당
         if sound_layers:
             result = self._collect_by_layers(sound_layers, concept)
-            # 최소 2개 음원 보장: 1개 이하면 sub 쿼리로 추가 수집 시도
-            if len(result) < 2:
-                log.warning(f"레이어 수집 결과 {len(result)}개 — 최소 2개 확보 재시도...")
-                result = self._supplement_sounds(result, sound_layers, target=2)
             return result
 
         # 실제 사용하는 레이어는 MAX_SOUND_LAYERS(3)개
