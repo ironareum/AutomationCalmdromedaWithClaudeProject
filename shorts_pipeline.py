@@ -76,7 +76,7 @@ def run_shorts_pipeline():
         video_collector = PexelsCollector(cfg.pexels_api_key, work_dir, session_id=session_id)
         video_files = video_collector.collect(
             concept["category"],
-            count=2,
+            count=1,
             queries=concept.get("video_queries"),
         )
         if not video_files:
