@@ -35,7 +35,7 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-LUFS_SOURCE_MIN = -35.0  # 소스 음원 최소 LUFS (-35 미만 제외: 17+ dB 증폭 시 왜곡 위험)
+LUFS_SOURCE_MIN = -50.0  # 조용한 환경음 카테고리 대응 (-35→-50 완화, freesound.py와 동일)
 
 # 로고 파일 경로 (프로젝트 루트 기준)
 LOGO_PATH         = Path(__file__).parent.parent / "assets" / "logo.png"           # 우하단 원형 로고
