@@ -70,15 +70,14 @@ CATEGORY_TAGS = {
     "forest":        ["숲소리", "자연소리", "forest sounds", "nature asmr"],
     "birds":         ["새소리", "풀벌레소리", "bird sounds", "morning birds"],
     "white_noise":   ["백색소음", "집중사운드", "white noise", "focus sounds"],
-    "camping":       ["캠핑소리", "모닥불소리", "campfire", "camping sounds"],
-    "underwater":    ["수중소리", "바닷속소리", "underwater sounds", "aquarium"],
-    "hot_spring":    ["온천소리", "물소리", "water sounds", "hot spring"],
-    "summer_night":  ["여름밤소리", "귀뚜라미소리", "summer night", "cricket sounds"],
-    "winter_snow":   ["눈소리", "겨울소리", "snow sounds", "winter asmr"],
-    "stream":        ["계곡소리", "시냇물소리", "stream sounds", "river asmr"],
-    "summer_rain":   ["여름빗소리", "소나기소리", "summer rain", "rain leaves"],
-    "snow_walk":     ["눈밭소리", "발자국소리", "snow walking", "winter walk"],
-    "moktak":        ["목탁소리", "절소리", "사찰ASMR", "사찰소리", "한국절", "Korean temple", "Buddhist moktak"],
+    "camping":    ["캠핑소리", "모닥불소리", "campfire", "camping sounds"],
+    "underwater": ["수중소리", "바닷속소리", "underwater sounds", "aquarium"],
+    "summer_night":["여름밤소리", "귀뚜라미소리", "summer night", "cricket sounds"],
+    "winter_snow": ["눈소리", "겨울소리", "snow sounds", "winter asmr"],
+    "stream":      ["계곡소리", "시냇물소리", "stream sounds", "river asmr"],
+    "summer_rain": ["여름빗소리", "소나기소리", "summer rain", "rain leaves"],
+    "train_ride":  ["기차소리", "열차소리", "train sounds", "train asmr"],
+    "moktak":      ["목탁소리", "절소리", "사찰ASMR", "사찰소리", "한국절", "Korean temple", "Buddhist moktak"],
 }
 
 # 카테고리별 제목 첫 키워드 (사람들이 실제로 검색하는 단어)
@@ -89,37 +88,37 @@ CATEGORY_TITLE_KEYWORDS = {
     "forest":         "숲속 소리 ASMR",
     "birds":          "새소리 ASMR",
     "white_noise":    "백색소음",
-    "camping":        "모닥불 소리 ASMR",
-    "underwater":     "수중 소리 ASMR",
-    "hot_spring":     "온천 물소리 ASMR",
-    "summer_night":   "여름밤 귀뚜라미 ASMR",
-    "winter_snow":    "겨울 눈소리 ASMR",
-    "stream":         "계곡 물소리 ASMR",
-    "summer_rain":    "여름 빗소리 ASMR",
-    "snow_walk":      "눈밭 발자국 ASMR",
-    "moktak":         "목탁 소리 ASMR",
-    "cave_water":     "동굴 물방울 소리 ASMR",
-    "ice_melt":       "얼음 녹는 소리 ASMR",
+    "camping":    "모닥불 소리 ASMR",
+    "underwater": "수중 소리 ASMR",
+    "summer_night":"여름밤 귀뚜라미 ASMR",
+    "winter_snow": "겨울 눈소리 ASMR",
+    "stream":      "계곡 물소리 ASMR",
+    "summer_rain": "여름 빗소리 ASMR",
+    "train_ride":  "기차 소리 ASMR",
+    "moktak":      "목탁 소리 ASMR",
+    "cave_water":  "동굴 물방울 소리 ASMR",
+    "ice_melt":    "얼음 녹는 소리 ASMR",
 }
 
 # 지원 카테고리 전체 목록 (자연 카테고리만 유지)
 ALL_CATEGORIES = [
     "rain", "rain_thunder", "ocean", "forest", "birds",
     "white_noise", "camping",
-    "underwater", "hot_spring", "summer_night",
+    "underwater", "summer_night",
     "winter_snow", "stream",
-    "summer_rain", "snow_walk",
-    "cave_water", "ice_melt", "moktak",
+    "summer_rain",
+    "cave_water", "ice_melt", "train_ride", "moktak",
 ]
 
 # 비슷한 카테고리 그룹 — 같은 그룹 연속 방지
 CATEGORY_GROUPS = {
     "rain_group":       ["rain", "rain_thunder", "summer_rain"],
     "nature_group":     ["forest", "birds", "stream", "summer_night"],
-    "water_group":      ["ocean", "underwater", "hot_spring"],
+    "water_group":      ["ocean", "underwater"],
     "ambient_group":    ["white_noise", "camping"],
-    "winter_group":     ["winter_snow", "snow_walk"],
+    "winter_group":     ["winter_snow"],
     "water_drip_group": ["cave_water", "ice_melt"],
+    "transit_group":    ["train_ride"],
     "zen_group":        ["moktak"],
 }
 
@@ -141,14 +140,13 @@ CATEGORY_KO = {
     "white_noise":  "백색소음",
     "camping":      "캠핑/모닥불",
     "underwater":   "수족관/바닷속 물 소리",
-    "hot_spring":   "온천/물소리",
     "summer_night": "여름밤 귀뚜라미",
     "winter_snow":  "겨울 눈 내리는 소리",
     "stream":       "계곡/시냇물",
     "summer_rain":  "여름 소나기/나뭇잎 빗소리",
-    "snow_walk":    "눈밭 발자국 소리",
     "cave_water":   "동굴 물방울 소리",
     "ice_melt":     "얼음 녹는 소리",
+    "train_ride":   "열차 실내 소리",
     "moktak":       "목탁/한국 사찰 소리",
 }
 
@@ -186,8 +184,6 @@ CATEGORY_VIDEO_QUERIES = {
                     "campfire outdoor", "starry night camping", "bonfire nature"],
     "underwater":  ["underwater ocean", "aquarium fish", "coral reef",
                     "deep sea", "ocean underwater"],
-    "hot_spring":  ["hot spring water", "waterfall nature", "steam water",
-                    "thermal bath", "water flowing rocks"],
     "summer_night":["summer night nature", "fireflies night", "night meadow",
                     "sunset field", "dusk nature"],
     "winter_snow": ["snowfall nature", "winter forest snow", "snow falling",
@@ -196,12 +192,12 @@ CATEGORY_VIDEO_QUERIES = {
                     "babbling brook", "waterfall forest"],
     "summer_rain": ["summer rain leaves", "rain garden plants", "tropical rain",
                     "rain drops leaves", "rain forest summer"],
-    "snow_walk":   ["snow walking path", "winter snow walk", "snowy forest path",
-                    "footprints snow", "winter walk nature"],
     "cave_water":  ["cave waterfall", "stalactite cave", "underground cave water",
                     "cave dripping", "dark cave nature"],
     "ice_melt":    ["ice melting water", "ice close up", "frozen water melting",
                     "crystal ice water", "cold water drops"],
+    "train_ride":  ["train window night", "train window landscape", "railway journey",
+                    "night train window", "train window moving"],
     "moktak":      ["korean temple morning", "korean buddhist temple", "korean monastery nature",
                     "korean temple garden", "korean temple forest", "temple korea calm"],
 }
@@ -254,11 +250,6 @@ CATEGORY_SOUNDS = {
         "sub":   ["water bubbles soft gentle", "underwater current soft"],
         "point": ["deep sea ambient low", "water flow distant gentle"],
     },
-    "hot_spring": {
-        "main":  ["water flowing calm gentle", "stream flowing peaceful", "hot spring ambient"],
-        "sub":   ["steam ambient soft", "water bubbling gentle"],
-        "point": ["nature birds distant", "wind soft nature"],
-    },
     "summer_night": {
         "main":  ["crickets night ambient calm", "summer night insects gentle"],
         "sub":   ["night nature ambient soft", "evening insects background"],
@@ -279,11 +270,6 @@ CATEGORY_SOUNDS = {
         "sub":   ["rain grass soft background", "summer shower gentle"],
         "point": ["rain drops leaves soft", "summer breeze gentle"],
     },
-    "snow_walk": {
-        "main":  ["snow walking ambient calm", "winter footsteps snow gentle"],
-        "sub":   ["winter forest ambient quiet", "cold wind soft nature"],
-        "point": ["snow crunch soft single", "winter silence ambient"],
-    },
     "cave_water": {
         "main":  ["cave dripping water echo", "water drops cave echo", "dripping water cave ambient"],
         "sub":   ["cave ambience quiet", "underground cave ambient soft"],
@@ -294,6 +280,11 @@ CATEGORY_SOUNDS = {
         "main":  ["water dripping slow gentle", "dripping water drops calm", "water drops falling ambient"],
         "sub":   ["stream creek gentle close", "water trickle creek soft", "creek water gentle close"],
         "point": ["ice crack soft single", "water drop single echo"],
+    },
+    "train_ride": {
+        "main":  ["train interior ambient calm", "railway ride ambient", "train window moving gentle"],
+        "sub":   ["train rhythm gentle", "rail track ambient soft"],
+        "point": ["train distant whistle soft", "cabin ambient quiet"],
     },
     "moktak": {
         # 핵심: 목탁(wooden percussion) 중심 → singing bowl/종소리는 sub으로 이동
@@ -313,14 +304,13 @@ CATEGORY_SOUND_HINTS = {
     "white_noise":  "브라운 노이즈만 허용. 화이트/핑크 노이즈 절대 금지. 저음 위주의 부드럽고 묵직한 소리. 아주 작은 볼륨으로.",
     "camping":      "캠핑. 모닥불 타는 소리+밤 자연음.",
     "underwater":   "수중/바닷속. 물속 기포+수압음+수중 특유의 울림. 파도/해변 소리 절대 금지.",
-    "hot_spring":   "온천/물소리. 물 흐르는 소리+증기+자연.",
     "summer_night": "여름밤. 귀뚜라미+매미+밤 곤충소리.",
     "winter_snow":  "겨울 설경. 눈 밟는 소리+차가운 바람+고요함.",
     "stream":       "계곡/시냇물. 물 흐르는 소리+돌 위 물소리.",
     "summer_rain":  "여름 소나기. 나뭇잎에 떨어지는 빗소리+흙냄새 느낌.",
-    "snow_walk":    "눈밭 발자국. 뽀득뽀득 눈 밟는 소리 위주.",
     "cave_water":   "동굴 물방울. 천천히 떨어지는 물방울+동굴 에코. 고요하고 신비로운 느낌. 심플하게.",
     "ice_melt":     "얼음 녹는 소리. 핵심: 똑똑 물방울 떨어지는 소리(dripping)가 메인. 계곡/시냇물(stream/river)은 서브로만 허용. stream/river 파일이 메인 레이어에 있으면 제거. 차갑고 투명한 느낌.",
+    "train_ride":   "열차 실내. 리드미컬한 레일 소리+기차 진동. 잠들 것 같은 부드러운 기차 주행음. 자연음 절대 금지.",
     "moktak":       "한국 사찰 목탁 소리. 핵심: 나무 타악기(wooden percussion, wood block, mallet) 소리가 메인. 싱잉볼/종소리는 서브. 새소리/바람/자연음은 배경으로만 허용. 하이 프리퀀시/강한 타격음/일본/동남아 분위기 소리 금지. 명상적이고 고요한 한국 사찰 분위기.",
 }
 
