@@ -104,18 +104,11 @@ class Config:
         "forest":        ["forest nature", "misty forest", "green forest", "forest morning"],
         "birds":         ["birds nature", "morning forest", "peaceful garden", "bird wildlife"],
         "white_noise":   ["abstract calm", "minimalist nature", "soft light nature", "peaceful landscape"],
-        "cafe":          ["cafe interior table", "coffee shop interior", "cafe counter indoor", "cozy coffee cup table", "cafe window seat"],
         "camping":       ["campfire night", "tent camping", "forest campfire", "camping nature"],
-        # 신규 카테고리
-        "airplane":      ["airplane window", "plane cabin", "aircraft interior", "flying clouds"],
-        "subway":        ["subway train", "metro train interior", "train window", "train journey"],
-        "library":       ["library interior", "quiet study room", "reading room", "books library"],
         "underwater":    ["underwater ocean", "aquarium fish", "deep sea", "underwater coral"],
         "hot_spring":    ["hot spring water", "thermal bath", "onsen steam", "waterfall close"],
-        "fireplace_rain":["fireplace cozy", "fireplace rain window", "indoor fire rain", "cozy fireplace"],
         "summer_night":  ["summer night nature", "night insects", "crickets field", "summer dusk"],
         "winter_snow":   ["snowfall nature", "winter forest snow", "snow falling", "blizzard calm"],
-        "study_room":    ["study desk lamp", "quiet room night", "desk study", "reading lamp cozy"],
         "stream":        ["forest stream", "mountain creek", "babbling brook", "river stones"],
     }
 

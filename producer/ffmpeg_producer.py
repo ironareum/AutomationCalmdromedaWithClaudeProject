@@ -281,14 +281,6 @@ class VideoProducer:
             log.error("유효한 사운드 파일이 없습니다")
             return None
 
-        # ── library: 짧은 point 레이어에 침묵 간격 삽입 ──────────────
-        # point 레이어 = 최단 파일(layers[2]). 30초 미만이면 패딩 적용
-        # 결과: 8~15초 간격으로 자연스럽게 반복 (기존: 2~5초마다 반복)
-        if category == "library" and len(layers) >= 3:
-            point_dur = get_duration(layers[2])
-            if point_dur < 30:
-                log.info(f"Library point 레이어 침묵 패딩: {layers[2].name} ({point_dur:.1f}s)")
-                layers[2] = self._pad_short_sound_with_silence(layers[2])
 
         # ── 루프 경계 크로스페이드 처리 ───────────────────────────────
         # 각 레이어를 seamless loop 파일로 변환 (끝→시작 연결 자연스럽게)

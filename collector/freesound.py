@@ -31,17 +31,13 @@ log = logging.getLogger(__name__)
 # 카테고리별 LUFS 수집 임계값 (이 값 미만 파일은 다운로드 후 즉시 삭제)
 # 기본 -35: 일반 환경음. -45: 원래 조용한 카테고리 (귀뚜라미·눈·동굴·명상 등)
 LUFS_BY_CATEGORY: dict[str, float] = {
-    "summer_night":  -45.0,
-    "winter_snow":   -45.0,
-    "snow_walk":     -45.0,
-    "underwater":    -45.0,
-    "cave_water":    -45.0,
-    "ice_melt":      -45.0,
-    "bath_house":    -45.0,
-    "library":       -45.0,
-    "study_room":    -45.0,
-    "moktak":        -45.0,
-    "airplane":      -45.0,
+    "summer_night": -45.0,
+    "winter_snow":  -45.0,
+    "snow_walk":    -45.0,
+    "underwater":   -45.0,
+    "cave_water":   -45.0,
+    "ice_melt":     -45.0,
+    "moktak":       -45.0,
 }
 LUFS_SOURCE_MIN_DEFAULT = -35.0  # 위 목록에 없는 카테고리 기본값
 

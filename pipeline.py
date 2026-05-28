@@ -116,12 +116,12 @@ def run_pipeline(concept: dict):
                 video_files = []
             if not video_files:
                 video_collector = PexelsCollector(cfg.pexels_api_key, work_dir, session_id=session_id)
-                video_files = video_collector.collect(concept["category"], count=5)
+                video_files = video_collector.collect(concept["category"], count=1)
         else:
             video_collector = PexelsCollector(cfg.pexels_api_key, work_dir, session_id=session_id)
             video_files = video_collector.collect(
                 concept["category"],
-                count=5,
+                count=1,
                 queries=concept.get("video_queries"),  # AI 생성 쿼리, 없으면 config 기본값
             )
         if not video_files:
