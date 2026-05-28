@@ -28,8 +28,22 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-LUFS_SOURCE_MIN = -50.0      # 조용한 환경음 카테고리 대응 (-35→-50 완화)
-MAX_DOWNLOAD_SIZE_MB = 50   # 이 크기 초과 파일은 다운로드 전 스킵
+# 카테고리별 LUFS 수집 임계값 (이 값 미만 파일은 다운로드 후 즉시 삭제)
+# 기본 -35: 일반 환경음. -45: 원래 조용한 카테고리 (귀뚜라미·눈·동굴·명상 등)
+LUFS_BY_CATEGORY: dict[str, float] = {
+    "summer_night":  -45.0,
+    "winter_snow":   -45.0,
+    "snow_walk":     -45.0,
+    "underwater":    -45.0,
+    "cave_water":    -45.0,
+    "ice_melt":      -45.0,
+    "bath_house":    -45.0,
+    "library":       -45.0,
+    "study_room":    -45.0,
+    "moktak":        -45.0,
+    "airplane":      -45.0,
+}
+LUFS_SOURCE_MIN_DEFAULT = -35.0  # 위 목록에 없는 카테고리 기본값
 
 
 def _measure_lufs_quick(audio_path: Path) -> float | None:
@@ -416,16 +430,6 @@ class FreesoundCollector:
             return dest
 
         try:
-            # 파일 크기 사전 체크 (HEAD 요청) — 대용량 파일 다운로드 낭비 방지
-            head = requests.head(preview_url, timeout=10)
-            size_bytes = int(head.headers.get("Content-Length", 0))
-            if size_bytes and size_bytes / (1024 * 1024) > MAX_DOWNLOAD_SIZE_MB:
-                log.info(
-                    f"파일 크기 초과 — 스킵: {sound.get('name', '')} "
-                    f"({size_bytes / (1024*1024):.1f}MB > {MAX_DOWNLOAD_SIZE_MB}MB)"
-                )
-                return None
-
             resp = requests.get(preview_url, timeout=30, stream=True)
             resp.raise_for_status()
             with open(dest, "wb") as f:
@@ -650,6 +654,8 @@ JSON 형식으로만 응답:
         - sub:   배경 보완음 → 10초 이상
         - point: 포인트 효과음 → 10초 이상
         """
+        category = (concept or {}).get("category", "")
+        lufs_min = LUFS_BY_CATEGORY.get(category, LUFS_SOURCE_MIN_DEFAULT)
         result = []
         sound_meta = {}
         selected_names: set[str] = set()  # 레이어 간 중복 방지
@@ -690,10 +696,10 @@ JSON 형식으로만 응답:
                             log.warning(f"레이어 중복 스킵 [{layer}]: {path.name}")
                             path.unlink(missing_ok=True)
                             continue
-                        # LUFS 스크리닝: -35 미만 소스는 수집 단계에서 즉시 교체
+                        # LUFS 스크리닝: 카테고리별 임계값 미달 소스는 수집 단계에서 즉시 교체
                         lufs = _measure_lufs_quick(path)
-                        if lufs is not None and lufs < LUFS_SOURCE_MIN:
-                            log.warning(f"소스 LUFS 미달 ({lufs} < {LUFS_SOURCE_MIN}) — 스킵: {path.name}")
+                        if lufs is not None and lufs < lufs_min:
+                            log.warning(f"소스 LUFS 미달 ({lufs} < {lufs_min}) — 스킵: {path.name}")
                             path.unlink(missing_ok=True)
                             time.sleep(0.3)
                             continue
@@ -732,11 +738,12 @@ JSON 형식으로만 응답:
         log.info(f"레이어 구조 수집 완료: {len(result)}개 (intro: {len(intro)}개)")
         return result
 
-    def _supplement_sounds(self, existing: list[Path], sound_layers: dict, target: int = 2) -> list[Path]:
+    def _supplement_sounds(self, existing: list[Path], sound_layers: dict, target: int = 2, category: str = "") -> list[Path]:
         """
         레이어 수집 결과가 target개 미만일 때 sub → main → point 쿼리 순으로 추가 수집.
         AI 필터 없이 기본 품질 기준(10초 이상)만 적용 (이미 필터링 후 부족한 상태이므로).
         """
+        lufs_min = LUFS_BY_CATEGORY.get(category, LUFS_SOURCE_MIN_DEFAULT)
         result       = list(existing)
         existing_names = {f.name for f in result}
 
@@ -756,8 +763,8 @@ JSON 형식으로만 응답:
                     path = self.download(sound)
                     if path and path.name not in existing_names:
                         lufs = _measure_lufs_quick(path)
-                        if lufs is not None and lufs < LUFS_SOURCE_MIN:
-                            log.warning(f"추가수집 LUFS 미달 ({lufs}) — 스킵: {path.name}")
+                        if lufs is not None and lufs < lufs_min:
+                            log.warning(f"추가수집 LUFS 미달 ({lufs} < {lufs_min}) — 스킵: {path.name}")
                             path.unlink(missing_ok=True)
                             time.sleep(0.3)
                             continue

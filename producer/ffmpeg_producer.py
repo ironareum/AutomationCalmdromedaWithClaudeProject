@@ -35,7 +35,6 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-LUFS_SOURCE_MIN = -35.0  # 소스 음원 최소 LUFS (-35 미만 제외: 17+ dB 증폭 시 왜곡 위험)
 
 # 로고 파일 경로 (프로젝트 루트 기준)
 LOGO_PATH         = Path(__file__).parent.parent / "assets" / "logo.png"           # 우하단 원형 로고
@@ -265,30 +264,18 @@ class VideoProducer:
             except Exception:
                 return 0.0
 
-        # ── 소스 LUFS pre-screening (믹싱 전 개별 측정) ──────────────────
+        # ── 소스 LUFS 측정 (로깅 및 loudnorm 처리 기준용, 제외 없음) ──────
         source_lufs: dict[str, float | None] = {}
         excluded_sources: dict[str, float] = {}
-        screened_files: list[Path] = []
 
         for f in regular_files:
             lufs = self._measure_lufs(f)
             source_lufs[f.name] = lufs
-            if lufs is not None and lufs < LUFS_SOURCE_MIN:
-                log.warning(f"소스 제외 ({lufs} LUFS < {LUFS_SOURCE_MIN}): {f.name} "
-                            "— measure_lufs.py로 점검 권장")
-                excluded_sources[f.name] = lufs
-            else:
-                screened_files.append(f)
+            if lufs is not None:
+                log.info(f"소스 LUFS: {lufs} dB — {f.name}")
 
-        if not screened_files:
-            log.error("LUFS 필터링 후 유효한 소스 파일 없음 (모든 소스가 너무 조용함)")
-            return None
-
-        if excluded_sources:
-            log.info(f"제외된 소스: {excluded_sources}")
-
-        screened_files.sort(key=get_duration, reverse=True)
-        layers = screened_files[:3]
+        regular_files.sort(key=get_duration, reverse=True)
+        layers = regular_files[:3]
 
         if not layers:
             log.error("유효한 사운드 파일이 없습니다")
