@@ -77,7 +77,7 @@ CATEGORY_TAGS = {
     "stream":      ["계곡소리", "시냇물소리", "stream sounds", "river asmr"],
     "summer_rain": ["여름빗소리", "소나기소리", "summer rain", "rain leaves"],
     "train_ride":  ["기차소리", "열차소리", "train sounds", "train asmr"],
-    "moktak":      ["목탁소리", "절소리", "사찰ASMR", "사찰소리", "한국절", "Korean temple", "Buddhist moktak"],
+    "singing_bowl":["싱잉볼소리", "명상소리", "singing bowl", "tibetan bowl", "meditation sounds"],
 }
 
 # 카테고리별 제목 첫 키워드 (사람들이 실제로 검색하는 단어)
@@ -95,7 +95,7 @@ CATEGORY_TITLE_KEYWORDS = {
     "stream":      "계곡 물소리 ASMR",
     "summer_rain": "여름 빗소리 ASMR",
     "train_ride":  "기차 소리 ASMR",
-    "moktak":      "목탁 소리 ASMR",
+    "singing_bowl":"싱잉볼 명상 ASMR",
     "cave_water":  "동굴 물방울 소리 ASMR",
     "ice_melt":    "얼음 녹는 소리 ASMR",
 }
@@ -107,7 +107,7 @@ ALL_CATEGORIES = [
     "underwater", "summer_night",
     "winter_snow", "stream",
     "summer_rain",
-    "cave_water", "ice_melt", "train_ride", "moktak",
+    "cave_water", "ice_melt", "train_ride", "singing_bowl",
 ]
 
 # 비슷한 카테고리 그룹 — 같은 그룹 연속 방지
@@ -119,7 +119,7 @@ CATEGORY_GROUPS = {
     "winter_group":     ["winter_snow"],
     "water_drip_group": ["cave_water", "ice_melt"],
     "transit_group":    ["train_ride"],
-    "zen_group":        ["moktak"],
+    "zen_group":        ["singing_bowl"],
 }
 
 def _get_group(category: str) -> str | None:
@@ -147,7 +147,7 @@ CATEGORY_KO = {
     "cave_water":   "동굴 물방울 소리",
     "ice_melt":     "얼음 녹는 소리",
     "train_ride":   "열차 실내 소리",
-    "moktak":       "목탁/한국 사찰 소리",
+    "singing_bowl": "싱잉볼/티베탄 명상 소리",
 }
 
 # 카테고리별 Freesound 검색 쿼리
@@ -198,8 +198,9 @@ CATEGORY_VIDEO_QUERIES = {
                     "crystal ice water", "cold water drops"],
     "train_ride":  ["train window night", "train window landscape", "railway journey",
                     "night train window", "train window moving"],
-    "moktak":      ["korean temple morning", "korean buddhist temple", "korean monastery nature",
-                    "korean temple garden", "korean temple forest", "temple korea calm"],
+    "singing_bowl":["tibetan singing bowl close up", "singing bowl meditation",
+                    "mandala pattern meditation", "oriental pattern calm",
+                    "tibetan bowl water ripple"],
 }
 
 # 카테고리별 검증된 Freesound 쿼리 풀
@@ -286,11 +287,10 @@ CATEGORY_SOUNDS = {
         "sub":   ["train rhythm gentle", "rail track ambient soft"],
         "point": ["train distant whistle soft", "cabin ambient quiet"],
     },
-    "moktak": {
-        # 핵심: 목탁(wooden percussion) 중심 → singing bowl/종소리는 sub으로 이동
-        "main":  ["wooden percussion soft gentle", "wood block mallet gentle calm", "wood percussion strike ambient"],
-        "sub":   ["singing bowl meditation gentle", "zen bell ambient calm", "tibetan bowl soft"],
-        "point": ["distant temple bell chime", "wind chime gentle soft"],
+    "singing_bowl": {
+        "main":  ["tibetan singing bowl meditation", "singing bowl ambient gentle", "tibetan bowl resonance calm"],
+        "sub":   ["meditation ambient soft", "zen nature ambient calm"],
+        "point": ["fire crackling soft distant", "wind nature gentle soft"],
     },
 }
 
@@ -311,7 +311,7 @@ CATEGORY_SOUND_HINTS = {
     "cave_water":   "동굴 물방울. 천천히 떨어지는 물방울+동굴 에코. 고요하고 신비로운 느낌. 심플하게.",
     "ice_melt":     "얼음 녹는 소리. 핵심: 똑똑 물방울 떨어지는 소리(dripping)가 메인. 계곡/시냇물(stream/river)은 서브로만 허용. stream/river 파일이 메인 레이어에 있으면 제거. 차갑고 투명한 느낌.",
     "train_ride":   "열차 실내. 리드미컬한 레일 소리+기차 진동. 잠들 것 같은 부드러운 기차 주행음. 자연음 절대 금지.",
-    "moktak":       "한국 사찰 목탁 소리. 핵심: 나무 타악기(wooden percussion, wood block, mallet) 소리가 메인. 싱잉볼/종소리는 서브. 새소리/바람/자연음은 배경으로만 허용. 하이 프리퀀시/강한 타격음/일본/동남아 분위기 소리 금지. 명상적이고 고요한 한국 사찰 분위기.",
+    "singing_bowl": "티베탄 싱잉볼 명상 소리. 핵심: 싱잉볼 공명음이 메인. 목탁/종소리 절대 금지. 배경은 불꽃/바람 등 자연 앰비언스만 허용. 맑고 울리는 금속 공명 느낌. 명상적이고 고요한 분위기.",
 }
 
 

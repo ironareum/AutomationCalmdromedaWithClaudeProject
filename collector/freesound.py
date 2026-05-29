@@ -37,7 +37,7 @@ LUFS_BY_CATEGORY: dict[str, float] = {
     "underwater":   -45.0,
     "cave_water":   -45.0,
     "ice_melt":     -45.0,
-    "moktak":       -45.0,
+    "singing_bowl": -45.0,
 }
 LUFS_SOURCE_MIN_DEFAULT = -35.0  # 위 목록에 없는 카테고리 기본값
 
