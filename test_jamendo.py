@@ -58,7 +58,7 @@ for tag in TEST_TAGS:
         print(f"    dl_url={dl_url}")
 
 print("\n── required_any 필터 시뮬레이션 ──────────────────")
-REQUIRED_ANY = ["ambient", "new age"]
+REQUIRED_ANY = ["ambient", "newage"]
 EXCLUDE = ["piano"]
 for tag in ["meditation", "calm"]:
     params = {

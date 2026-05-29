@@ -33,7 +33,7 @@ JAMENDO_TAGS_BY_CATEGORY = {
 }
 
 # 전 카테고리 공통: 음원 장르 태그에 하나라도 포함돼야 함 (OR 조건)
-JAMENDO_REQUIRED_TAGS = ["ambient", "new age"]
+JAMENDO_REQUIRED_TAGS = ["ambient", "newage"]
 
 # 제외 태그
 JAMENDO_EXCLUDE_TAGS = ["piano"]
