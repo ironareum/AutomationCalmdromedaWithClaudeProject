@@ -35,46 +35,59 @@ class JamendoCollector:
         limit: int = 20,
     ) -> list[dict]:
         """
-        Jamendo 트랙 검색.
-        tags: fuzzytags 검색 쿼리 (e.g. ["meditation", "calm"])
+        태그별 개별 검색 후 머지 (AND → OR 방식으로 폭 확대).
+        tags: 각 태그를 개별 API 호출 후 결과 합산
         required_any: 트랙 태그에 하나라도 포함돼야 함 - OR 조건 (e.g. ["ambient", "new age"])
         exclude_tags: 포함 시 제외 (e.g. ["piano"])
-        orderby: duration_desc → 긴 트랙 우선
         """
-        params = {
-            "client_id":    self.client_id,
-            "format":       "json",
-            "limit":        limit,
-            "fuzzytags":    "+".join(tags),
-            "include":      "musicinfo",
-            "audioformat":  "mp32",
-            "orderby":      "duration_desc",
-        }
-        try:
-            resp = requests.get(BASE_URL, params=params, timeout=15)
-            resp.raise_for_status()
-            data = resp.json()
-            results = data.get("results", [])
-            log.info(f"Jamendo '{' '.join(tags)}': {len(results)} found")
-        except Exception as e:
-            log.error(f"Jamendo search failed: {e}")
-            return []
+        seen_ids: set[str] = set()
+        merged: list[dict] = []
 
+        for tag in tags:
+            params = {
+                "client_id":   self.client_id,
+                "format":      "json",
+                "limit":       limit,
+                "fuzzytags":   tag,
+                "include":     "musicinfo",
+                "audioformat": "mp32",
+                "orderby":     "duration_desc",
+            }
+            try:
+                resp = requests.get(BASE_URL, params=params, timeout=15)
+                resp.raise_for_status()
+                results = resp.json().get("results", [])
+                log.info(f"Jamendo '{tag}': {len(results)} found")
+                for track in results:
+                    tid = str(track.get("id", ""))
+                    if tid and tid not in seen_ids:
+                        seen_ids.add(tid)
+                        merged.append(track)
+            except Exception as e:
+                log.error(f"Jamendo search failed '{tag}': {e}")
+            time.sleep(0.3)
+
+        log.info(f"Jamendo merged total: {len(merged)} unique tracks")
+
+        # 필터링
         filtered = []
-        for track in results:
+        for track in merged:
             track_tags = _extract_all_tags(track)
 
             # required_any: OR 조건 — 하나라도 없으면 제외
             if required_any and not any(r.lower() in track_tags for r in required_any):
-                log.debug(f"Jamendo skip (required tag 없음): {track.get('name')} tags={track_tags}")
+                log.debug(f"Jamendo skip (required 없음): {track.get('name')} tags={track_tags}")
                 continue
 
             # exclude_tags: 하나라도 있으면 제외
             if exclude_tags and any(ex.lower() in track_tags for ex in exclude_tags):
-                log.debug(f"Jamendo skip (excluded tag): {track.get('name')}")
+                log.debug(f"Jamendo skip (excluded): {track.get('name')}")
                 continue
 
             filtered.append(track)
+
+        # duration 내림차순 재정렬
+        filtered.sort(key=lambda t: int(t.get("duration", 0)), reverse=True)
 
         log.info(
             f"Jamendo after filter "

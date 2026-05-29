@@ -69,12 +69,9 @@ CATEGORY_KO = {
     "cosmic_meditation": "우주 명상",
 }
 
-# 카테고리별 제목 앞 키워드
-TITLE_KEYWORDS = {
-    "mandala":           "만다라 명상",
-    "fractal":           "프랙탈 명상",
-    "cosmic_meditation": "우주 명상",
-}
+# 제목 고정 파트 (전 카테고리 공통)
+TITLE_PREFIX_KO = "명상음악"
+TITLE_PREFIX_EN = "Meditation Music"
 
 # 공통 태그
 COMMON_TAGS = [
@@ -97,7 +94,7 @@ CATEGORY_TAGS = {
 SOUND_HINTS = {
     "mandala": (
         "만다라를 그리듯 흐르는 명상 음악. "
-        "싱잉볼, 부드러운 피아노, 동양 악기의 선율이 어우러진 힐링 멜로디. "
+        "싱잉볼, 동양 악기의 선율이 어우러진 앰비언트 힐링 멜로디. "
         "집중과 이완을 동시에 주는 균형 잡힌 음악."
     ),
     "fractal": (
@@ -144,7 +141,7 @@ def generate_mandala_concept(
     반환 예시:
     {
         "category": "mandala",
-        "title": "만다라 명상 | 눈을 감으면 보이는 1시간 | Mandala Meditation - Deep Relaxation",
+        "title": "명상음악 | 눈을 감으면 보이는 1시간 | Meditation Music - Mandala Deep Relaxation",
         "shorts_title": "멍하니 보다 잠드는 영상",
         "title_sub": "1시간 명상",
         "subtitle_en": "Infinite Bloom",
@@ -157,7 +154,6 @@ def generate_mandala_concept(
     """
     category = force_category or _pick_category(used_assets_path)
     cat_name = CATEGORY_KO.get(category, category)
-    title_kw = TITLE_KEYWORDS.get(category, cat_name)
     sound_hint = SOUND_HINTS.get(category, "")
     jamendo_tags = JAMENDO_TAGS_BY_CATEGORY.get(category, JAMENDO_TAGS_BASE)
     pexels_q = PEXELS_QUERIES.get(category, [])
@@ -175,23 +171,23 @@ def generate_mandala_concept(
 {recent_str}
 
 [요구사항]
-1. title: "{title_kw} | 감성 문구 (1시간 포함) | 영문 - SEO키워드" 형식 (100자 이내)
-   - 반드시 "{title_kw}"로 시작
-   - 중간 감성 문구에 '1시간' 반드시 포함
-     예: "눈을 감으면 보이는 1시간", "멍하니 보다 잠드는 1시간", "마음이 고요해지는 1시간"
-   - 마지막 파트: "썸네일 영문(2단어) - SEO 영문키워드"
-   - 예: "{title_kw} | 눈을 감으면 보이는 1시간 | Mandala Vision - Deep Meditation Music"
-2. shorts_title: 쇼츠용 감성 문구 (30자 이내, "내 얘기다" 느낌)
-   - 예: "멍하니 보다 잠드는 영상"
-3. title_sub: 썸네일 상단 짧은 문구 (10자 이내)
-4. subtitle_en: 썸네일 하단 영문 (2~4단어, 시적이고 감성적으로)
+1. middle_phrase: 중간 감성 문구 (1시간 포함, 20자 이내)
+   - 반드시 '1시간' 포함
+   - 예: "눈을 감으면 보이는 1시간", "멍하니 보다 잠드는 1시간", "마음이 고요해지는 1시간"
+   - 최근 제목과 겹치지 않게
+2. seo_keyword: 제목 끝 SEO 영문 키워드 (2~4단어, 카테고리 특성 반영)
+   - 예: "Mandala Meditation", "Fractal Ambient Music", "Cosmic Deep Relaxation"
+3. shorts_title: 쇼츠용 감성 문구 (30자 이내, "내 얘기다" 느낌)
+4. title_sub: 썸네일 상단 짧은 문구 (10자 이내)
+5. subtitle_en: 썸네일 하단 영문 (2~4단어, 시적이고 감성적으로)
    - 직역 금지. 예: "Infinite Bloom", "Cosmic Stillness", "Fractal Dreams"
-5. description_en: 영문 설명 2~3문장 (글로벌 시청자용, 1시간 강조)
-6. tags: 한국어 위주 10~15개
+6. description_en: 영문 설명 2~3문장 (글로벌 시청자용, 1시간 강조)
+7. tags: 한국어 위주 10~15개
 
 JSON만 응답:
 {{
-  "title": "...",
+  "middle_phrase": "...",
+  "seo_keyword": "...",
   "shorts_title": "...",
   "title_sub": "...",
   "subtitle_en": "...",
@@ -212,14 +208,15 @@ JSON만 응답:
             if raw.startswith("json"):
                 raw = raw[4:]
         ai = json.loads(raw.strip())
-        log.info(f"Mandala 콘셉트 생성: {ai.get('title', '')}")
+        log.info(f"Mandala 콘셉트 생성 (raw): {ai.get('middle_phrase', '')} / {ai.get('seo_keyword', '')}")
     except Exception as e:
         log.error(f"Claude API 오류: {e} — 기본 콘셉트 사용")
         ai = {
-            "title": f"{title_kw} | 마음이 고요해지는 1시간 | {cat_name} - Deep Meditation Music",
-            "shorts_title": "멍하니 보다 잠드는 영상",
-            "title_sub": "1시간 명상",
-            "subtitle_en": "Infinite Bloom",
+            "middle_phrase": "마음이 고요해지는 1시간",
+            "seo_keyword":   f"{cat_name} Deep Relaxation",
+            "shorts_title":  "멍하니 보다 잠드는 영상",
+            "title_sub":     "1시간 명상",
+            "subtitle_en":   "Infinite Bloom",
             "description_en": (
                 f"1 hour of {cat_name} for deep sleep, meditation, and yoga. "
                 "Let the visual patterns guide your mind into stillness. "
@@ -228,13 +225,19 @@ JSON만 응답:
             "tags": [],
         }
 
+    # 제목 고정 포맷 조립: 명상음악 | {middle_phrase} | Meditation Music - {seo_keyword}
+    middle = ai.get("middle_phrase", "마음이 고요해지는 1시간").strip()
+    seo = ai.get("seo_keyword", f"{cat_name} Meditation").strip()
+    title = f"{TITLE_PREFIX_KO} | {middle} | {TITLE_PREFIX_EN} - {seo}"
+    log.info(f"Mandala 제목: {title}")
+
     cat_tags = CATEGORY_TAGS.get(category, [])
     ai_tags = ai.get("tags", [])
     merged_tags = list(dict.fromkeys(ai_tags + cat_tags + COMMON_TAGS))[:50]
 
     return {
         "category":          category,
-        "title":             ai.get("title", ""),
+        "title":             title,
         "shorts_title":      ai.get("shorts_title", ""),
         "title_sub":         ai.get("title_sub", "1시간 명상"),
         "subtitle_en":       ai.get("subtitle_en", "Infinite Bloom"),
