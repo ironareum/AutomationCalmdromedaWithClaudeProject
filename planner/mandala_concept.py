@@ -92,9 +92,9 @@ COMMON_TAGS = [
 
 # 카테고리별 추가 태그
 CATEGORY_TAGS = {
-    "mandala":           ["만다라", "만다라명상", "Mandala Meditation", "tibetan mandala", "sacred geometry"],
-    "fractal":           ["프랙탈", "프랙탈명상", "Fractal Meditation", "psychedelic", "visual meditation"],
-    "cosmic_meditation": ["우주명상", "코스믹명상", "Cosmic Meditation", "space ambient", "galaxy meditation"],
+    "mandala":           ["만다라", "만다라명상", "Mandala Meditation", "tibetan mandala", "sacred geometry", "mandala"],
+    "fractal":           ["프랙탈", "프랙탈명상", "Fractal Meditation", "psychedelic", "visual meditation", "fractal"],
+    "cosmic_meditation": ["우주명상", "코스믹명상", "Cosmic Meditation", "space ambient", "galaxy meditation", "cosmic"],
 }
 
 # 카테고리별 사운드 특성 힌트
