@@ -105,7 +105,7 @@ def collect_longest_music(concept: dict, work_dir: Path, cfg: Config) -> list[Pa
         log.error("JAMENDO_CLIENT_ID 없음 — 음원 수집 불가")
         return []
 
-    jc = JamendoCollector(client_id=cfg.jamendo_client_id, work_dir=work_dir)
+    jc = JamendoCollector(client_id=cfg.jamendo_client_id, work_dir=work_dir, used_assets_path=USED_ASSETS_FILE)
     tags             = concept.get("jamendo_tags",            ["ambient", "newage"])
     required_vartags = concept.get("jamendo_required_vartags", ["meditative", "meditation", "calm"])
     exclude          = concept.get("jamendo_exclude",          ["piano"])

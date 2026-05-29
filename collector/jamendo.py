@@ -10,6 +10,7 @@ API 키 발급: https://developer.jamendo.com/v3.0
 엔드포인트: https://api.jamendo.com/v3.0/tracks/
 """
 
+import json
 import logging
 import time
 from pathlib import Path
@@ -22,10 +23,29 @@ BASE_URL = "https://api.jamendo.com/v3.0/tracks/"
 
 
 class JamendoCollector:
-    def __init__(self, client_id: str, work_dir: Path):
+    def __init__(self, client_id: str, work_dir: Path, used_assets_path: Path | None = None):
         self.client_id = client_id
         self.sound_dir = work_dir / "sounds"
         self.sound_dir.mkdir(parents=True, exist_ok=True)
+        self.used_assets_path = used_assets_path
+
+    def _load_used_track_ids(self) -> set[str]:
+        """used_assets.json에서 이미 사용한 Jamendo track id 추출"""
+        if not self.used_assets_path or not self.used_assets_path.exists():
+            return set()
+        try:
+            data = json.loads(self.used_assets_path.read_text(encoding="utf-8"))
+        except Exception:
+            return set()
+        used_ids: set[str] = set()
+        for session in data.values():
+            for fname in session.get("sound_files", []):
+                # fname 형식: jamendo_{id}_{name}.mp3
+                if fname.startswith("jamendo_"):
+                    parts = fname.split("_", 2)
+                    if len(parts) >= 2:
+                        used_ids.add(parts[1])
+        return used_ids
 
     def search(
         self,
@@ -152,6 +172,12 @@ class JamendoCollector:
         if not tracks:
             log.error("Jamendo: 검색 결과 없음")
             return None
+
+        used_ids = self._load_used_track_ids()
+        if used_ids:
+            before = len(tracks)
+            tracks = [t for t in tracks if str(t.get("id", "")) not in used_ids]
+            log.info(f"Jamendo 재사용 스킵: {before - len(tracks)}개 제외, {len(tracks)}개 후보")
 
         for track in tracks:
             path = self.download(track)
