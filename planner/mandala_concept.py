@@ -2,7 +2,7 @@
 만다라/프랙탈 4h 롱폼 전용 콘셉트 생성기
 2026.05.29 신규
 
-대상 포맷: 4시간 롱폼 + 40초 숏폼
+대상 포맷: 1시간 롱폼 + 40초 숏폼
 카테고리: mandala / fractal / cosmic_meditation
 음원 소스: Pixabay Music only (폴백 없음)
 """
@@ -84,7 +84,7 @@ TITLE_KEYWORDS = {
 COMMON_TAGS = [
     "Calmdromeda", "캄드로메다",
     "명상음악", "수면음악", "요가음악", "힐링음악",
-    "4시간명상", "딥슬립", "명상", "불면증",
+    "1시간명상", "딥슬립", "명상", "불면증",
     "Meditation Music", "Sleep Music", "Healing Music",
     "ASMR", "relax", "Deep Sleep", "ambient",
     "yoga music", "meditation", "mandala",
@@ -143,14 +143,14 @@ def generate_mandala_concept(
     force_category: str | None = None,
 ) -> dict:
     """
-    Claude Haiku로 만다라 4h 롱폼 콘셉트 생성
+    Claude Haiku로 만다라 1h 롱폼 콘셉트 생성
 
     반환 예시:
     {
         "category": "mandala",
-        "title": "만다라 명상 | 눈을 감으면 보이는 4시간 | Mandala Meditation - Deep Relaxation",
+        "title": "만다라 명상 | 눈을 감으면 보이는 1시간 | Mandala Meditation - Deep Relaxation",
         "shorts_title": "멍하니 보다 잠드는 영상",
-        "title_sub": "4시간 명상",
+        "title_sub": "1시간 명상",
         "subtitle_en": "Infinite Bloom",
         "description_en": "...",
         "tags": [...],
@@ -169,7 +169,7 @@ def generate_mandala_concept(
     recent_str = "\n".join(f"- {t}" for t in recent_titles) or "없음"
 
     prompt = f"""너는 한국 유튜브 힐링/명상 채널 'Calmdromeda'의 콘텐츠 기획자야.
-오늘 업로드할 4시간 만다라/프랙탈 명상 롱폼 영상의 콘셉트를 만들어줘.
+오늘 업로드할 1시간 만다라/프랙탈 명상 롱폼 영상의 콘셉트를 만들어줘.
 
 [카테고리] {cat_name}
 [사운드 특성] {sound_hint}
@@ -178,18 +178,18 @@ def generate_mandala_concept(
 {recent_str}
 
 [요구사항]
-1. title: "{title_kw} | 감성 문구 (4시간 포함) | 영문 - SEO키워드" 형식 (100자 이내)
+1. title: "{title_kw} | 감성 문구 (1시간 포함) | 영문 - SEO키워드" 형식 (100자 이내)
    - 반드시 "{title_kw}"로 시작
-   - 중간 감성 문구에 '4시간' 반드시 포함
-     예: "눈을 감으면 보이는 4시간", "멍하니 보다 잠드는 4시간", "마음이 고요해지는 4시간"
+   - 중간 감성 문구에 '1시간' 반드시 포함
+     예: "눈을 감으면 보이는 1시간", "멍하니 보다 잠드는 1시간", "마음이 고요해지는 1시간"
    - 마지막 파트: "썸네일 영문(2단어) - SEO 영문키워드"
-   - 예: "{title_kw} | 눈을 감으면 보이는 4시간 | Mandala Vision - Deep Meditation Music"
+   - 예: "{title_kw} | 눈을 감으면 보이는 1시간 | Mandala Vision - Deep Meditation Music"
 2. shorts_title: 쇼츠용 감성 문구 (30자 이내, "내 얘기다" 느낌)
    - 예: "멍하니 보다 잠드는 영상"
 3. title_sub: 썸네일 상단 짧은 문구 (10자 이내)
 4. subtitle_en: 썸네일 하단 영문 (2~4단어, 시적이고 감성적으로)
    - 직역 금지. 예: "Infinite Bloom", "Cosmic Stillness", "Fractal Dreams"
-5. description_en: 영문 설명 2~3문장 (글로벌 시청자용, 4시간 강조)
+5. description_en: 영문 설명 2~3문장 (글로벌 시청자용, 1시간 강조)
 6. tags: 한국어 위주 10~15개
 
 JSON만 응답:
@@ -219,12 +219,12 @@ JSON만 응답:
     except Exception as e:
         log.error(f"Claude API 오류: {e} — 기본 콘셉트 사용")
         ai = {
-            "title": f"{title_kw} | 마음이 고요해지는 4시간 | {cat_name} - Deep Meditation Music",
+            "title": f"{title_kw} | 마음이 고요해지는 1시간 | {cat_name} - Deep Meditation Music",
             "shorts_title": "멍하니 보다 잠드는 영상",
-            "title_sub": "4시간 명상",
+            "title_sub": "1시간 명상",
             "subtitle_en": "Infinite Bloom",
             "description_en": (
-                f"4 hours of {cat_name} for deep sleep, meditation, and yoga. "
+                f"1 hour of {cat_name} for deep sleep, meditation, and yoga. "
                 "Let the visual patterns guide your mind into stillness. "
                 "Best experienced in a dark, quiet space."
             ),
@@ -239,7 +239,7 @@ JSON만 응답:
         "category":       category,
         "title":          ai.get("title", ""),
         "shorts_title":   ai.get("shorts_title", ""),
-        "title_sub":      ai.get("title_sub", "4시간 명상"),
+        "title_sub":      ai.get("title_sub", "1시간 명상"),
         "subtitle_en":    ai.get("subtitle_en", "Infinite Bloom"),
         "description_en": ai.get("description_en", ""),
         "tags":           merged_tags,

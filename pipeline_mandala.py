@@ -1,11 +1,12 @@
 """
-만다라/프랙탈 4h 롱폼 + 40s 숏폼 파이프라인
+만다라/프랙탈 1h 롱폼 + 40s 숏폼 파이프라인
 2026.05.29 신규
 
 실행:
-  python pipeline_mandala.py --mode longform   # 4h 롱폼 (로컬 권장)
-  python pipeline_mandala.py --mode shorts     # 40s 숏폼 (Actions 가능)
-  python pipeline_mandala.py --mode both       # 롱폼 제작 후 숏폼 추출 (로컬)
+  python pipeline_mandala.py --mode longform         # 1h 롱폼 (로컬 권장)
+  python pipeline_mandala.py --mode shorts           # 40s 숏폼 (Actions 가능)
+  python pipeline_mandala.py --mode both             # 롱폼 제작 후 숏폼 추출 (로컬)
+  python pipeline_mandala.py --mode both --test      # 테스트: 3분 롱폼 + 40s 숏폼
   python pipeline_mandala.py --category mandala
 
 [설계]
@@ -13,6 +14,7 @@
   영상: Pexels 단일 최장 클립 (폴백 없음, 실패 시 오류 처리)
   가장 긴 트랙 우선 선택 (ffprobe로 실제 길이 측정)
   FFmpeg: normalize → loop+logo (Pass 1) → merge copy (Pass 2)
+  --test: DURATION_LONGFORM을 3분(180s)으로 오버라이드
 """
 
 import argparse
@@ -42,7 +44,8 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-DURATION_LONGFORM = 4 * 3600   # 14400초
+DURATION_LONGFORM = 1 * 3600   # 3600초
+DURATION_TEST     = 3 * 60     # 180초 (테스트 모드)
 DURATION_SHORTS   = 40          # 40초
 
 
@@ -187,17 +190,18 @@ def collect_best_video(concept: dict, work_dir: Path, cfg: Config) -> Path | Non
     return best
 
 
-# ── Step 3-A: 4h 롱폼 제작 ────────────────────────────────────────────────
+# ── Step 3-A: 1h 롱폼 제작 (--test 시 3분) ───────────────────────────────
 
 def produce_longform(
     sound_files: list[Path],
     video_file: Path,
     concept: dict,
     work_dir: Path,
+    duration: int = DURATION_LONGFORM,
 ) -> tuple | None:
     """
     2-pass 최적화:
-      Pass 1: 클립 normalize → stream_loop + logo (4h 인코딩, preset fast)
+      Pass 1: 클립 normalize → stream_loop + logo (인코딩, preset fast)
       Pass 2: video + audio merge (stream copy)
     반환: (output_path, actual_sounds, audio_lufs, source_lufs, excluded)
     """
@@ -206,7 +210,7 @@ def produce_longform(
     temp_dir.mkdir(exist_ok=True)
 
     log.info("오디오 믹싱...")
-    mix = producer.mix_sounds(sound_files, DURATION_LONGFORM, category=concept["category"])
+    mix = producer.mix_sounds(sound_files, duration, category=concept["category"])
     if not mix:
         return None
     audio, actual_sounds, audio_lufs, source_lufs, excluded = mix
@@ -224,8 +228,8 @@ def produce_longform(
     ], "클립 1080p 정규화"):
         return None
 
-    # Pass 1-b: stream_loop + logo → 4h 비디오
-    video_4h = temp_dir / "video_4h.mp4"
+    # Pass 1-b: stream_loop + logo
+    video_loop = temp_dir / "video_loop.mp4"
     extra_in, filter_complex, final_map = _logo_inputs_and_filter(producer)
 
     if filter_complex:
@@ -235,35 +239,36 @@ def produce_longform(
             *extra_in,
             "-filter_complex", filter_complex,
             "-map", f"[{final_map}]",
-            "-t", str(DURATION_LONGFORM),
+            "-t", str(duration),
             "-c:v", "libx264", "-preset", "fast", "-crf", "28",
-            "-movflags", "+faststart", "-an", str(video_4h),
+            "-movflags", "+faststart", "-an", str(video_loop),
         ]
     else:
         cmd_loop = [
             "ffmpeg", "-y",
             "-stream_loop", "-1", "-i", str(norm),
-            "-t", str(DURATION_LONGFORM),
+            "-t", str(duration),
             "-c:v", "libx264", "-preset", "fast", "-crf", "28",
-            "-movflags", "+faststart", "-an", str(video_4h),
+            "-movflags", "+faststart", "-an", str(video_loop),
         ]
 
-    if not _run(cmd_loop, "Loop 4h + logo (Pass 1)"):
+    dur_label = f"{duration // 60}min" if duration < 3600 else f"{duration // 3600}h"
+    if not _run(cmd_loop, f"Loop {dur_label} + logo (Pass 1)"):
         return None
     producer._delete(norm)
 
     # Pass 2: merge (stream copy)
     safe = "".join(c for c in concept["title"][:40] if c.isalnum() or c in " _-").strip().replace(" ", "_")
-    out = work_dir / f"{safe}_4h_final.mp4"
+    out = work_dir / f"{safe}_{dur_label}_final.mp4"
     if not _run([
         "ffmpeg", "-y",
-        "-i", str(video_4h), "-i", str(audio),
+        "-i", str(video_loop), "-i", str(audio),
         "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
         "-shortest", "-movflags", "+faststart", str(out),
     ], "Video + Audio merge (Pass 2, copy)"):
         return None
 
-    producer._delete(video_4h, audio)
+    producer._delete(video_loop, audio)
     producer.cleanup_temp()
 
     log.info(f"롱폼 완성: {out.name} ({out.stat().st_size / 1024**3:.2f}GB)")
@@ -358,7 +363,7 @@ def _make_description(concept: dict) -> str:
         "",
         "─────────────────────────",
         "✦ Calmdromeda — 캄드로메다",
-        "명상 · 요가 · 수면을 위한 4시간 힐링 음악",
+        "명상 · 요가 · 수면을 위한 1시간 힐링 음악",
         "구독하시면 새 영상을 놓치지 않아요 🔔",
         "─────────────────────────",
         "",
@@ -409,15 +414,22 @@ def upload_youtube(
 # ── 메인 ─────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="만다라 4h 롱폼 / 숏폼 파이프라인")
+    parser = argparse.ArgumentParser(description="만다라 1h 롱폼 / 숏폼 파이프라인")
     parser.add_argument("--mode", choices=["longform", "shorts", "both"], default="both",
-                        help="longform=4h만 / shorts=40s만 / both=롱폼→숏폼 추출")
+                        help="longform=1h만 / shorts=40s만 / both=롱폼→숏폼 추출")
     parser.add_argument("--category", default=None, help="카테고리 강제 지정")
+    parser.add_argument("--test", action="store_true",
+                        help="테스트 모드: 롱폼을 3분(180s)으로 생성")
     args = parser.parse_args()
+
+    effective_duration = DURATION_TEST if args.test else DURATION_LONGFORM
 
     if args.mode in ("longform", "both"):
         log.warning("=" * 60)
-        log.warning("롱폼 모드: 4시간 영상 — 로컬 실행 권장")
+        if args.test:
+            log.warning(f"테스트 모드: {effective_duration}s({effective_duration//60}분) 영상")
+        else:
+            log.warning("롱폼 모드: 1시간 영상 — 로컬 실행 권장")
         log.warning("=" * 60)
 
     cfg = Config()
@@ -430,7 +442,7 @@ def main():
     fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
     logging.getLogger().addHandler(fh)
 
-    log.info(f"=== Mandala Pipeline Start: {session_id} / mode={args.mode} ===")
+    log.info(f"=== Mandala Pipeline Start: {session_id} / mode={args.mode} / test={args.test} ===")
 
     try:
         # 콘셉트 생성
@@ -461,8 +473,10 @@ def main():
 
         # ── 롱폼 ────────────────────────────────────────────────────────
         if args.mode in ("longform", "both"):
-            log.info("=== [롱폼] 4h 영상 제작 시작 ===")
-            result = produce_longform(sound_files, video_file, concept, work_dir)
+            dur_label = f"{effective_duration//60}분" if args.test else "1시간"
+            log.info(f"=== [롱폼] {dur_label} 영상 제작 시작 ===")
+            result = produce_longform(sound_files, video_file, concept, work_dir,
+                                      duration=effective_duration)
             if not result:
                 log.error("롱폼 제작 실패")
                 return
@@ -474,7 +488,7 @@ def main():
                 title=concept["title"],
                 category=concept["category"],
                 video_path=video_file,
-                title_sub=concept.get("title_sub", "4시간 명상"),
+                title_sub=concept.get("title_sub", "1시간 명상"),
                 subtitle_en=concept.get("subtitle_en", "Infinite Bloom"),
             )
 
@@ -484,7 +498,7 @@ def main():
                 "session_type":   "mandala",
                 "title":          concept["title"],
                 "category":       concept["category"],
-                "duration_hours": 4,
+                "duration_hours": round(effective_duration / 3600, 2),
                 "tags":           concept["tags"],
                 "description":    _make_description(concept),
                 "video_path":     str(longform_path),
