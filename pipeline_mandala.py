@@ -106,14 +106,12 @@ def collect_longest_music(concept: dict, work_dir: Path, cfg: Config) -> list[Pa
         return []
 
     jc = JamendoCollector(client_id=cfg.jamendo_client_id, work_dir=work_dir)
-    tags             = concept.get("jamendo_tags",            ["meditation", "calm"])
-    required_genres  = concept.get("jamendo_required_genres",  ["ambient", "newage"])
+    tags             = concept.get("jamendo_tags",            ["ambient", "newage"])
     required_vartags = concept.get("jamendo_required_vartags", ["meditative", "meditation", "calm"])
     exclude          = concept.get("jamendo_exclude",          ["piano"])
 
     path = jc.collect_longest(
         tags=tags,
-        required_genres=required_genres,
         required_vartags=required_vartags,
         exclude_tags=exclude,
     )

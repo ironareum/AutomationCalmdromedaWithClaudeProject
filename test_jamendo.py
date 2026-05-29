@@ -24,8 +24,10 @@ BASE_URL = "https://api.jamendo.com/v3.0/tracks/"
 # 테스트할 태그 목록
 TEST_TAGS = ["meditation", "calm", "ambient", "new age", "dreamy"]
 
-print("\n── 태그별 검색 테스트 ──────────────────────────")
-for tag in TEST_TAGS:
+SEARCH_TAGS = ["ambient", "newage"]   # 전 카테고리 고정 (genres 기반 2회 호출)
+
+print("\n── genres 기반 검색 테스트 (ambient / newage) ──────────────")
+for tag in SEARCH_TAGS:
     params = {
         "client_id":   client_id,
         "format":      "json",
@@ -57,45 +59,48 @@ for tag in TEST_TAGS:
         print(f"    genres={genres} | instruments={instruments} | vartags={vartags}")
         print(f"    dl_url={dl_url}")
 
-print("\n── required_any 필터 시뮬레이션 ──────────────────")
-REQUIRED_GENRES  = ["ambient", "newage"]
+print("\n── 카테고리별 vartags 필터 시뮬레이션 ──────────────────────")
 EXCLUDE = ["piano"]
-# 카테고리별 vartags (mandala 기준으로 테스트)
+# 카테고리별 vartags (OR 조건)
 REQUIRED_VARTAGS_BY_CAT = {
     "mandala":           ["meditative", "meditation", "calm", "mandala"],
     "fractal":           ["meditative", "meditation", "calm"],
     "cosmic_meditation": ["meditative", "meditation", "calm", "dreamy"],
 }
 
-print("\n── required_any 필터 시뮬레이션 ──────────────────")
-for tag in ["meditation", "calm", "ambient", "dreamy"]:
-    params = {
-        "client_id":   client_id,
-        "format":      "json",
-        "limit":       10,
-        "fuzzytags":   tag,
-        "include":     "musicinfo",
-        "audioformat": "mp32",
-        "orderby":     "duration_desc",
-    }
-    results = requests.get(BASE_URL, params=params, timeout=15).json().get("results", [])
+for cat, req_vartags in REQUIRED_VARTAGS_BY_CAT.items():
+    all_results = []
+    seen_ids: set[str] = set()
+    for tag in SEARCH_TAGS:
+        params = {
+            "client_id":   client_id,
+            "format":      "json",
+            "limit":       10,
+            "fuzzytags":   tag,
+            "include":     "musicinfo",
+            "audioformat": "mp32",
+            "orderby":     "duration_desc",
+        }
+        results = requests.get(BASE_URL, params=params, timeout=15).json().get("results", [])
+        for t in results:
+            tid = str(t.get("id", ""))
+            if tid and tid not in seen_ids:
+                seen_ids.add(tid)
+                all_results.append(t)
+
     passed = []
-    for t in results:
+    for t in all_results:
         mi = t.get("musicinfo", {}) or {}
         tg = mi.get("tags", {}) or {}
-        genres      = {g.lower() for g in (tg.get("genres")     or [])}
         vartags_set = {v.lower() for v in (tg.get("vartags")    or [])}
         instruments = {i.lower() for i in (tg.get("instruments")or [])}
-        all_tags    = genres | vartags_set | instruments
+        all_tags    = vartags_set | instruments
 
-        # mandala 카테고리 기준으로 테스트
-        req_vartags = REQUIRED_VARTAGS_BY_CAT.get("mandala", [])
-        ok_genre  = any(g in genres      for g in REQUIRED_GENRES)
         ok_vartag = any(v in vartags_set for v in req_vartags)
         ok_excl   = not any(ex in all_tags for ex in EXCLUDE)
-        if ok_genre and ok_vartag and ok_excl:
+        if ok_vartag and ok_excl:
             passed.append(t)
 
-    print(f"tag='{tag}': {len(results)} found → {len(passed)} passed filter")
+    print(f"[{cat}] {len(all_results)} merged → {len(passed)} passed filter (vartags={req_vartags[:3]}...)")
     for t in passed[:2]:
         print(f"  ✓ {t.get('name')} ({t.get('duration')}s)")

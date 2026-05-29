@@ -25,17 +25,10 @@ MANDALA_CATEGORIES = [
     "cosmic_meditation",
 ]
 
-# Jamendo API 태그 설정
-JAMENDO_TAGS_BY_CATEGORY = {
-    "mandala":           ["meditation", "calm"],
-    "fractal":           ["ambient"],
-    "cosmic_meditation": ["dreamy", "ambient"],
-}
+# Jamendo API 검색 태그 — 전 카테고리 고정 (genres 기반 2회 호출)
+JAMENDO_SEARCH_TAGS = ["ambient", "newage"]
 
-# 전 카테고리 공통: 음원 장르 태그에 하나라도 포함돼야 함 (OR 조건)
-JAMENDO_REQUIRED_GENRES  = ["ambient", "newage"]   # genres 필드 OR
-
-# vartags 공통 기준 + 카테고리별 추가 (OR 조건)
+# vartags 공통 기준 + 카테고리별 추가 (OR 조건, 클라이언트 필터)
 _VARTAGS_BASE = ["meditative", "meditation", "calm"]
 JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
     "mandala":           _VARTAGS_BASE + ["mandala"],
@@ -45,8 +38,6 @@ JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
 
 # 제외 태그
 JAMENDO_EXCLUDE_TAGS = ["piano"]
-
-JAMENDO_TAGS_BASE = ["meditation", "ambient", "calm"]  # fallback
 
 # Pexels 영상 쿼리 (만다라/프랙탈/사이키델릭 비주얼)
 PEXELS_QUERIES = {
@@ -163,7 +154,6 @@ def generate_mandala_concept(
     category = force_category or _pick_category(used_assets_path)
     cat_name = CATEGORY_KO.get(category, category)
     sound_hint = SOUND_HINTS.get(category, "")
-    jamendo_tags    = JAMENDO_TAGS_BY_CATEGORY.get(category, JAMENDO_TAGS_BASE)
     jamendo_vartags = JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY.get(category, _VARTAGS_BASE)
     pexels_q = PEXELS_QUERIES.get(category, [])
 
@@ -252,10 +242,9 @@ JSON만 응답:
         "subtitle_en":       ai.get("subtitle_en", "Infinite Bloom"),
         "description_en":    ai.get("description_en", ""),
         "tags":              merged_tags,
-        "jamendo_tags":      jamendo_tags,
-        "jamendo_required_genres":  JAMENDO_REQUIRED_GENRES,
+        "jamendo_tags":             JAMENDO_SEARCH_TAGS,
         "jamendo_required_vartags": jamendo_vartags,
-        "jamendo_exclude":   JAMENDO_EXCLUDE_TAGS,
+        "jamendo_exclude":          JAMENDO_EXCLUDE_TAGS,
         "pexels_queries":    pexels_q,
         "duration_hours":    1,
         "sound_hint":        sound_hint,

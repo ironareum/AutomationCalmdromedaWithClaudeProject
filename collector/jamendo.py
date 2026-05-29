@@ -30,17 +30,14 @@ class JamendoCollector:
     def search(
         self,
         tags: list[str],
-        required_genres: list[str] | None = None,
         required_vartags: list[str] | None = None,
         exclude_tags: list[str] | None = None,
         limit: int = 20,
     ) -> list[dict]:
         """
-        태그별 개별 검색 후 머지.
-        tags: 각 태그를 개별 API 호출 후 결과 합산 (OR)
-        required_genres:  genres 필드 OR — 하나라도 있으면 통과 (e.g. ["ambient", "newage"])
+        태그별 개별 API 호출 후 머지 (dedup).
+        tags: fuzzytags 검색어 — genre 기반으로 ["ambient", "newage"] 고정 권장
         required_vartags: vartags 필드 OR — 하나라도 있으면 통과 (e.g. ["meditative", "meditation", "calm"])
-        두 required 조건은 AND (둘 다 만족해야 통과)
         exclude_tags: 전체 태그에 하나라도 있으면 제외 (e.g. ["piano"])
         """
         seen_ids: set[str] = set()
@@ -81,12 +78,7 @@ class JamendoCollector:
             instruments= {i.lower() for i in (tg.get("instruments")  or [])}
             all_tags   = genres | vartags | instruments
 
-            # genres 조건: ambient 또는 newage 중 하나 포함
-            if required_genres and not any(g in genres for g in required_genres):
-                log.debug(f"skip (genre 없음): {track.get('name')} genres={genres}")
-                continue
-
-            # vartags 조건: meditative / meditation / calm 중 하나 포함
+            # vartags 조건: meditative / meditation / calm 등 하나라도 있으면 통과
             if required_vartags and not any(v in vartags for v in required_vartags):
                 log.debug(f"skip (vartag 없음): {track.get('name')} vartags={vartags}")
                 continue
@@ -102,7 +94,7 @@ class JamendoCollector:
 
         log.info(
             f"Jamendo after filter "
-            f"(genres={required_genres}, vartags={required_vartags}, exclude={exclude_tags}): "
+            f"(vartags={required_vartags}, exclude={exclude_tags}): "
             f"{len(filtered)} tracks"
         )
         return filtered
@@ -147,14 +139,12 @@ class JamendoCollector:
     def collect_longest(
         self,
         tags: list[str],
-        required_genres: list[str] | None = None,
         required_vartags: list[str] | None = None,
         exclude_tags: list[str] | None = None,
     ) -> Path | None:
         """태그로 검색 후 가장 긴 트랙 1개 다운로드."""
         tracks = self.search(
             tags,
-            required_genres=required_genres,
             required_vartags=required_vartags,
             exclude_tags=exclude_tags,
             limit=20,
