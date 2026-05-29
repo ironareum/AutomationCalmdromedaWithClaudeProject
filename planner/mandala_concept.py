@@ -25,15 +25,20 @@ MANDALA_CATEGORIES = [
     "cosmic_meditation",
 ]
 
-# Jamendo API 태그 (모든 카테고리 공통 기반 + 카테고리별 추가)
-JAMENDO_TAGS_BASE = ["meditation", "ambient", "calm"]
+# Jamendo API 태그 설정
+JAMENDO_TAGS_BY_CATEGORY = {
+    "mandala":           ["meditation", "calm"],
+    "fractal":           ["ambient"],
+    "cosmic_meditation": ["dreamy", "ambient"],
+}
+
+# 전 카테고리 공통: 음원 장르 태그에 하나라도 포함돼야 함 (OR 조건)
+JAMENDO_REQUIRED_TAGS = ["ambient", "new age"]
+
+# 제외 태그
 JAMENDO_EXCLUDE_TAGS = ["piano"]
 
-JAMENDO_TAGS_BY_CATEGORY = {
-    "mandala":           ["meditation", "ambient", "calm"],
-    "fractal":           ["ambient", "calm", "meditation"],
-    "cosmic_meditation": ["ambient", "calm", "meditation"],
-}
+JAMENDO_TAGS_BASE = ["meditation", "ambient", "calm"]  # fallback
 
 # Pexels 영상 쿼리 (만다라/프랙탈/사이키델릭 비주얼)
 PEXELS_QUERIES = {
@@ -236,6 +241,7 @@ JSON만 응답:
         "description_en":    ai.get("description_en", ""),
         "tags":              merged_tags,
         "jamendo_tags":      jamendo_tags,
+        "jamendo_required":  JAMENDO_REQUIRED_TAGS,
         "jamendo_exclude":   JAMENDO_EXCLUDE_TAGS,
         "pexels_queries":    pexels_q,
         "duration_hours":    1,

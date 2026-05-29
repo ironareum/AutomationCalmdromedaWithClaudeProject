@@ -30,13 +30,15 @@ class JamendoCollector:
     def search(
         self,
         tags: list[str],
+        required_any: list[str] | None = None,
         exclude_tags: list[str] | None = None,
         limit: int = 20,
     ) -> list[dict]:
         """
         Jamendo 트랙 검색.
-        tags: AND 조건 fuzzytags (e.g. ["meditation", "ambient", "calm"])
-        exclude_tags: 클라이언트 필터 (e.g. ["piano"])
+        tags: fuzzytags 검색 쿼리 (e.g. ["meditation", "calm"])
+        required_any: 트랙 태그에 하나라도 포함돼야 함 - OR 조건 (e.g. ["ambient", "new age"])
+        exclude_tags: 포함 시 제외 (e.g. ["piano"])
         orderby: duration_desc → 긴 트랙 우선
         """
         params = {
@@ -58,19 +60,27 @@ class JamendoCollector:
             log.error(f"Jamendo search failed: {e}")
             return []
 
-        if not exclude_tags:
-            return results
-
-        # 클라이언트 측 태그 필터링
         filtered = []
         for track in results:
             track_tags = _extract_all_tags(track)
-            if any(ex.lower() in track_tags for ex in exclude_tags):
+
+            # required_any: OR 조건 — 하나라도 없으면 제외
+            if required_any and not any(r.lower() in track_tags for r in required_any):
+                log.debug(f"Jamendo skip (required tag 없음): {track.get('name')} tags={track_tags}")
+                continue
+
+            # exclude_tags: 하나라도 있으면 제외
+            if exclude_tags and any(ex.lower() in track_tags for ex in exclude_tags):
                 log.debug(f"Jamendo skip (excluded tag): {track.get('name')}")
                 continue
+
             filtered.append(track)
 
-        log.info(f"Jamendo after exclude {exclude_tags}: {len(filtered)} tracks")
+        log.info(
+            f"Jamendo after filter "
+            f"(required_any={required_any}, exclude={exclude_tags}): "
+            f"{len(filtered)} tracks"
+        )
         return filtered
 
     def download(self, track: dict) -> Path | None:
@@ -113,13 +123,14 @@ class JamendoCollector:
     def collect_longest(
         self,
         tags: list[str],
+        required_any: list[str] | None = None,
         exclude_tags: list[str] | None = None,
     ) -> Path | None:
         """
         태그로 검색 후 가장 긴 트랙 1개 다운로드.
         Jamendo가 duration_desc 정렬로 내려주므로 첫 번째 downloadable 트랙 선택.
         """
-        tracks = self.search(tags, exclude_tags=exclude_tags, limit=20)
+        tracks = self.search(tags, required_any=required_any, exclude_tags=exclude_tags, limit=20)
         if not tracks:
             log.error("Jamendo: 검색 결과 없음")
             return None

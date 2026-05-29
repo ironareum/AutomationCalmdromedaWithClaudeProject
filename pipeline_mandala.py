@@ -107,9 +107,10 @@ def collect_longest_music(concept: dict, work_dir: Path, cfg: Config) -> list[Pa
 
     jc = JamendoCollector(client_id=cfg.jamendo_client_id, work_dir=work_dir)
     tags = concept.get("jamendo_tags", ["meditation", "ambient", "calm"])
+    required_any = concept.get("jamendo_required", ["ambient", "new age"])
     exclude = concept.get("jamendo_exclude", ["piano"])
 
-    path = jc.collect_longest(tags=tags, exclude_tags=exclude)
+    path = jc.collect_longest(tags=tags, required_any=required_any, exclude_tags=exclude)
     if not path:
         log.error("Jamendo 음원 수집 실패")
         return []
