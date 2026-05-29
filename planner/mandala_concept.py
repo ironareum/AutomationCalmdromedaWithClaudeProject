@@ -33,7 +33,15 @@ JAMENDO_TAGS_BY_CATEGORY = {
 }
 
 # 전 카테고리 공통: 음원 장르 태그에 하나라도 포함돼야 함 (OR 조건)
-JAMENDO_REQUIRED_TAGS = ["ambient", "newage"]
+JAMENDO_REQUIRED_GENRES  = ["ambient", "newage"]   # genres 필드 OR
+
+# vartags 공통 기준 + 카테고리별 추가 (OR 조건)
+_VARTAGS_BASE = ["meditative", "meditation", "calm"]
+JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
+    "mandala":           _VARTAGS_BASE + ["mandala"],
+    "fractal":           _VARTAGS_BASE,
+    "cosmic_meditation": _VARTAGS_BASE + ["dreamy"],
+}
 
 # 제외 태그
 JAMENDO_EXCLUDE_TAGS = ["piano"]
@@ -155,7 +163,8 @@ def generate_mandala_concept(
     category = force_category or _pick_category(used_assets_path)
     cat_name = CATEGORY_KO.get(category, category)
     sound_hint = SOUND_HINTS.get(category, "")
-    jamendo_tags = JAMENDO_TAGS_BY_CATEGORY.get(category, JAMENDO_TAGS_BASE)
+    jamendo_tags    = JAMENDO_TAGS_BY_CATEGORY.get(category, JAMENDO_TAGS_BASE)
+    jamendo_vartags = JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY.get(category, _VARTAGS_BASE)
     pexels_q = PEXELS_QUERIES.get(category, [])
 
     recent_titles = _get_recent_mandala_titles(used_assets_path)
@@ -244,7 +253,8 @@ JSON만 응답:
         "description_en":    ai.get("description_en", ""),
         "tags":              merged_tags,
         "jamendo_tags":      jamendo_tags,
-        "jamendo_required":  JAMENDO_REQUIRED_TAGS,
+        "jamendo_required_genres":  JAMENDO_REQUIRED_GENRES,
+        "jamendo_required_vartags": jamendo_vartags,
         "jamendo_exclude":   JAMENDO_EXCLUDE_TAGS,
         "pexels_queries":    pexels_q,
         "duration_hours":    1,

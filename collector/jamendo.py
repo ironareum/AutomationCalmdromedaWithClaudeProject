@@ -30,15 +30,18 @@ class JamendoCollector:
     def search(
         self,
         tags: list[str],
-        required_any: list[str] | None = None,
+        required_genres: list[str] | None = None,
+        required_vartags: list[str] | None = None,
         exclude_tags: list[str] | None = None,
         limit: int = 20,
     ) -> list[dict]:
         """
-        태그별 개별 검색 후 머지 (AND → OR 방식으로 폭 확대).
-        tags: 각 태그를 개별 API 호출 후 결과 합산
-        required_any: OR 조건 — 하나라도 있으면 통과 (e.g. ["ambient", "new age"])
-        exclude_tags: 포함 시 제외 (e.g. ["piano"])
+        태그별 개별 검색 후 머지.
+        tags: 각 태그를 개별 API 호출 후 결과 합산 (OR)
+        required_genres:  genres 필드 OR — 하나라도 있으면 통과 (e.g. ["ambient", "newage"])
+        required_vartags: vartags 필드 OR — 하나라도 있으면 통과 (e.g. ["meditative", "meditation", "calm"])
+        두 required 조건은 AND (둘 다 만족해야 통과)
+        exclude_tags: 전체 태그에 하나라도 있으면 제외 (e.g. ["piano"])
         """
         seen_ids: set[str] = set()
         merged: list[dict] = []
@@ -69,29 +72,37 @@ class JamendoCollector:
 
         log.info(f"Jamendo merged total: {len(merged)} unique tracks")
 
-        # 필터링
         filtered = []
         for track in merged:
-            track_tags = _extract_all_tags(track)
+            mi = track.get("musicinfo", {}) or {}
+            tg = mi.get("tags", {}) or {}
+            genres     = {g.lower() for g in (tg.get("genres")      or [])}
+            vartags    = {v.lower() for v in (tg.get("vartags")      or [])}
+            instruments= {i.lower() for i in (tg.get("instruments")  or [])}
+            all_tags   = genres | vartags | instruments
 
-            # required_any: OR 조건 — 하나라도 있으면 통과, 모두 없으면 제외
-            if required_any and not any(r.lower() in track_tags for r in required_any):
-                log.debug(f"Jamendo skip (required 없음): {track.get('name')} tags={track_tags}")
+            # genres 조건: ambient 또는 newage 중 하나 포함
+            if required_genres and not any(g in genres for g in required_genres):
+                log.debug(f"skip (genre 없음): {track.get('name')} genres={genres}")
                 continue
 
-            # exclude_tags: 하나라도 있으면 제외
-            if exclude_tags and any(ex.lower() in track_tags for ex in exclude_tags):
-                log.debug(f"Jamendo skip (excluded): {track.get('name')}")
+            # vartags 조건: meditative / meditation / calm 중 하나 포함
+            if required_vartags and not any(v in vartags for v in required_vartags):
+                log.debug(f"skip (vartag 없음): {track.get('name')} vartags={vartags}")
+                continue
+
+            # 제외 태그: 전체 태그에 하나라도 있으면 제외
+            if exclude_tags and any(ex in all_tags for ex in exclude_tags):
+                log.debug(f"skip (excluded): {track.get('name')}")
                 continue
 
             filtered.append(track)
 
-        # duration 내림차순 재정렬
         filtered.sort(key=lambda t: int(t.get("duration", 0)), reverse=True)
 
         log.info(
             f"Jamendo after filter "
-            f"(required_any={required_any}, exclude={exclude_tags}): "
+            f"(genres={required_genres}, vartags={required_vartags}, exclude={exclude_tags}): "
             f"{len(filtered)} tracks"
         )
         return filtered
@@ -136,14 +147,18 @@ class JamendoCollector:
     def collect_longest(
         self,
         tags: list[str],
-        required_any: list[str] | None = None,
+        required_genres: list[str] | None = None,
+        required_vartags: list[str] | None = None,
         exclude_tags: list[str] | None = None,
     ) -> Path | None:
-        """
-        태그로 검색 후 가장 긴 트랙 1개 다운로드.
-        Jamendo가 duration_desc 정렬로 내려주므로 첫 번째 downloadable 트랙 선택.
-        """
-        tracks = self.search(tags, required_any=required_any, exclude_tags=exclude_tags, limit=20)
+        """태그로 검색 후 가장 긴 트랙 1개 다운로드."""
+        tracks = self.search(
+            tags,
+            required_genres=required_genres,
+            required_vartags=required_vartags,
+            exclude_tags=exclude_tags,
+            limit=20,
+        )
         if not tracks:
             log.error("Jamendo: 검색 결과 없음")
             return None

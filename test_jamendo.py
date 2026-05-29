@@ -58,9 +58,17 @@ for tag in TEST_TAGS:
         print(f"    dl_url={dl_url}")
 
 print("\n── required_any 필터 시뮬레이션 ──────────────────")
-REQUIRED_ANY = ["ambient", "newage"]
+REQUIRED_GENRES  = ["ambient", "newage"]
 EXCLUDE = ["piano"]
-for tag in ["meditation", "calm"]:
+# 카테고리별 vartags (mandala 기준으로 테스트)
+REQUIRED_VARTAGS_BY_CAT = {
+    "mandala":           ["meditative", "meditation", "calm", "mandala"],
+    "fractal":           ["meditative", "meditation", "calm"],
+    "cosmic_meditation": ["meditative", "meditation", "calm", "dreamy"],
+}
+
+print("\n── required_any 필터 시뮬레이션 ──────────────────")
+for tag in ["meditation", "calm", "ambient", "dreamy"]:
     params = {
         "client_id":   client_id,
         "format":      "json",
@@ -75,13 +83,17 @@ for tag in ["meditation", "calm"]:
     for t in results:
         mi = t.get("musicinfo", {}) or {}
         tg = mi.get("tags", {}) or {}
-        all_tags = set()
-        for group in tg.values():
-            if isinstance(group, list):
-                all_tags.update(g.lower() for g in group)
-        has_required = any(r.lower() in all_tags for r in REQUIRED_ANY)
-        has_excluded = any(ex.lower() in all_tags for ex in EXCLUDE)
-        if has_required and not has_excluded:
+        genres      = {g.lower() for g in (tg.get("genres")     or [])}
+        vartags_set = {v.lower() for v in (tg.get("vartags")    or [])}
+        instruments = {i.lower() for i in (tg.get("instruments")or [])}
+        all_tags    = genres | vartags_set | instruments
+
+        # mandala 카테고리 기준으로 테스트
+        req_vartags = REQUIRED_VARTAGS_BY_CAT.get("mandala", [])
+        ok_genre  = any(g in genres      for g in REQUIRED_GENRES)
+        ok_vartag = any(v in vartags_set for v in req_vartags)
+        ok_excl   = not any(ex in all_tags for ex in EXCLUDE)
+        if ok_genre and ok_vartag and ok_excl:
             passed.append(t)
 
     print(f"tag='{tag}': {len(results)} found → {len(passed)} passed filter")
