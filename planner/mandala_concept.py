@@ -25,23 +25,14 @@ MANDALA_CATEGORIES = [
     "cosmic_meditation",
 ]
 
-# Pixabay Music API 검색 쿼리 (멜로디 기반, 명상/요가 스타일)
-PIXABAY_QUERIES = {
-    "mandala": [
-        "tibetan meditation music",
-        "singing bowl healing music",
-        "yoga meditation music peaceful",
-    ],
-    "fractal": [
-        "psychedelic ambient meditation",
-        "deep meditation frequency music",
-        "mind expansion ambient music",
-    ],
-    "cosmic_meditation": [
-        "space ambient meditation music",
-        "cosmic healing music",
-        "galactic meditation ambient",
-    ],
+# Jamendo API 태그 (모든 카테고리 공통 기반 + 카테고리별 추가)
+JAMENDO_TAGS_BASE = ["meditation", "ambient", "calm"]
+JAMENDO_EXCLUDE_TAGS = ["piano"]
+
+JAMENDO_TAGS_BY_CATEGORY = {
+    "mandala":           ["meditation", "ambient", "calm"],
+    "fractal":           ["ambient", "calm", "meditation"],
+    "cosmic_meditation": ["ambient", "calm", "meditation"],
 }
 
 # Pexels 영상 쿼리 (만다라/프랙탈/사이키델릭 비주얼)
@@ -154,7 +145,8 @@ def generate_mandala_concept(
         "subtitle_en": "Infinite Bloom",
         "description_en": "...",
         "tags": [...],
-        "pixabay_queries": [...],
+        "jamendo_tags": [...],
+        "jamendo_exclude": [...],
         "pexels_queries": [...],
     }
     """
@@ -162,7 +154,7 @@ def generate_mandala_concept(
     cat_name = CATEGORY_KO.get(category, category)
     title_kw = TITLE_KEYWORDS.get(category, cat_name)
     sound_hint = SOUND_HINTS.get(category, "")
-    pixabay_q = PIXABAY_QUERIES.get(category, [])
+    jamendo_tags = JAMENDO_TAGS_BY_CATEGORY.get(category, JAMENDO_TAGS_BASE)
     pexels_q = PEXELS_QUERIES.get(category, [])
 
     recent_titles = _get_recent_mandala_titles(used_assets_path)
@@ -236,17 +228,18 @@ JSON만 응답:
     merged_tags = list(dict.fromkeys(ai_tags + cat_tags + COMMON_TAGS))[:50]
 
     return {
-        "category":       category,
-        "title":          ai.get("title", ""),
-        "shorts_title":   ai.get("shorts_title", ""),
-        "title_sub":      ai.get("title_sub", "1시간 명상"),
-        "subtitle_en":    ai.get("subtitle_en", "Infinite Bloom"),
-        "description_en": ai.get("description_en", ""),
-        "tags":           merged_tags,
-        "pixabay_queries": pixabay_q,
-        "pexels_queries": pexels_q,
-        "duration_hours": 4,
-        "sound_hint":     sound_hint,
+        "category":          category,
+        "title":             ai.get("title", ""),
+        "shorts_title":      ai.get("shorts_title", ""),
+        "title_sub":         ai.get("title_sub", "1시간 명상"),
+        "subtitle_en":       ai.get("subtitle_en", "Infinite Bloom"),
+        "description_en":    ai.get("description_en", ""),
+        "tags":              merged_tags,
+        "jamendo_tags":      jamendo_tags,
+        "jamendo_exclude":   JAMENDO_EXCLUDE_TAGS,
+        "pexels_queries":    pexels_q,
+        "duration_hours":    1,
+        "sound_hint":        sound_hint,
     }
 
 

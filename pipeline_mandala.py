@@ -28,8 +28,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from collector.freesound import register_used_session, USED_ASSETS_FILE
+from collector.jamendo import JamendoCollector
 from collector.pexels import PexelsCollector
-from collector.pixabay import PixabayMusicCollector
 from config import Config
 from planner.mandala_concept import generate_mandala_concept
 from producer.ffmpeg_producer import VideoProducer, LOGO_PATH, LOGO_HEADING_PATH
@@ -59,18 +59,6 @@ def _run(cmd: list, desc: str = "") -> bool:
         return False
     return True
 
-
-def _get_audio_duration(path: Path) -> float:
-    """ffprobe로 오디오 실제 길이(초) 반환"""
-    r = subprocess.run(
-        ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
-         "-of", "csv=p=0", str(path)],
-        capture_output=True, text=True,
-    )
-    try:
-        return float(r.stdout.strip())
-    except (ValueError, AttributeError):
-        return 0.0
 
 
 def _logo_inputs_and_filter(producer: VideoProducer) -> tuple[list, str, str]:
@@ -105,53 +93,28 @@ def _logo_inputs_and_filter(producer: VideoProducer) -> tuple[list, str, str]:
     return extra_inputs, ";".join(parts), final
 
 
-# ── Step 1: 음원 수집 (Pixabay only, 가장 긴 트랙 선택) ────────────────────
+# ── Step 1: 음원 수집 (Jamendo, 가장 긴 트랙 선택) ───────────────────────
 
 def collect_longest_music(concept: dict, work_dir: Path, cfg: Config) -> list[Path]:
     """
-    Pixabay Music에서 후보 다수 다운로드 후 ffprobe로 가장 긴 트랙 1개 선택.
+    Jamendo에서 duration_desc 정렬로 가장 긴 트랙 1개 수집.
+    태그: concept["jamendo_tags"], 제외: concept["jamendo_exclude"]
     실패 시 오류 로깅 후 빈 리스트 반환 (폴백 없음).
     """
-    pixabay_key = os.environ.get("PIXABAY_API_KEY", "")
-    if not pixabay_key:
-        log.error("PIXABAY_API_KEY 없음 — 음원 수집 불가")
+    if not cfg.jamendo_client_id:
+        log.error("JAMENDO_CLIENT_ID 없음 — 음원 수집 불가")
         return []
 
-    pb = PixabayMusicCollector(api_key=pixabay_key, work_dir=work_dir)
-    candidates: list[Path] = []
-    seen_ids: set[str] = set()
+    jc = JamendoCollector(client_id=cfg.jamendo_client_id, work_dir=work_dir)
+    tags = concept.get("jamendo_tags", ["meditation", "ambient", "calm"])
+    exclude = concept.get("jamendo_exclude", ["piano"])
 
-    for query in concept["pixabay_queries"]:
-        for track in pb.search(query, per_page=10):
-            tid = str(track.get("id", ""))
-            if not tid or tid in seen_ids:
-                continue
-            seen_ids.add(tid)
-            path = pb.download(track)
-            if path:
-                candidates.append(path)
-            if len(candidates) >= 6:
-                break
-        if len(candidates) >= 6:
-            break
-
-    if not candidates:
-        log.error("Pixabay 음원 수집 실패")
+    path = jc.collect_longest(tags=tags, exclude_tags=exclude)
+    if not path:
+        log.error("Jamendo 음원 수집 실패")
         return []
 
-    # 가장 긴 트랙 선택
-    durations = [(p, _get_audio_duration(p)) for p in candidates]
-    durations.sort(key=lambda x: x[1], reverse=True)
-    best_path, best_dur = durations[0]
-    log.info(f"최장 트랙 선택: {best_path.name} ({best_dur:.0f}s / {best_dur/60:.1f}min)")
-
-    for p, _ in durations[1:]:
-        try:
-            p.unlink()
-        except Exception:
-            pass
-
-    return [best_path]
+    return [path]
 
 
 # ── Step 2: 영상 수집 (단일 최적 클립, 폴백 없음) ─────────────────────────

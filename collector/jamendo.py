@@ -1,0 +1,154 @@
+"""
+Jamendo Music API Collector
+2026.05.29 신규 — mandala 파이프라인 전용 음원 수집
+
+Jamendo License: CC (상업적 사용 무료)
+API 키 발급: https://developer.jamendo.com/v3.0
+  - 무료 등록 후 client_id 발급
+  - Rate limit: 초당 3건, 일 5만건
+
+엔드포인트: https://api.jamendo.com/v3.0/tracks/
+"""
+
+import logging
+import time
+from pathlib import Path
+
+import requests
+
+log = logging.getLogger(__name__)
+
+BASE_URL = "https://api.jamendo.com/v3.0/tracks/"
+
+
+class JamendoCollector:
+    def __init__(self, client_id: str, work_dir: Path):
+        self.client_id = client_id
+        self.sound_dir = work_dir / "sounds"
+        self.sound_dir.mkdir(parents=True, exist_ok=True)
+
+    def search(
+        self,
+        tags: list[str],
+        exclude_tags: list[str] | None = None,
+        limit: int = 20,
+    ) -> list[dict]:
+        """
+        Jamendo 트랙 검색.
+        tags: AND 조건 fuzzytags (e.g. ["meditation", "ambient", "calm"])
+        exclude_tags: 클라이언트 필터 (e.g. ["piano"])
+        orderby: duration_desc → 긴 트랙 우선
+        """
+        params = {
+            "client_id":    self.client_id,
+            "format":       "json",
+            "limit":        limit,
+            "fuzzytags":    "+".join(tags),
+            "include":      "musicinfo",
+            "audioformat":  "mp32",
+            "orderby":      "duration_desc",
+        }
+        try:
+            resp = requests.get(BASE_URL, params=params, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+            results = data.get("results", [])
+            log.info(f"Jamendo '{' '.join(tags)}': {len(results)} found")
+        except Exception as e:
+            log.error(f"Jamendo search failed: {e}")
+            return []
+
+        if not exclude_tags:
+            return results
+
+        # 클라이언트 측 태그 필터링
+        filtered = []
+        for track in results:
+            track_tags = _extract_all_tags(track)
+            if any(ex.lower() in track_tags for ex in exclude_tags):
+                log.debug(f"Jamendo skip (excluded tag): {track.get('name')}")
+                continue
+            filtered.append(track)
+
+        log.info(f"Jamendo after exclude {exclude_tags}: {len(filtered)} tracks")
+        return filtered
+
+    def download(self, track: dict) -> Path | None:
+        """audiodownload URL로 트랙 다운로드"""
+        if not track.get("audiodownload_allowed", True):
+            log.warning(f"Jamendo {track.get('id')}: download not allowed — skip")
+            return None
+
+        audio_url = track.get("audiodownload") or track.get("audio")
+        if not audio_url:
+            log.warning(f"Jamendo {track.get('id')}: audio URL 없음 — skip")
+            return None
+
+        track_id = str(track.get("id", "unknown"))
+        name = str(track.get("name") or "track")[:30].replace(" ", "_")
+        name = "".join(c for c in name if c.isalnum() or c in "_-")
+        fname = f"jamendo_{track_id}_{name}.mp3"
+        dest = self.sound_dir / fname
+
+        if dest.exists():
+            log.info(f"Jamendo cached: {dest.name}")
+            return dest
+
+        try:
+            resp = requests.get(audio_url, timeout=120, stream=True)
+            resp.raise_for_status()
+            with open(dest, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=65536):
+                    f.write(chunk)
+            size_kb = dest.stat().st_size // 1024
+            dur = track.get("duration", "?")
+            log.info(f"Jamendo downloaded: {dest.name} ({size_kb}KB, {dur}s)")
+            return dest
+        except Exception as e:
+            log.error(f"Jamendo download failed {track_id}: {e}")
+            if dest.exists():
+                dest.unlink()
+            return None
+
+    def collect_longest(
+        self,
+        tags: list[str],
+        exclude_tags: list[str] | None = None,
+    ) -> Path | None:
+        """
+        태그로 검색 후 가장 긴 트랙 1개 다운로드.
+        Jamendo가 duration_desc 정렬로 내려주므로 첫 번째 downloadable 트랙 선택.
+        """
+        tracks = self.search(tags, exclude_tags=exclude_tags, limit=20)
+        if not tracks:
+            log.error("Jamendo: 검색 결과 없음")
+            return None
+
+        for track in tracks:
+            path = self.download(track)
+            if path:
+                dur = track.get("duration", 0)
+                log.info(
+                    f"Jamendo 최장 트랙: {track.get('name')} "
+                    f"({dur}s / {int(dur)//60}min {int(dur)%60}s)"
+                )
+                return path
+            time.sleep(0.3)
+
+        log.error("Jamendo: 다운로드 가능한 트랙 없음")
+        return None
+
+
+def _extract_all_tags(track: dict) -> set[str]:
+    """musicinfo.tags 내 모든 태그를 소문자 set으로 반환"""
+    tags: set[str] = set()
+    music_info = track.get("musicinfo", {})
+    tag_groups = music_info.get("tags", {})
+    for group in tag_groups.values():
+        if isinstance(group, list):
+            tags.update(t.lower() for t in group)
+    # name/artist 내 piano 단어도 체크
+    for field in ("name", "artist_name"):
+        val = str(track.get(field, "")).lower()
+        tags.update(val.split())
+    return tags

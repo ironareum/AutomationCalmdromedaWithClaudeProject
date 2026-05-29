@@ -60,6 +60,7 @@ class Config:
     pexels_api_key: str = os.getenv("PEXELS_API_KEY", "")
     youtube_client_secret_path: str = os.getenv("YOUTUBE_CLIENT_SECRET", "credentials/client_secret.json")
     claude_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")  # Phase 2에서 사용
+    jamendo_client_id: str = os.getenv("JAMENDO_CLIENT_ID", "")
 
     # Paths
     base_dir: Path = Path(__file__).parent

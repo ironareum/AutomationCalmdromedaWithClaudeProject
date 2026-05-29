@@ -107,7 +107,7 @@ jobs:
       # ── 8. 파이프라인 실행 ───────────────────────────────────────
       - name: Run Mandala Pipeline
         env:
-          PIXABAY_API_KEY:            ${{ secrets.PIXABAY_API_KEY }}
+          JAMENDO_CLIENT_ID:          ${{ secrets.JAMENDO_CLIENT_ID }}
           PEXELS_API_KEY:             ${{ secrets.PEXELS_API_KEY }}
           ANTHROPIC_API_KEY:          ${{ secrets.ANTHROPIC_API_KEY }}
           ENCRYPTION_KEY:             ${{ secrets.ENCRYPTION_KEY }}
