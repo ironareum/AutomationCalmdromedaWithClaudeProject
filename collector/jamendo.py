@@ -37,7 +37,7 @@ class JamendoCollector:
         """
         태그별 개별 검색 후 머지 (AND → OR 방식으로 폭 확대).
         tags: 각 태그를 개별 API 호출 후 결과 합산
-        required_any: 트랙 태그에 하나라도 포함돼야 함 - OR 조건 (e.g. ["ambient", "new age"])
+        required_any: OR 조건 — 하나라도 있으면 통과 (e.g. ["ambient", "new age"])
         exclude_tags: 포함 시 제외 (e.g. ["piano"])
         """
         seen_ids: set[str] = set()
@@ -74,7 +74,7 @@ class JamendoCollector:
         for track in merged:
             track_tags = _extract_all_tags(track)
 
-            # required_any: OR 조건 — 하나라도 없으면 제외
+            # required_any: OR 조건 — 하나라도 있으면 통과, 모두 없으면 제외
             if required_any and not any(r.lower() in track_tags for r in required_any):
                 log.debug(f"Jamendo skip (required 없음): {track.get('name')} tags={track_tags}")
                 continue
