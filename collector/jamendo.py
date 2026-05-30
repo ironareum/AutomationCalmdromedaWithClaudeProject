@@ -161,7 +161,7 @@ class JamendoCollector:
         tags: list[str],
         required_vartags: list[str] | None = None,
         exclude_tags: list[str] | None = None,
-    ) -> Path | None:
+    ) -> tuple[Path, dict] | None:
         """태그로 검색 후 가장 긴 트랙 1개 다운로드."""
         tracks = self.search(
             tags,
@@ -187,7 +187,13 @@ class JamendoCollector:
                     f"Jamendo 최장 트랙: {track.get('name')} "
                     f"({dur}s / {int(dur)//60}min {int(dur)%60}s)"
                 )
-                return path
+                track_meta = {
+                    "id":            str(track.get("id", "")),
+                    "name":          track.get("name", ""),
+                    "artist_name":   track.get("artist_name", ""),
+                    "license_ccurl": track.get("license_ccurl", ""),
+                }
+                return path, track_meta
             time.sleep(0.3)
 
         log.error("Jamendo: 다운로드 가능한 트랙 없음")

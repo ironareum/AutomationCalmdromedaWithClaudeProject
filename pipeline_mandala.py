@@ -95,31 +95,32 @@ def _logo_inputs_and_filter(producer: VideoProducer) -> tuple[list, str, str]:
 
 # ── Step 1: 음원 수집 (Jamendo, 가장 긴 트랙 선택) ───────────────────────
 
-def collect_longest_music(concept: dict, work_dir: Path, cfg: Config) -> list[Path]:
+def collect_longest_music(concept: dict, work_dir: Path, cfg: Config) -> tuple[list[Path], dict | None]:
     """
     Jamendo에서 duration_desc 정렬로 가장 긴 트랙 1개 수집.
     태그: concept["jamendo_tags"], 제외: concept["jamendo_exclude"]
-    실패 시 오류 로깅 후 빈 리스트 반환 (폴백 없음).
+    실패 시 오류 로깅 후 ([], None) 반환 (폴백 없음).
     """
     if not cfg.jamendo_client_id:
         log.error("JAMENDO_CLIENT_ID 없음 — 음원 수집 불가")
-        return []
+        return [], None
 
     jc = JamendoCollector(client_id=cfg.jamendo_client_id, work_dir=work_dir, used_assets_path=USED_ASSETS_FILE)
     tags             = concept.get("jamendo_tags",            ["ambient", "newage"])
     required_vartags = concept.get("jamendo_required_vartags", ["meditative", "meditation", "calm"])
     exclude          = concept.get("jamendo_exclude",          ["piano"])
 
-    path = jc.collect_longest(
+    result = jc.collect_longest(
         tags=tags,
         required_vartags=required_vartags,
         exclude_tags=exclude,
     )
-    if not path:
+    if not result:
         log.error("Jamendo 음원 수집 실패")
-        return []
+        return [], None
 
-    return [path]
+    path, track_meta = result
+    return [path], track_meta
 
 
 # ── Step 2: 영상 수집 (단일 최적 클립, 폴백 없음) ─────────────────────────
@@ -323,7 +324,7 @@ def produce_shorts(
 
 # ── 설명문 생성 ───────────────────────────────────────────────────────────
 
-def _make_description(concept: dict) -> str:
+def _make_description(concept: dict, jamendo_meta: dict | None = None) -> str:
     lines = [
         concept["title"],
         "",
@@ -337,6 +338,15 @@ def _make_description(concept: dict) -> str:
         "",
         " ".join(f"#{t.replace(' ','')}" for t in concept.get("tags", [])[:20]),
     ]
+    if jamendo_meta and jamendo_meta.get("name"):
+        lines += [
+            "",
+            "─────────────────────────",
+            f"🎵 Music: {jamendo_meta['name']} by {jamendo_meta.get('artist_name', '')}",
+            f"License: {jamendo_meta.get('license_ccurl', 'https://creativecommons.org/licenses/by/3.0/')}",
+            "Source: Jamendo (jamendo.com)",
+            "─────────────────────────",
+        ]
     return "\n".join(lines)
 
 
@@ -350,6 +360,7 @@ def upload_youtube(
     hour_kst: int = 19,
     minute_kst: int = 30,
     thumbnail: Path | None = None,
+    description_override: str | None = None,
 ) -> dict | None:
     if not cfg.upload_enabled:
         log.info("UPLOAD_ENABLED=false — 업로드 스킵")
@@ -364,7 +375,10 @@ def upload_youtube(
         cat_tag = f"#{concept['category']}"
         title = f"{title} {cat_tag}"[:99]
 
-    desc = "#Shorts\n\n" + _make_description(concept) if is_shorts else _make_description(concept)
+    if description_override:
+        desc = ("#Shorts\n\n" + description_override) if is_shorts else description_override
+    else:
+        desc = "#Shorts\n\n" + _make_description(concept) if is_shorts else _make_description(concept)
     tags = concept["tags"] + (["Shorts", "유튜브쇼츠", "명상쇼츠"] if is_shorts else [])
 
     return uploader.upload(
@@ -379,6 +393,44 @@ def upload_youtube(
     )
 
 
+# ── 업로드 전용 ───────────────────────────────────────────────────────────
+
+def _upload_only(session_dir: Path, cfg: Config):
+    """기존 output 세션 폴더의 metadata.json을 읽어 업로드만 실행."""
+    meta_path = session_dir / "metadata.json"
+    if not meta_path.exists():
+        log.error(f"metadata.json 없음: {meta_path}")
+        return
+
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    video_path = Path(meta["video_path"])
+    if not video_path.exists():
+        log.error(f"영상 파일 없음: {video_path}")
+        return
+
+    thumbnail = Path(meta["thumbnail_path"]) if meta.get("thumbnail_path") else None
+    concept = {
+        "title":       meta["title"],
+        "tags":        meta.get("tags", []),
+        "category":    meta.get("category", ""),
+        "shorts_title": "",
+    }
+
+    yt = upload_youtube(
+        video_path=video_path,
+        concept=concept,
+        cfg=cfg,
+        hour_kst=cfg.upload_hour_kst,
+        minute_kst=cfg.upload_minute_kst,
+        thumbnail=thumbnail,
+        description_override=meta.get("description"),
+    )
+    if yt:
+        log.info(f"업로드 완료: {yt['url']} (공개: {yt['publish_at']})")
+    else:
+        log.error("업로드 실패")
+
+
 # ── 메인 ─────────────────────────────────────────────────────────────────
 
 def main():
@@ -388,7 +440,15 @@ def main():
     parser.add_argument("--category", default=None, help="카테고리 강제 지정")
     parser.add_argument("--test", action="store_true",
                         help="테스트 모드: 롱폼을 3분(180s)으로 생성")
+    parser.add_argument("--upload-only", metavar="SESSION_DIR",
+                        help="기존 output 세션 폴더 경로 → 업로드만 실행 (예: output/mandala_20260529_100000)")
     args = parser.parse_args()
+
+    cfg = Config()
+
+    if args.upload_only:
+        _upload_only(Path(args.upload_only), cfg)
+        return
 
     effective_duration = DURATION_TEST if args.test else DURATION_LONGFORM
 
@@ -400,7 +460,6 @@ def main():
             log.warning("롱폼 모드: 1시간 영상 — 로컬 실행 권장")
         log.warning("=" * 60)
 
-    cfg = Config()
     session_id = "mandala_" + datetime.now().strftime("%Y%m%d_%H%M%S")
     work_dir = cfg.output_dir / session_id
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -422,7 +481,7 @@ def main():
         log.info(f"콘셉트: {concept['title']}")
 
         # 음원 수집
-        sound_files = collect_longest_music(concept, work_dir, cfg)
+        sound_files, jamendo_meta = collect_longest_music(concept, work_dir, cfg)
         if not sound_files:
             log.error("음원 수집 실패 — 종료")
             return
@@ -461,6 +520,7 @@ def main():
             )
 
             # 메타데이터
+            desc = _make_description(concept, jamendo_meta)
             metadata = {
                 "session_id":     session_id,
                 "session_type":   "mandala",
@@ -468,7 +528,8 @@ def main():
                 "category":       concept["category"],
                 "duration_hours": round(effective_duration / 3600, 2),
                 "tags":           concept["tags"],
-                "description":    _make_description(concept),
+                "description":    desc,
+                "jamendo_track":  jamendo_meta or {},
                 "video_path":     str(longform_path),
                 "thumbnail_path": str(thumbnail) if thumbnail else "",
                 "created_at":     datetime.now().isoformat(),
@@ -493,7 +554,8 @@ def main():
 
             # 업로드 (롱폼: 다음날 19:30 KST)
             yt = upload_youtube(longform_path, concept, cfg,
-                                hour_kst=19, minute_kst=30, thumbnail=thumbnail)
+                                hour_kst=19, minute_kst=30, thumbnail=thumbnail,
+                                description_override=desc)
             if yt:
                 log.info(f"롱폼 YouTube: {yt['url']} (공개: {yt['publish_at']})")
 
