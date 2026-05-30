@@ -172,7 +172,8 @@ def generate_mandala_concept(
 [요구사항]
 1. middle_phrase: 중간 감성 문구 (1시간 포함, 20자 이내)
    - 반드시 '1시간' 포함
-   - 예: "눈을 감으면 보이는 1시간", "멍하니 보다 잠드는 1시간", "마음이 고요해지는 1시간"
+   - 일상적·감각적 표현 사용, "기하학적" 단어 금지 (딱딱한 학술어)
+   - ✅ 좋은 예: "눈을 감으면 보이는 1시간", "멍하니 보다 잠드는 1시간", "마음이 고요해지는 1시간", "프랙탈 속으로 빠져드는 1시간", "뇌파가 편안해지는 1시간"
    - 최근 제목과 겹치지 않게
 2. seo_keyword: 제목 끝 SEO 영문 키워드 (2~4단어, 카테고리 특성 반영)
    - 예: "Mandala Meditation", "Fractal Ambient Music", "Cosmic Deep Relaxation"
@@ -180,8 +181,9 @@ def generate_mandala_concept(
 4. title_sub: 썸네일 상단 짧은 문구 (10자 이내)
 5. subtitle_en: 썸네일 하단 영문 (2~4단어, 시적이고 감성적으로)
    - 직역 금지. 예: "Infinite Bloom", "Cosmic Stillness", "Fractal Dreams"
-6. description_en: 영문 설명 2~3문장 (글로벌 시청자용, 1시간 강조)
-7. tags: 한국어 위주 10~15개
+6. description_ko: 한글 설명 2~3문장 (감성적·구어체, 1시간 강조)
+7. description_en: 영문 설명 2~3문장 (글로벌 시청자용, 1시간 강조)
+8. tags: 한국어 위주 10~15개
 
 JSON만 응답:
 {{
@@ -190,6 +192,7 @@ JSON만 응답:
   "shorts_title": "...",
   "title_sub": "...",
   "subtitle_en": "...",
+  "description_ko": "...",
   "description_en": "...",
   "tags": ["...", "..."]
 }}"""
@@ -216,6 +219,11 @@ JSON만 응답:
             "shorts_title":  "멍하니 보다 잠드는 영상",
             "title_sub":     "1시간 명상",
             "subtitle_en":   "Infinite Bloom",
+            "description_ko": (
+                f"1시간 {cat_name} 명상 음악입니다. "
+                "복잡한 생각을 내려놓고 음악에 몸을 맡겨보세요. "
+                "수면, 요가, 명상 모두에 잘 어울립니다."
+            ),
             "description_en": (
                 f"1 hour of {cat_name} for deep sleep, meditation, and yoga. "
                 "Let the visual patterns guide your mind into stillness. "
@@ -240,6 +248,7 @@ JSON만 응답:
         "shorts_title":      ai.get("shorts_title", ""),
         "title_sub":         ai.get("title_sub", "1시간 명상"),
         "subtitle_en":       ai.get("subtitle_en", "Infinite Bloom"),
+        "description_ko":    ai.get("description_ko", ""),
         "description_en":    ai.get("description_en", ""),
         "tags":              merged_tags,
         "jamendo_tags":             JAMENDO_SEARCH_TAGS,

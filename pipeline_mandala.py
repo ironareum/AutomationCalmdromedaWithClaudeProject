@@ -328,6 +328,8 @@ def _make_description(concept: dict, jamendo_meta: dict | None = None) -> str:
     lines = [
         concept["title"],
         "",
+        concept.get("description_ko", ""),
+        "",
         concept.get("description_en", ""),
         "",
         "─────────────────────────",
