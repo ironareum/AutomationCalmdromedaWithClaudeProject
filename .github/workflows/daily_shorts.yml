@@ -9,9 +9,9 @@ name: Daily Shorts Pipeline
 
 on:
   schedule:
-    # 매일 오전 9시 KST (= UTC 00:00) 실행
-    # 쇼츠 익일 18:30 KST 예약 공개
-    - cron: '0 0 * * *'
+    # 금요일 오전 9시 KST (= UTC 00:00) 실행 → 토요일 18:30 KST 예약 공개
+    # 만다라 숏폼(월·화·목·금), 자연롱폼 숏폼(수·일) 제외 → 토요일만 공백
+    - cron: '0 0 * * 5'
   workflow_dispatch:  # 수동 실행 버튼 (테스트용)
 
 jobs:
