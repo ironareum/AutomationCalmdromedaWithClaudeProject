@@ -363,6 +363,7 @@ def upload_youtube(
     minute_kst: int = 30,
     thumbnail: Path | None = None,
     description_override: str | None = None,
+    days_ahead: int = 1,
 ) -> dict | None:
     if not cfg.upload_enabled:
         log.info("UPLOAD_ENABLED=false — 업로드 스킵")
@@ -392,6 +393,7 @@ def upload_youtube(
         language="ko",
         hour_kst=hour_kst,
         minute_kst=minute_kst,
+        days_ahead=days_ahead,
     )
 
 
@@ -561,23 +563,34 @@ def main():
             if yt:
                 log.info(f"롱폼 YouTube: {yt['url']} (공개: {yt['publish_at']})")
 
-        # ── 숏폼 ────────────────────────────────────────────────────────
-        if args.mode in ("shorts", "both"):
-            log.info("=== [숏폼] 40s 제작 시작 ===")
+        # ── 숏폼 2개 (1/3·2/3 지점, D+1·D+2 예약) ──────────────────────
+        if args.mode in ("shorts", "both") and longform_path:
+            log.info("=== [숏폼] 40s × 2 제작 시작 ===")
+            producer = VideoProducer(work_dir)
 
-            if args.mode == "both" and longform_path:
-                producer = VideoProducer(work_dir)
-                shorts_path = producer.extract_shorts_clip(longform_path, duration=40)
-            else:
-                shorts_path = produce_shorts(sound_files, video_file, concept, work_dir)
-
-            if shorts_path:
-                yt_s = upload_youtube(shorts_path, concept, cfg,
-                                      is_shorts=True, hour_kst=18, minute_kst=30)
-                if yt_s:
-                    log.info(f"숏폼 YouTube: {yt_s['url']} (공개: {yt_s['publish_at']})")
-            else:
-                log.warning("숏폼 제작 실패")
+            # (시작초, clip_index, days_ahead)
+            clips = [
+                (max(3, effective_duration // 3),      1, 1),  # 1/3 지점 → D+1 (롱폼과 같은 날)
+                ((effective_duration * 2) // 3,        2, 2),  # 2/3 지점 → D+2
+            ]
+            for start_sec, clip_index, days_ahead in clips:
+                sp = producer.extract_shorts_clip(
+                    longform_path,
+                    duration=DURATION_SHORTS,
+                    start_sec=start_sec,
+                    clip_index=clip_index,
+                )
+                if sp:
+                    yt_s = upload_youtube(
+                        sp, concept, cfg,
+                        is_shorts=True, hour_kst=18, minute_kst=30,
+                        days_ahead=days_ahead,
+                        description_override=desc,
+                    )
+                    if yt_s:
+                        log.info(f"숏폼{clip_index} YouTube: {yt_s['url']} (공개: {yt_s['publish_at']})")
+                else:
+                    log.warning(f"숏폼{clip_index} 제작 실패")
 
         log.info("=== Mandala Pipeline Complete ===")
 

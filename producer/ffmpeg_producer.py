@@ -676,24 +676,31 @@ class VideoProducer:
             return None
         return result, actual_sounds, actual_videos, audio_lufs, source_lufs, excluded_sources
 
-    def extract_shorts_clip(self, video_path: Path, duration: int = 40) -> Path | None:
+    def extract_shorts_clip(
+        self,
+        video_path: Path,
+        duration: int = 40,
+        start_sec: int = 3,
+        clip_index: int = 1,
+    ) -> Path | None:
         """
-        풀영상 앞부분에서 쇼츠/릴스용 세로 클립 추출
-        - duration: 클립 길이 (기본 40초, 알고리즘 최적화 30~45초)
+        풀영상에서 쇼츠/릴스용 세로 클립 추출
+        - duration: 클립 길이 (기본 40초)
+        - start_sec: 시작 지점 (기본 3초, 인트로 스킵)
+        - clip_index: 출력 파일 구분 번호 (1=shorts_1.mp4, 2=shorts_2.mp4)
         - 9:16 세로 비율로 크롭 (1080x1920)
-        - 시작점: 3초 (인트로 어두운 부분 스킵)
         """
         if not video_path.exists():
             log.error(f"Shorts 추출 실패: 파일 없음 {video_path}")
             return None
 
         safe_name = video_path.stem.replace("_final", "")
-        output_path = video_path.parent / f"{safe_name}_shorts.mp4"
+        output_path = video_path.parent / f"{safe_name}_shorts_{clip_index}.mp4"
 
         # 9:16 크롭: 원본 1920x1080 → 가운데 크롭 → 608x1080 → 스케일 1080x1920
         cmd = [
             "ffmpeg", "-y",
-            "-ss", "3",                    # 3초부터 시작
+            "-ss", str(start_sec),         # 지정 지점부터 시작
             "-i", str(video_path),
             "-t", str(duration),           # 40초
             "-vf", (
