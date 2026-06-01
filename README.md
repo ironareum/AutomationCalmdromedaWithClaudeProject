@@ -67,10 +67,17 @@ AutomationCalmdromedaWithClaudeProject/
 │
 ├── pipeline.py                 # 자연소리 롱폼 파이프라인
 ├── pipeline_mandala.py         # 만다라/프랙탈 롱폼 + 숏폼 파이프라인
+├── pipeline_zen.py             # Zen/Oriental 8h 롱폼 파이프라인
 ├── shorts_pipeline.py          # 자연소리 숏폼 전용 파이프라인
 ├── config.py                   # 환경변수, 경로, 카테고리 설정
 ├── crypto_utils.py             # AES-256-GCM 암복호화 유틸리티
 ├── test_jamendo.py             # Jamendo API 단독 테스트 스크립트
+├── analyze.py                  # YouTube 성과 분석/리포팅
+├── extract_pipeline_logs.py    # GitHub Actions 로그 추출 → CSV
+├── make_thumbnail.py           # 썸네일 단독 생성 스크립트
+├── measure_lufs.py             # 소스 오디오 LUFS 측정 스크립트
+├── print_attribution.py        # used_assets.json 기반 출처 블록 출력
+├── upload_data.bat             # data 브랜치 수동 업로드 (Windows)
 ├── blacklist.json              # 저품질 음원 블랙리스트
 ├── requirements.txt
 │
@@ -81,12 +88,14 @@ AutomationCalmdromedaWithClaudeProject/
 │
 ├── planner/
 │   ├── concept_generator.py    # 자연소리 콘셉트 생성 (12개 카테고리)
-│   └── mandala_concept.py      # 만다라 콘셉트 생성 (3개 카테고리)
+│   ├── mandala_concept.py      # 만다라 콘셉트 생성 (3개 카테고리)
+│   └── zen_concept.py          # Zen/Oriental 콘셉트 생성
 │
 ├── collector/
 │   ├── freesound.py            # Freesound API 음원 수집 + used_assets 관리
 │   ├── jamendo.py              # Jamendo API 음원 수집 + track id 재사용 방지
-│   └── pexels.py               # Pexels API 영상 수집
+│   ├── pexels.py               # Pexels API 영상 수집
+│   └── pixabay.py              # Pixabay Music API 음원 수집 (zen 파이프라인)
 │
 ├── producer/
 │   ├── ffmpeg_producer.py      # FFmpeg 인코딩, 로고 합성, 숏폼 추출
@@ -96,13 +105,30 @@ AutomationCalmdromedaWithClaudeProject/
 │   ├── youtube.py              # YouTube 업로드 + days_ahead 예약 공개
 │   └── instagram.py            # Instagram Reels 업로드
 │
+├── tests/
+│   └── test_pipeline.py        # 자동화 테스트
+│
 └── assets/
     ├── fonts/
-    │   ├── RIDIBatang.otf
+    │   ├── RIDIBatang.otf      # 한국어 썸네일 폰트
     │   ├── Bitter-Bold.ttf
-    │   └── Bitter-Italic.ttf
-    ├── logo_heading.png
-    └── logo.png
+    │   ├── Bitter-Regular.ttf
+    │   └── Bitter-Italic.ttf   # 영어 썸네일 폰트
+    ├── logo_heading.png        # 좌상단 브랜드 로고
+    └── logo.png                # 우하단 원형 배지
+```
+
+**실행 결과물 (output/, gitignored):**
+```
+output/{session_id}/
+├── videos/         # Pexels에서 받은 원본 영상 클립
+├── audio/          # 믹싱 중간 결과물 (임시)
+├── final.mp4       # 최종 풀영상 (1~3시간)
+├── shorts.mp4      # YouTube Shorts용 40초 클립
+├── thumbnails/     # 생성된 썸네일 PNG
+├── metadata.json   # 세션 전체 메타데이터
+├── pipeline.log    # 실행 로그
+└── temp/           # FFmpeg 임시 파일 (자동 삭제)
 ```
 
 ---
