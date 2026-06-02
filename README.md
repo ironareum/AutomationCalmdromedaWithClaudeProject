@@ -30,10 +30,13 @@
 
 ## 주요 기능
 
+- **완전 자동화** — GitHub Actions로 매주 오전 9시 KST 무인 실행
 - **AI 콘셉트 자동 생성** — Claude Haiku로 제목·태그·설명·썸네일 문구 일괄 생성
 - **자연소리 수집** — Freesound API (CC0/CC BY), 메인/서브/포인트 3레이어 믹싱, -18 LUFS 정규화
+- **3레이어 사운드 믹싱** — 메인/서브/포인트 구조로 자연스러운 공간감 연출, -18 LUFS 정규화
 - **만다라 음원 수집** — Jamendo API (CC), genres·vartags 기반 필터링, 재사용 자동 스킵
 - **영상 수집** — Pexels API (4K), 카테고리별 쿼리, 사람 필터링
+- **영상 자동 제작** — FFmpeg로 1~3시간 풀영상 + YouTube Shorts(40초) 동시 제작
 - **2-Pass FFmpeg 인코딩** — 정규화 → 루프+로고 (Pass 1) → 오디오 머지 (Pass 2, stream copy)
 - **썸네일 자동 생성** — 첫 프레임 색상 추출 + 한/영 타이포그래피 합성 (1280×720)
 - **분산 업로드 예약** — `days_ahead` 파라미터로 D+1·D+2 날짜별 YouTube 예약 공개
