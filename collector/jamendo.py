@@ -39,7 +39,7 @@ class JamendoCollector:
             return set()
         used_ids: set[str] = set()
         for session in data.values():
-            for fname in session.get("sound_files", []):
+            for fname in session.get("sounds", []):
                 # fname 형식: jamendo_{id}_{name}.mp3
                 if fname.startswith("jamendo_"):
                     parts = fname.split("_", 2)
