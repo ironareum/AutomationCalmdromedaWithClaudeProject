@@ -570,8 +570,7 @@ def main():
 
             # (시작초, clip_index, days_ahead)
             clips = [
-                (max(3, effective_duration // 3),      1, 1),  # 1/3 지점 → D+1 (롱폼과 같은 날)
-                ((effective_duration * 2) // 3,        2, 2),  # 2/3 지점 → D+2
+                ((effective_duration * 2) // 3, 1, 2),  # 2/3 지점 → D+2
             ]
             for start_sec, clip_index, days_ahead in clips:
                 sp = producer.extract_shorts_clip(
