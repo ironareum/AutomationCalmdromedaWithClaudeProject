@@ -69,14 +69,14 @@ CATEGORY_TAGS = {
     "ocean":         ["파도소리", "바다소리", "ocean sounds", "wave sound"],
     "forest":        ["숲소리", "자연소리", "forest sounds", "nature asmr"],
     "birds":         ["새소리", "풀벌레소리", "bird sounds", "morning birds"],
-    "white_noise":   ["백색소음", "집중사운드", "white noise", "focus sounds"],
+    # "white_noise":   ["백색소음", "집중사운드", "white noise", "focus sounds"],  # 제외
     "camping":    ["캠핑소리", "모닥불소리", "campfire", "camping sounds"],
     "underwater": ["수중소리", "바닷속소리", "underwater sounds", "aquarium"],
     "summer_night":["여름밤소리", "귀뚜라미소리", "summer night", "cricket sounds"],
     "winter_snow": ["눈소리", "겨울소리", "snow sounds", "winter asmr"],
     "stream":      ["계곡소리", "시냇물소리", "stream sounds", "river asmr"],
     "summer_rain": ["여름빗소리", "소나기소리", "summer rain", "rain leaves"],
-    "train_ride":  ["기차소리", "열차소리", "train sounds", "train asmr"],
+    # "train_ride":  ["기차소리", "열차소리", "train sounds", "train asmr"],  # 제외
     "singing_bowl":["싱잉볼소리", "명상소리", "singing bowl", "tibetan bowl", "meditation sounds"],
 }
 
@@ -87,14 +87,14 @@ CATEGORY_TITLE_KEYWORDS = {
     "ocean":          "파도소리 ASMR",
     "forest":         "숲속 소리 ASMR",
     "birds":          "새소리 ASMR",
-    "white_noise":    "백색소음",
+    # "white_noise":    "백색소음",  # 제외
     "camping":    "모닥불 소리 ASMR",
     "underwater": "수중 소리 ASMR",
     "summer_night":"여름밤 귀뚜라미 ASMR",
     "winter_snow": "겨울 눈소리 ASMR",
     "stream":      "계곡 물소리 ASMR",
     "summer_rain": "여름 빗소리 ASMR",
-    "train_ride":  "기차 소리 ASMR",
+    # "train_ride":  "기차 소리 ASMR",  # 제외
     "singing_bowl":"싱잉볼 명상 ASMR",
     "cave_water":  "동굴 물방울 소리 ASMR",
     "ice_melt":    "얼음 녹는 소리 ASMR",
@@ -103,11 +103,14 @@ CATEGORY_TITLE_KEYWORDS = {
 # 지원 카테고리 전체 목록 (자연 카테고리만 유지)
 ALL_CATEGORIES = [
     "rain", "rain_thunder", "ocean", "forest", "birds",
-    "white_noise", "camping",
+    # "white_noise",  # 제외
+    "camping",
     "underwater", "summer_night",
     "winter_snow", "stream",
     "summer_rain",
-    "cave_water", "ice_melt", "train_ride", "singing_bowl",
+    "cave_water", "ice_melt",
+    # "train_ride",  # 제외
+    "singing_bowl",
 ]
 
 # 비슷한 카테고리 그룹 — 같은 그룹 연속 방지
@@ -115,10 +118,10 @@ CATEGORY_GROUPS = {
     "rain_group":       ["rain", "rain_thunder", "summer_rain"],
     "nature_group":     ["forest", "birds", "stream", "summer_night"],
     "water_group":      ["ocean", "underwater"],
-    "ambient_group":    ["white_noise", "camping"],
+    "ambient_group":    ["camping"],  # white_noise 제외
     "winter_group":     ["winter_snow"],
     "water_drip_group": ["cave_water", "ice_melt"],
-    "transit_group":    ["train_ride"],
+    # "transit_group":    ["train_ride"],  # 제외
     "zen_group":        ["singing_bowl"],
 }
 
@@ -137,7 +140,7 @@ CATEGORY_KO = {
     "ocean":        "파도/바다소리",
     "forest":       "숲 자연소리",
     "birds":        "새소리",
-    "white_noise":  "백색소음",
+    # "white_noise":  "백색소음",  # 제외
     "camping":      "캠핑/모닥불",
     "underwater":   "수족관/바닷속 물 소리",
     "summer_night": "여름밤 귀뚜라미",
@@ -146,7 +149,7 @@ CATEGORY_KO = {
     "summer_rain":  "여름 소나기/나뭇잎 빗소리",
     "cave_water":   "동굴 물방울 소리",
     "ice_melt":     "얼음 녹는 소리",
-    "train_ride":   "열차 실내 소리",
+    # "train_ride":   "열차 실내 소리",  # 제외
     "singing_bowl": "싱잉볼/티베탄 명상 소리",
 }
 
@@ -176,10 +179,10 @@ CATEGORY_VIDEO_QUERIES = {
         "birds nature", "morning forest", "peaceful garden",
         "birds flying", "meadow nature", "bird wildlife"
     ],
-    "white_noise": [
-        "abstract calm", "minimalist nature", "soft light",
-        "peaceful landscape", "calm water", "zen nature"
-    ],
+    # "white_noise": [  # 제외
+    #     "abstract calm", "minimalist nature", "soft light",
+    #     "peaceful landscape", "calm water", "zen nature"
+    # ],
     "camping":     ["campfire night", "tent camping", "forest night",
                     "campfire outdoor", "starry night camping", "bonfire nature"],
     "underwater":  ["underwater ocean", "aquarium fish", "coral reef",
@@ -196,8 +199,8 @@ CATEGORY_VIDEO_QUERIES = {
                     "cave dripping", "dark cave nature"],
     "ice_melt":    ["ice melting water", "ice close up", "frozen water melting",
                     "crystal ice water", "cold water drops"],
-    "train_ride":  ["train window night", "train window landscape", "railway journey",
-                    "night train window", "train window moving"],
+    # "train_ride":  ["train window night", "train window landscape", "railway journey",  # 제외
+    #                 "night train window", "train window moving"],
     "singing_bowl":["tibetan singing bowl close up", "singing bowl meditation",
                     "mandala pattern meditation", "oriental pattern calm",
                     "tibetan bowl water ripple"],
@@ -236,11 +239,11 @@ CATEGORY_SOUNDS = {
         "sub":   ["forest background quiet", "nature ambience soft"],
         "point": ["single bird distant", "wind leaves gentle"],
     },
-    "white_noise": {
-        "main":  ["brown noise smooth", "brown noise sleep ambient", "deep brown noise calm"],
-        "sub":   ["room tone soft ambient", "fan noise soft low"],
-        "point": ["ambient hum quiet", "low frequency hum gentle"],
-    },
+    # "white_noise": {  # 제외
+    #     "main":  ["brown noise smooth", "brown noise sleep ambient", "deep brown noise calm"],
+    #     "sub":   ["room tone soft ambient", "fan noise soft low"],
+    #     "point": ["ambient hum quiet", "low frequency hum gentle"],
+    # },
     "camping": {
         "main":  ["campfire crackling calm", "fire crackling gentle loop"],
         "sub":   ["night forest ambient quiet", "outdoor night calm"],
@@ -282,11 +285,11 @@ CATEGORY_SOUNDS = {
         "sub":   ["stream creek gentle close", "water trickle creek soft", "creek water gentle close"],
         "point": ["ice crack soft single", "water drop single echo"],
     },
-    "train_ride": {
-        "main":  ["train interior ambient calm", "railway ride ambient", "train window moving gentle"],
-        "sub":   ["train rhythm gentle", "rail track ambient soft"],
-        "point": ["train distant whistle soft", "cabin ambient quiet"],
-    },
+    # "train_ride": {  # 제외
+    #     "main":  ["train interior ambient calm", "railway ride ambient", "train window moving gentle"],
+    #     "sub":   ["train rhythm gentle", "rail track ambient soft"],
+    #     "point": ["train distant whistle soft", "cabin ambient quiet"],
+    # },
     "singing_bowl": {
         "main":  ["tibetan singing bowl meditation", "singing bowl ambient gentle", "tibetan bowl resonance calm"],
         "sub":   ["meditation ambient soft", "zen nature ambient calm"],
@@ -301,7 +304,7 @@ CATEGORY_SOUND_HINTS = {
     "ocean":        "파도 소리. 해변에서 듣는 파도/바다 느낌.",
     "forest":       "조용하고 차분한 숲 앰비언스. 강한 바람/하이 노이즈 절대 금지. 나뭇잎 살랑이는 소리+풀벌레+먼 새소리. 고요한 숲 공간감.",
     "birds":        "새소리가 메인. 특정 새 울음소리+아침 합창. 숲 배경음 최소화. 새 울음이 전면에.",
-    "white_noise":  "브라운 노이즈만 허용. 화이트/핑크 노이즈 절대 금지. 저음 위주의 부드럽고 묵직한 소리. 아주 작은 볼륨으로.",
+    # "white_noise":  "브라운 노이즈만 허용. 화이트/핑크 노이즈 절대 금지. 저음 위주의 부드럽고 묵직한 소리. 아주 작은 볼륨으로.",  # 제외
     "camping":      "캠핑. 모닥불 타는 소리+밤 자연음.",
     "underwater":   "수중/바닷속. 물속 기포+수압음+수중 특유의 울림. 파도/해변 소리 절대 금지.",
     "summer_night": "여름밤. 귀뚜라미+매미+밤 곤충소리.",
@@ -310,7 +313,7 @@ CATEGORY_SOUND_HINTS = {
     "summer_rain":  "여름 소나기. 나뭇잎에 떨어지는 빗소리+흙냄새 느낌.",
     "cave_water":   "동굴 물방울. 천천히 떨어지는 물방울+동굴 에코. 고요하고 신비로운 느낌. 심플하게.",
     "ice_melt":     "얼음 녹는 소리. 핵심: 똑똑 물방울 떨어지는 소리(dripping)가 메인. 계곡/시냇물(stream/river)은 서브로만 허용. stream/river 파일이 메인 레이어에 있으면 제거. 차갑고 투명한 느낌.",
-    "train_ride":   "열차 실내. 리드미컬한 레일 소리+기차 진동. 잠들 것 같은 부드러운 기차 주행음. 자연음 절대 금지.",
+    # "train_ride":   "열차 실내. 리드미컬한 레일 소리+기차 진동. 잠들 것 같은 부드러운 기차 주행음. 자연음 절대 금지.",  # 제외
     "singing_bowl": "티베탄 싱잉볼 명상 소리. 핵심: 싱잉볼 공명음이 메인. 목탁/종소리 절대 금지. 배경은 불꽃/바람 등 자연 앰비언스만 허용. 맑고 울리는 금속 공명 느낌. 명상적이고 고요한 분위기.",
 }
 
