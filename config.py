@@ -104,13 +104,13 @@ class Config:
         "ocean":         ["ocean waves", "beach waves", "sea waves night", "calm ocean"],
         "forest":        ["forest nature", "misty forest", "green forest", "forest morning"],
         "birds":         ["birds nature", "morning forest", "peaceful garden", "bird wildlife"],
-        "white_noise":   ["abstract calm", "minimalist nature", "soft light nature", "peaceful landscape"],
+        # "white_noise":   ["abstract calm", "minimalist nature", "soft light nature", "peaceful landscape"],  # 제외
         "camping":      ["campfire night", "tent camping", "forest campfire", "camping nature"],
         "underwater":   ["underwater ocean", "aquarium fish", "deep sea", "underwater coral"],
         "summer_night": ["summer night nature", "night insects", "crickets field", "summer dusk"],
         "winter_snow":  ["snowfall nature", "winter forest snow", "snow falling", "blizzard calm"],
         "stream":       ["forest stream", "mountain creek", "babbling brook", "river stones"],
-        "train_ride":   ["train window night", "train window landscape", "railway journey night"],
+        # "train_ride":   ["train window night", "train window landscape", "railway journey night"],  # 제외
     }
 
     def __post_init__(self):
