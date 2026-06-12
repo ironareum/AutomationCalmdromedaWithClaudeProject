@@ -1,0 +1,19 @@
+{
+  "shorts_20260612_155129": {
+    "title": "빗소리 ASMR | 마음이 고요해지는 창밖 빗소리 | Soft Rain - Sleep Music Relaxation",
+    "category": "rain",
+    "created_at": "2026-06-12 16:06:22",
+    "quality": "pending",
+    "sounds": [
+      "531497_Rain_ambient_white_noise_sound.mp3"
+    ],
+    "videos": [
+      "pexels_6313013_2160p.mp4"
+    ],
+    "audio_lufs": -26.7,
+    "source_lufs": {
+      "531497_Rain_ambient_white_noise_sound.mp3": -27.0
+    },
+    "excluded_sources": {}
+  }
+}
