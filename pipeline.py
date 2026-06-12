@@ -269,7 +269,7 @@ def run_pipeline(concept: dict):
                     title=shorts_title,
                     description=shorts_desc,
                     tags=shorts_tags,
-                    thumbnail_path=thumbnail,
+                    thumbnail_path=None,  # 쇼츠는 썸네일 미설정 — YouTube가 영상 프레임 자동 사용
                     language=concept.get("language", "ko"),
                     hour_kst=cfg.shorts_upload_hour_kst,
                     minute_kst=cfg.shorts_upload_minute_kst,
