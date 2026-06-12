@@ -17,9 +17,10 @@ name: Daily Calmdromeda Pipeline
 
 on:
   schedule:
-    # 매주 화·토 오전 9시 KST (= UTC 00:00) 실행
-    # 영상 제작 후 YouTube 익일(수·일) 오후 7시 30분 KST 예약 공개
-    - cron: '0 0 * * 2,6'
+    # 매주 화·목 오전 9시 KST (= UTC 00:00) 실행
+    # 화 실행 → 롱폼 D+1(수) 19:30, 숏폼 D+2(목) 18:30
+    # 목 실행 → 롱폼 D+1(금) 19:30, 숏폼 D+2(토) 18:30
+    - cron: '0 0 * * 2,4'
   workflow_dispatch:  # 수동 실행 버튼 (테스트용)
 
 jobs:
@@ -39,14 +40,16 @@ jobs:
       - name: Fetch data files
         run: |
           git fetch origin data 2>/dev/null || echo "data 브랜치 없음 — 첫 실행"
-          if git show origin/data:used_assets.json > used_assets.json 2>/dev/null; then
+          if git show origin/data:used_assets.json 2>/dev/null > used_assets.json && [ -s used_assets.json ]; then
             echo "used_assets.json 복원됨"
           else
+            rm -f used_assets.json
             echo "used_assets.json 없음 — 새로 시작"
           fi
-          if git show origin/data:history.txt > history.txt 2>/dev/null; then
+          if git show origin/data:history.txt 2>/dev/null > history.txt && [ -s history.txt ]; then
             echo "history.txt 복원됨"
           else
+            rm -f history.txt
             echo "history.txt 없음"
           fi
 

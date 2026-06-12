@@ -108,7 +108,9 @@ def load_used_assets() -> dict:
                                   "sounds": [...], "videos": [...] }, ... }
     """
     if USED_ASSETS_FILE.exists():
-        return json.loads(USED_ASSETS_FILE.read_text(encoding="utf-8"))
+        content = USED_ASSETS_FILE.read_text(encoding="utf-8").strip()
+        if content:
+            return json.loads(content)
     return {}
 
 
