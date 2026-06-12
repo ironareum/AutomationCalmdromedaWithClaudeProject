@@ -389,7 +389,7 @@ def upload_youtube(
         title=title,
         description=desc,
         tags=tags,
-        thumbnail_path=thumbnail,
+        thumbnail_path=None if is_shorts else thumbnail,  # 쇼츠는 썸네일 미설정
         language="ko",
         hour_kst=hour_kst,
         minute_kst=minute_kst,

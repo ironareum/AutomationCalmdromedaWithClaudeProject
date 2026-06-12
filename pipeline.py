@@ -269,10 +269,11 @@ def run_pipeline(concept: dict):
                     title=shorts_title,
                     description=shorts_desc,
                     tags=shorts_tags,
-                    thumbnail_path=thumbnail,
+                    thumbnail_path=None,  # 쇼츠는 썸네일 미설정 — YouTube가 영상 프레임 자동 사용
                     language=concept.get("language", "ko"),
                     hour_kst=cfg.shorts_upload_hour_kst,
                     minute_kst=cfg.shorts_upload_minute_kst,
+                    days_ahead=2,  # 롱폼(D+1)과 같은 날 금지 → D+2 업로드
                 )
                 if shorts_result:
                     metadata["youtube_shorts"] = shorts_result
