@@ -26,33 +26,32 @@ jobs:
         with:
           ref: master
 
-      # ── 2. data 브랜치에서 암호화 파일 가져오기 ─────────────────────
-      - name: Fetch encrypted data files
+      # ── 2. data 브랜치에서 데이터 파일 가져오기 ─────────────────────
+      - name: Fetch data files
         run: |
           git fetch origin data 2>/dev/null || echo "data 브랜치 없음 — 첫 실행"
-          if git show origin/data:used_assets.json.enc > used_assets.json.enc 2>/dev/null; then
-            echo "used_assets.json.enc 복원됨"
+          if git show origin/data:used_assets.json > used_assets.json 2>/dev/null; then
+            echo "used_assets.json 복원됨"
           else
-            echo "used_assets.json.enc 없음 — 새로 시작"
+            echo "used_assets.json 없음 — 새로 시작"
           fi
-          if git show origin/data:history.txt.enc > history.txt.enc 2>/dev/null; then
-            echo "history.txt.enc 복원됨"
+          if git show origin/data:history.txt > history.txt 2>/dev/null; then
+            echo "history.txt 복원됨"
           else
-            echo "history.txt.enc 없음"
+            echo "history.txt 없음"
           fi
 
-      # ── 3. 암호화 파일 복호화 ────────────────────────────────────────
+      # ── 3. 복호화 (비활성화 — 평문 저장) ────────────────────────────
       - name: Decrypt data files
-        env:
-          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: |
-          pip install cryptography python-dotenv --quiet
-          if [ -f used_assets.json.enc ]; then
-            python crypto_utils.py --decrypt used_assets.json.enc
-          fi
-          if [ -f history.txt.enc ]; then
-            python crypto_utils.py --decrypt history.txt.enc
-          fi
+          : # 암호화 비활성화 — data 브랜치에 평문으로 저장
+          # pip install cryptography python-dotenv --quiet
+          # if [ -f used_assets.json.enc ]; then
+          #   python crypto_utils.py --decrypt used_assets.json.enc
+          # fi
+          # if [ -f history.txt.enc ]; then
+          #   python crypto_utils.py --decrypt history.txt.enc
+          # fi
 
       # ── 4. Python 환경 설정 ──────────────────────────────────────────
       - name: Set up Python
@@ -110,7 +109,7 @@ jobs:
           FREESOUND_API_KEY:          ${{ secrets.FREESOUND_API_KEY }}
           PEXELS_API_KEY:             ${{ secrets.PEXELS_API_KEY }}
           ANTHROPIC_API_KEY:          ${{ secrets.ANTHROPIC_API_KEY }}
-          ENCRYPTION_KEY:             ${{ secrets.ENCRYPTION_KEY }}
+          # ENCRYPTION_KEY:             ${{ secrets.ENCRYPTION_KEY }}  # 암호화 비활성화
           UPLOAD_ENABLED:             "true"
           SHORTS_UPLOAD_HOUR_KST:     "18"
           SHORTS_UPLOAD_MINUTE_KST:   "30"
@@ -118,26 +117,24 @@ jobs:
           YOUTUBE_CLIENT_SECRET:      "credentials/client_secret.json"
         run: python shorts_pipeline.py
 
-      # ── 9. 실행 후 암호화 & data 브랜치에 커밋 ──────────────────────
-      - name: Encrypt and commit data files
+      # ── 9. data 브랜치에 커밋 (평문 저장) ──────────────────────────
+      - name: Commit data files
         if: always()
-        env:
-          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: |
           if [ -f used_assets.json ]; then
-            python crypto_utils.py --encrypt used_assets.json
-            cp used_assets.json.enc /tmp/used_assets.json.enc
+            # python crypto_utils.py --encrypt used_assets.json  # 암호화 비활성화
+            cp used_assets.json /tmp/used_assets.json
           fi
           if [ -f history.txt ]; then
-            python crypto_utils.py --encrypt history.txt
-            cp history.txt.enc /tmp/history.txt.enc
+            # python crypto_utils.py --encrypt history.txt  # 암호화 비활성화
+            cp history.txt /tmp/history.txt
           fi
 
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git fetch origin data 2>/dev/null || true
-          rm -f used_assets.json.enc history.txt.enc
+          rm -f used_assets.json history.txt
           if git ls-remote --heads origin data | grep -q data; then
             git checkout -B data origin/data
           else
@@ -145,12 +142,12 @@ jobs:
             git rm -rf . --quiet 2>/dev/null || true
           fi
 
-          [ -f /tmp/used_assets.json.enc ] && cp /tmp/used_assets.json.enc used_assets.json.enc
-          [ -f /tmp/history.txt.enc ]      && cp /tmp/history.txt.enc history.txt.enc
+          [ -f /tmp/used_assets.json ] && cp /tmp/used_assets.json used_assets.json
+          [ -f /tmp/history.txt ]      && cp /tmp/history.txt history.txt
 
-          [ -f used_assets.json.enc ] && git add used_assets.json.enc
-          [ -f history.txt.enc ]      && git add history.txt.enc
-          [ -f blacklist.json ]       && git add blacklist.json
+          [ -f used_assets.json ] && git add used_assets.json
+          [ -f history.txt ]      && git add history.txt
+          [ -f blacklist.json ]   && git add blacklist.json
 
           TODAY=$(date -u '+%Y-%m-%d %H:%M UTC')
           git diff --cached --quiet || git commit -m "data(shorts): ${TODAY}"
