@@ -558,8 +558,8 @@ def main():
 
             # 업로드 (롱폼: 다음날 19:30 KST)
             yt = upload_youtube(longform_path, concept, cfg,
-                                hour_kst=19, minute_kst=30, thumbnail=thumbnail,
-                                description_override=desc)
+                                hour_kst=19, minute_kst=45, thumbnail=thumbnail,
+                                days_ahead=2, description_override=desc)  # D+2 19:45 공개
             if yt:
                 log.info(f"롱폼 YouTube: {yt['url']} (공개: {yt['publish_at']})")
 
@@ -570,7 +570,7 @@ def main():
 
             # (시작초, clip_index, days_ahead)
             clips = [
-                ((effective_duration * 2) // 3, 1, 2),  # 2/3 지점 → D+2
+                ((effective_duration * 2) // 3, 1, 3),  # 2/3 지점 → D+3 18:45 공개
             ]
             for start_sec, clip_index, days_ahead in clips:
                 sp = producer.extract_shorts_clip(
@@ -582,7 +582,7 @@ def main():
                 if sp:
                     yt_s = upload_youtube(
                         sp, concept, cfg,
-                        is_shorts=True, hour_kst=18, minute_kst=30,
+                        is_shorts=True, hour_kst=18, minute_kst=45,
                         days_ahead=days_ahead,
                         description_override=desc,
                     )
