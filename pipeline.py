@@ -217,6 +217,7 @@ def run_pipeline(concept: dict):
                 language=concept.get("language", "ko"),
                 hour_kst=cfg.upload_hour_kst,
                 minute_kst=cfg.upload_minute_kst,
+                days_ahead=2,  # 비공개 분석 시간 확보 → D+2 공개
             )
             if upload_result:
                 metadata["youtube"] = upload_result
@@ -273,7 +274,7 @@ def run_pipeline(concept: dict):
                     language=concept.get("language", "ko"),
                     hour_kst=cfg.shorts_upload_hour_kst,
                     minute_kst=cfg.shorts_upload_minute_kst,
-                    days_ahead=2,  # 롱폼(D+1)과 같은 날 금지 → D+2 업로드
+                    days_ahead=3,  # 롱폼(D+2) 다음날 → D+3 업로드
                 )
                 if shorts_result:
                     metadata["youtube_shorts"] = shorts_result
