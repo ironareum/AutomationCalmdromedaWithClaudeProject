@@ -15,5 +15,22 @@
       "531497_Rain_ambient_white_noise_sound.mp3": -27.0
     },
     "excluded_sources": {}
+  },
+  "mandala_20260614_042141": {
+    "title": "명상음악 | 마음이 고요해지는 1시간 | Meditation Music - Mandala Meditation Music",
+    "category": "mandala",
+    "created_at": "2026-06-14 05:19:40",
+    "quality": "pending",
+    "sounds": [
+      "jamendo_979839_Ruby.mp3"
+    ],
+    "videos": [
+      "pexels_856382_1080p.mp4"
+    ],
+    "audio_lufs": -11.6,
+    "source_lufs": {
+      "jamendo_979839_Ruby.mp3": -11.1
+    },
+    "excluded_sources": {}
   }
 }
