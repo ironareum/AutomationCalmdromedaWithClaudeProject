@@ -186,6 +186,7 @@ class TestPreflightChecks:
         missing = [str(f) for f in fonts if not f.exists()]
         assert not missing, f"폰트 파일 없음: {missing}"
 
+    @pytest.mark.skip(reason="암호화 비활성화 — 평문 저장으로 변경")
     def test_encryption_key_set(self):
         """암호화 키 환경변수 존재 여부"""
         key = os.environ.get("ENCRYPTION_KEY", "")
