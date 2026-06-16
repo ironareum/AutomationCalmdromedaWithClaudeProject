@@ -162,13 +162,26 @@ class JamendoCollector:
         required_vartags: list[str] | None = None,
         exclude_tags: list[str] | None = None,
     ) -> tuple[Path, dict] | None:
-        """태그로 검색 후 가장 긴 트랙 1개 다운로드."""
+        """태그로 검색 후 가장 긴 트랙 1개 다운로드.
+        vartag 조건 후보가 0개면 vartag 없이 재검색(폴백).
+        """
         tracks = self.search(
             tags,
             required_vartags=required_vartags,
             exclude_tags=exclude_tags,
-            limit=20,
+            limit=50,
         )
+
+        # vartag 필터 후 후보가 없으면 조건 완화해서 재검색
+        if not tracks and required_vartags:
+            log.warning("Jamendo vartag 조건 후보 없음 — vartag 없이 재검색(폴백)")
+            tracks = self.search(
+                tags,
+                required_vartags=None,
+                exclude_tags=exclude_tags,
+                limit=50,
+            )
+
         if not tracks:
             log.error("Jamendo: 검색 결과 없음")
             return None
@@ -178,6 +191,18 @@ class JamendoCollector:
             before = len(tracks)
             tracks = [t for t in tracks if str(t.get("id", "")) not in used_ids]
             log.info(f"Jamendo 재사용 스킵: {before - len(tracks)}개 제외, {len(tracks)}개 후보")
+
+        if not tracks:
+            log.warning("Jamendo: 모든 후보가 이미 사용됨 — used_ids 무시하고 재선택")
+            tracks = self.search(
+                tags,
+                required_vartags=required_vartags,
+                exclude_tags=exclude_tags,
+                limit=50,
+            )
+            if not tracks:
+                log.error("Jamendo: 검색 결과 없음")
+                return None
 
         for track in tracks:
             path = self.download(track)

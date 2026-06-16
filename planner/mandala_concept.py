@@ -46,18 +46,36 @@ PEXELS_QUERIES = {
         "tibetan mandala geometric",
         "geometric pattern meditation",
         "oriental mandala art",
+        "sacred geometry abstract",
+        "ink art flowing water abstract",
+        "japanese zen garden aerial",
+        "kaleidoscope pattern loop",
+        "lotus flower blooming timelapse",
+        "abstract light trails colorful",
     ],
     "fractal": [
         "fractal animation psychedelic",
         "mandala fractal pattern",
         "psychedelic visual abstract",
         "geometric fractal motion",
+        "abstract tunnel vortex loop",
+        "neon light abstract motion",
+        "colorful smoke abstract",
+        "underwater abstract bubbles",
+        "abstract digital art flowing",
+        "aurora borealis timelapse",
     ],
     "cosmic_meditation": [
         "galaxy timelapse nebula",
         "cosmic space stars",
         "nebula timelapse meditation",
         "milky way stars timelapse",
+        "deep space universe zoom",
+        "northern lights aurora timelapse",
+        "star trail long exposure",
+        "moon surface timelapse",
+        "ocean bioluminescence night",
+        "cloud timelapse aerial sunset",
     ],
 }
 
@@ -114,7 +132,13 @@ def _pick_category(used_assets_path: Path) -> str:
     if not used_assets_path.exists():
         return MANDALA_CATEGORIES[0]
 
-    data = json.loads(used_assets_path.read_text(encoding="utf-8"))
+    content = used_assets_path.read_text(encoding="utf-8").strip()
+    if not content:
+        return MANDALA_CATEGORIES[0]
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError:
+        return MANDALA_CATEGORIES[0]
     mandala_sessions = {k: v for k, v in data.items() if k.startswith("mandala_")}
     recent = sorted(mandala_sessions.keys(), reverse=True)[:len(MANDALA_CATEGORIES)]
     used_cats = [mandala_sessions[s].get("category", "") for s in recent]
@@ -263,7 +287,13 @@ JSON만 응답:
 def _get_recent_mandala_titles(used_assets_path: Path, n: int = 10) -> list[str]:
     if not used_assets_path.exists():
         return []
-    data = json.loads(used_assets_path.read_text(encoding="utf-8"))
+    content = used_assets_path.read_text(encoding="utf-8").strip()
+    if not content:
+        return []
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError:
+        return []
     mandala_sessions = {k: v for k, v in data.items() if k.startswith("mandala_")}
     recent = sorted(mandala_sessions.keys(), reverse=True)[:n]
     return [mandala_sessions[s].get("title", "") for s in recent if mandala_sessions[s].get("title")]
