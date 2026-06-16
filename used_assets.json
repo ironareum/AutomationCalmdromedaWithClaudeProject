@@ -32,5 +32,24 @@
       "jamendo_979839_Ruby.mp3": -11.1
     },
     "excluded_sources": {}
+  },
+  "20260616_044711": {
+    "title": "숲속 소리 ASMR | 불안한 마음이 녹아드는 소리 | Forest Morning - Sleep Music Nature Sounds",
+    "category": "forest",
+    "created_at": "2026-06-16 06:20:21",
+    "quality": "pending",
+    "sounds": [
+      "506268_Forest_Background_Noise.mp3",
+      "268953_Cicada_Insects_8_25_13_10_09_P.mp3"
+    ],
+    "videos": [
+      "pexels_10978948_1080p.mp4"
+    ],
+    "audio_lufs": -26.1,
+    "source_lufs": {
+      "506268_Forest_Background_Noise.mp3": -13.9,
+      "268953_Cicada_Insects_8_25_13_10_09_P.mp3": -30.5
+    },
+    "excluded_sources": {}
   }
 }
