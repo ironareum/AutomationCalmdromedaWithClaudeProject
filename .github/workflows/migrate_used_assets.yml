@@ -1,0 +1,118 @@
+# ================================================================
+# [1회성] used_assets 복호화 & 평문 파일에 합산
+# ================================================================
+# 실행: Actions 탭 → "Migrate used_assets" → Run workflow
+# 완료 후 이 파일은 삭제해도 됨
+# ================================================================
+
+name: Migrate used_assets (decrypt & merge)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # ── 1. master 코드 체크아웃 (crypto_utils.py 포함) ──────────
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      # ── 2. data 브랜치에서 암호화/평문 파일 추출 ────────────────
+      - name: Fetch data branch files
+        run: |
+          git fetch origin data
+
+          if git show origin/data:used_assets.json.enc > /tmp/used_assets.json.enc 2>/dev/null && [ -s /tmp/used_assets.json.enc ]; then
+            echo "used_assets.json.enc 가져옴 ($(wc -c < /tmp/used_assets.json.enc) bytes)"
+          else
+            echo "::error::used_assets.json.enc 없음 — 마이그레이션 불필요"
+            exit 1
+          fi
+
+          if git show origin/data:used_assets.json > /tmp/used_assets_current.json 2>/dev/null && [ -s /tmp/used_assets_current.json ]; then
+            echo "현재 used_assets.json 가져옴"
+          else
+            echo "{}" > /tmp/used_assets_current.json
+            echo "현재 used_assets.json 없음 — 빈 값으로 시작"
+          fi
+
+      # ── 3. Python + cryptography 설치 ───────────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install cryptography
+        run: pip install cryptography --quiet
+
+      # ── 4. 복호화 후 합산 ────────────────────────────────────────
+      - name: Decrypt and merge
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, base64
+          from pathlib import Path
+          from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+          if not os.environ.get("ENCRYPTION_KEY"):
+              raise SystemExit("ENCRYPTION_KEY 시크릿 없음")
+
+          key    = base64.urlsafe_b64decode(os.environ["ENCRYPTION_KEY"].encode())
+          aesgcm = AESGCM(key)
+
+          raw       = Path("/tmp/used_assets.json.enc").read_bytes()
+          plaintext = aesgcm.decrypt(raw[:12], raw[12:], None)
+          old       = json.loads(plaintext.decode("utf-8"))
+          print(f"복호화 완료: {len(old)}개 세션")
+
+          cur = json.loads(Path("/tmp/used_assets_current.json").read_text(encoding="utf-8"))
+          print(f"현재 평문: {len(cur)}개 세션")
+
+          # 구 데이터 기반 + 신규 데이터 덮어쓰기 (최신 세션 우선)
+          merged = {**old, **cur}
+          print(f"합산 결과: {len(merged)}개 세션")
+
+          # 카테고리별 통계 출력
+          from collections import Counter
+          cats = Counter(v.get("category","?") for v in merged.values())
+          for cat, cnt in sorted(cats.items()):
+              print(f"  {cat}: {cnt}개")
+
+          Path("/tmp/used_assets_merged.json").write_text(
+              json.dumps(merged, indent=2, ensure_ascii=False), encoding="utf-8"
+          )
+          print("저장 완료: /tmp/used_assets_merged.json")
+          PYEOF
+
+      # ── 5. 합산 결과를 data 브랜치에 커밋 ──────────────────────
+      - name: Commit merged file to data branch
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # data 브랜치로 전환 (작업 파일 충돌 방지 위해 먼저 제거)
+          rm -f used_assets.json used_assets.json.enc history.txt history.txt.enc
+
+          if git ls-remote --heads origin data | grep -q data; then
+            git checkout -B data origin/data
+          else
+            git checkout --orphan data
+            git rm -rf . --quiet 2>/dev/null || true
+          fi
+
+          cp /tmp/used_assets_merged.json used_assets.json
+          git add used_assets.json
+
+          if git diff --cached --quiet; then
+            echo "변경 없음 — 커밋 스킵"
+          else
+            git commit -m "data: decrypt & merge used_assets (one-time migration)"
+            git push origin data
+            echo "data 브랜치 업데이트 완료"
+          fi
