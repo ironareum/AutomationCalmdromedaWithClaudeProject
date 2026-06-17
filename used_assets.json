@@ -1484,5 +1484,22 @@
       "268953_Cicada_Insects_8_25_13_10_09_P.mp3": -30.5
     },
     "excluded_sources": {}
+  },
+  "mandala_20260617_060835": {
+    "title": "명상음악 | 별 하나하나가 빛나는 1시간 | Meditation Music - Cosmic Fractal Ambient",
+    "category": "cosmic_meditation",
+    "created_at": "2026-06-17 07:01:10",
+    "quality": "pending",
+    "sounds": [
+      "jamendo_2127645_Dinas_Affaraon.mp3"
+    ],
+    "videos": [
+      "pexels_16923263_2160p.mp4"
+    ],
+    "audio_lufs": -24.9,
+    "source_lufs": {
+      "jamendo_2127645_Dinas_Affaraon.mp3": -24.4
+    },
+    "excluded_sources": {}
   }
 }
