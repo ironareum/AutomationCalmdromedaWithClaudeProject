@@ -98,7 +98,7 @@ def run_shorts_pipeline():
         produce_result = producer.produce(
             sound_files=sound_files,
             video_files=video_files,
-            duration_seconds=45,
+            duration_seconds=20,
             title=concept["title"],
             category=concept.get("category", ""),
         )
@@ -108,7 +108,7 @@ def run_shorts_pipeline():
 
         output_video, used_sounds, used_videos, audio_lufs, source_lufs, excluded_sources = produce_result
 
-        shorts_path = producer.extract_shorts_clip(output_video, duration=40)
+        shorts_path = producer.extract_shorts_clip(output_video, duration=15)
         if not shorts_path:
             log.error("Shorts 크롭 실패 — 파이프라인 중단")
             return None

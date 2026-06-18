@@ -46,7 +46,7 @@ log = logging.getLogger(__name__)
 
 DURATION_LONGFORM = 1 * 3600   # 3600초
 DURATION_TEST     = 3 * 60     # 180초 (테스트 모드)
-DURATION_SHORTS   = 40          # 40초
+DURATION_SHORTS   = 15          # 15초
 
 
 # ── FFmpeg 유틸 ────────────────────────────────────────────────────────────
