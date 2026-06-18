@@ -242,7 +242,7 @@ def run_pipeline(concept: dict):
         shorts_path   = None
         if cfg.upload_enabled:
             log.info("Step 8: [쇼츠 제작] Extracting Shorts clip...")
-            shorts_path = producer.extract_shorts_clip(output_video, duration=40)
+            shorts_path = producer.extract_shorts_clip(output_video, duration=15)
 
             if shorts_path:
                 log.info("Step 8: [쇼츠 업로드] YouTube Shorts 업로드 시작...")
