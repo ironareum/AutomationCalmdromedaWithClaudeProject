@@ -1501,5 +1501,22 @@
       "jamendo_2127645_Dinas_Affaraon.mp3": -24.4
     },
     "excluded_sources": {}
+  },
+  "20260618_023906": {
+    "title": "숲속 소리 ASMR | 고요한 숲길을 걸으며 마음이 차분해지는 소리 | Forest Walk - Sleep Music Nature Sounds",
+    "category": "forest",
+    "created_at": "2026-06-18 03:51:40",
+    "quality": "pending",
+    "sounds": [
+      "268956_Cicada_Insects_8_25_13_10_06_P.mp3"
+    ],
+    "videos": [
+      "pexels_4881918_1440p.mp4"
+    ],
+    "audio_lufs": -32.1,
+    "source_lufs": {
+      "268956_Cicada_Insects_8_25_13_10_06_P.mp3": -31.2
+    },
+    "excluded_sources": {}
   }
 }
