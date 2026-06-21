@@ -1518,5 +1518,22 @@
       "268956_Cicada_Insects_8_25_13_10_06_P.mp3": -31.2
     },
     "excluded_sources": {}
+  },
+  "mandala_20260621_042804": {
+    "title": "명상음악 | 색깔이 피어나듯 마음이 열리는 1시간 | Meditation Music - Mandala Fractal Healing",
+    "category": "mandala",
+    "created_at": "2026-06-21 05:36:41",
+    "quality": "pending",
+    "sounds": [
+      "jamendo_979850_Periodot.mp3"
+    ],
+    "videos": [
+      "pexels_33997980_2160p.mp4"
+    ],
+    "audio_lufs": -13.3,
+    "source_lufs": {
+      "jamendo_979850_Periodot.mp3": -12.8
+    },
+    "excluded_sources": {}
   }
 }
