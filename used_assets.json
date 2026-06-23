@@ -1535,5 +1535,24 @@
       "jamendo_979850_Periodot.mp3": -12.8
     },
     "excluded_sources": {}
+  },
+  "20260623_021114": {
+    "title": "숲속 소리 ASMR | 새벽 숲에서 마음이 맑아지는 소리 | Forest Morning - Sleep Music Nature Sounds",
+    "category": "forest",
+    "created_at": "2026-06-23 04:23:24",
+    "quality": "pending",
+    "sounds": [
+      "634511_Spring_Birds__Woodpeckers_Lo.mp3",
+      "268960_Cicada_Insects_8_25_13_9_55_PM.mp3"
+    ],
+    "videos": [
+      "pexels_10821750_1440p.mp4"
+    ],
+    "audio_lufs": -37.6,
+    "source_lufs": {
+      "634511_Spring_Birds__Woodpeckers_Lo.mp3": -34.1,
+      "268960_Cicada_Insects_8_25_13_9_55_PM.mp3": -33.7
+    },
+    "excluded_sources": {}
   }
 }
