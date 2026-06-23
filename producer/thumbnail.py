@@ -31,6 +31,7 @@ import random
 import subprocess
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
+from config import Config
 
 log = logging.getLogger(__name__)
 
@@ -208,6 +209,7 @@ class ThumbnailGenerator:
         title_sub:   str = "잠잘때 듣기 좋은",
         subtitle_en: str = "Healing Music",
         output_name: str | None = None,
+        style:       str = "classic",
     ) -> Path:
         """영상 첫 프레임을 배경으로 썸네일 생성"""
         bg = None
@@ -222,7 +224,7 @@ class ThumbnailGenerator:
         if not bg:
             log.info("썸네일 배경: 그라디언트 폴백")
 
-        return self._render(bg, title, category, title_sub, subtitle_en, output_name)
+        return self._render(bg, title, category, title_sub, subtitle_en, output_name, style)
 
     def generate_from_image(
         self,
@@ -232,6 +234,7 @@ class ThumbnailGenerator:
         title_sub:   str = "잠잘때 듣기 좋은",
         subtitle_en: str = "Healing Music",
         output_name: str | None = None,
+        style:       str = "classic",
     ) -> Path:
         """이미지 파일을 배경으로 썸네일 생성 (jpg/png 지원)"""
         bg = None
@@ -241,7 +244,7 @@ class ThumbnailGenerator:
         except Exception as e:
             log.warning(f"이미지 로드 실패: {e}")
 
-        return self._render(bg, title, category, title_sub, subtitle_en, output_name)
+        return self._render(bg, title, category, title_sub, subtitle_en, output_name, style)
 
     def _render(
         self,
@@ -251,8 +254,11 @@ class ThumbnailGenerator:
         title_sub:   str,
         subtitle_en: str,
         output_name: str | None,
+        style:       str = "classic",
     ) -> Path:
         """공통 썸네일 렌더링 (배경 이미지를 받아 텍스트/로고/저장까지 처리)"""
+        if style == "cosmic":
+            return self._render_cosmic(bg, title, subtitle_en, output_name)
         W, H = self.SIZE
         t    = THEMES.get(category, THEMES["forest"])
 
@@ -358,4 +364,71 @@ class ThumbnailGenerator:
         out   = self.thumb_dir / fname
         base.convert("RGB").save(out, "JPEG", quality=95)
         log.info(f"Thumbnail saved: {out.name}")
+        return out
+
+    def _render_cosmic(
+        self,
+        bg:          Image.Image | None,
+        title:       str,
+        subtitle_en: str,
+        output_name: str | None,
+    ) -> Path:
+        """코스믹 모드: 감정 카피(#FFE135) + 영문 감성 문구(흰색 이탤릭) 2줄"""
+        W, H = self.SIZE
+        alpha = Config.thumbnail_cosmic_overlay_alpha
+
+        # 제목에서 emotion_copy 추출 ("감정 카피 | SEO키워드" 포맷)
+        emotion_copy = title.split(" | ")[0].strip() if " | " in title else title.strip()
+
+        # ── 1. 배경 합성
+        if bg:
+            base = bg.resize((W, H), Image.LANCZOS).convert("RGBA")
+            ov   = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+            od   = ImageDraw.Draw(ov)
+            for y in range(H):
+                a = int(alpha * 0.6 + alpha * 0.4 * y / H)
+                od.line([(0, y), (W, y)], fill=(0, 0, 0, a))
+            base = Image.alpha_composite(base, ov)
+        else:
+            base = Image.new("RGBA", (W, H), (5, 5, 20, 255))
+
+        # ── 2. 글로우 (dark purple/navy)
+        gl = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        gd = ImageDraw.Draw(gl)
+        cx, cy = W // 2, H // 2 - 10
+        for r in range(260, 0, -26):
+            a = int(14 * (1 - r / 260))
+            gd.ellipse([(cx - r * 2, cy - r), (cx + r * 2, cy + r)], fill=(50, 30, 100, a))
+        base = Image.alpha_composite(base.convert("RGBA"), gl)
+        draw = ImageDraw.Draw(base)
+
+        # ── 3. 폰트 준비
+        sc    = _stroke_color(bg) if bg else (5, 5, 20)
+        max_w = int(W * 0.85)
+        em_size = _fit_font_size(emotion_copy, max_w, max_size=70, min_size=24)
+        f_em  = _fko(em_size)
+        f_sub = _fen(36, "italic")
+
+        # ── 4. 레이아웃 (세로 중앙 정렬)
+        em_h  = int(em_size * 1.2)
+        sub_h = f_sub.getbbox("A")[3] + 8
+        gap   = 18
+        total = em_h + gap + sub_h
+        y_em  = (H - total) // 2
+        y_sub = y_em + em_h + gap
+
+        # ── 5. 텍스트 렌더링
+        _stroke_center(draw, emotion_copy, y_em, f_em, W,
+                       fill=(255, 225, 53), sc=sc, sw=5)
+        _stroke_center(draw, subtitle_en, y_sub, f_sub, W,
+                       fill=(255, 255, 255, 220), sc=sc, sw=3)
+
+        # ── 6. 좌상단 로고만
+        base = _paste_logo_tl(base)
+
+        # ── 7. 저장
+        fname = output_name or f"thumb_cosmic_{random.randint(1000, 9999)}.jpg"
+        out   = self.thumb_dir / fname
+        base.convert("RGB").save(out, "JPEG", quality=95)
+        log.info(f"Thumbnail (cosmic) saved: {out.name}")
         return out

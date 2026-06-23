@@ -207,14 +207,10 @@ def generate_cosmic_concept(
     {
         "category": "galaxy",
         "title": "오늘 밤은 우주 속으로 사라져도 괜찮아 | 수면 명상음악 1시간",
-        "shorts_title": "잠이 안 올 때 틀어두면 되는 영상",
+        "shorts_title": "잠이 안 와서 틀었다가 잠든 영상",
         "title_sub": "오늘 밤만큼은",
         "subtitle_en": "Drift into the cosmos",
-        "intro_lines": [
-            "오늘 하루가 너무 무거웠다면,",
-            "잠깐 우주 속으로 사라져도 괜찮아.",
-            "138억 광년 너머엔, 아무도 너를 찾지 않으니까."
-        ],
+        "shorts_intro": "오늘 밤, 은하수는 2천억 개의 별로 빛나고 있다.",
         "description_ko": "...",
         "description_en": "...",
         "tags": [...],
@@ -256,18 +252,16 @@ def generate_cosmic_concept(
 2. title_back: 제목 뒷부분 SEO 키워드 (아래 목록에서 emotion_copy 분위기에 맞는 것 1개 선택)
 {title_back_str}
 
-3. intro_lines: 영상 시작 화면에 표시될 감성글 3줄 (리스트)
-   - 각 줄 20자 이내 (한글)
-   - 우주/신비 70% + 위로/감성 30% 비율
-   - 3줄이 하나의 흐름으로 이어지는 구조
-   - 철학적이고 신비로운 톤, 평범한 위로 문구 절대 금지
-   - ✅ 예시:
-     ["오늘 하루가 너무 무거웠다면,", "잠깐 우주 속으로 사라져도 괜찮아.", "138억 광년 너머엔, 아무도 너를 찾지 않으니까."]
-   - ❌ 금지: "지친 마음을 내려놓고" 류의 식상한 표현
+3. shorts_intro: 쇼츠 시작 화면에 표시될 한 줄 (30자 이내)
+   - 화자 없이 팩트 또는 시적 관찰 — "너/넌" 직접 화법 절대 금지
+   - 우주적 사실이나 이미지에서 출발, 보는 사람이 스스로 의미 부여하게
+   - ✅ 예시: "오늘 밤, 은하수는 2천억 개의 별로 빛나고 있다."
+   - ✅ 예시: "지구에서 가장 가까운 별까지는 4.2광년이다."
+   - ❌ 금지: "지친 마음을 내려놓고", "쉬어도 괜찮아" 류 직접 위로
 
 4. shorts_title: 쇼츠용 감성 제목 (30자 이내, 롱폼 제목과 완전히 다르게)
-   - "내 얘기다" 느낌, 공감/감성 자극
-   - 예: "잠이 안 올 때 틀어두면 되는 영상", "머릿속 끄고 싶을 때"
+   - 직접 화법("너/넌") 금지, 상황/현상 묘사로 공감 자극
+   - 예: "잠이 안 와서 틀었다가 잠든 영상", "머릿속이 꺼지는 소리"
 
 5. title_sub: 썸네일 상단 짧은 문구 (8자 이내)
    - 예: "오늘 밤만큼은", "지금 이 순간", "별빛 아래서"
@@ -283,7 +277,7 @@ JSON만 응답:
 {{
   "emotion_copy": "...",
   "title_back": "...",
-  "intro_lines": ["...", "...", "..."],
+  "shorts_intro": "...",
   "shorts_title": "...",
   "title_sub": "...",
   "subtitle_en": "...",
@@ -312,12 +306,8 @@ JSON만 응답:
         ai = {
             "emotion_copy":   "오늘 밤은 우주 속으로 사라져도 괜찮아",
             "title_back":     "수면 명상음악 1시간",
-            "intro_lines":    [
-                "오늘 하루가 너무 무거웠다면,",
-                "잠깐 우주 속으로 사라져도 괜찮아.",
-                "138억 광년 너머엔, 아무도 너를 찾지 않으니까.",
-            ],
-            "shorts_title":   "잠이 안 올 때 틀어두면 되는 영상",
+            "shorts_intro":   "오늘 밤, 은하수는 2천억 개의 별로 빛나고 있다.",
+            "shorts_title":   "잠이 안 와서 틀었다가 잠든 영상",
             "title_sub":      "오늘 밤만큼은",
             "subtitle_en":    "Drift into the cosmos",
             "description_ko": (
@@ -344,14 +334,10 @@ JSON만 응답:
     ai_tags    = ai.get("tags", [])
     merged_tags = list(dict.fromkeys(ai_tags + cat_tags + COMMON_TAGS))[:50]
 
-    # intro_lines 검증 (3줄 보장)
-    intro_lines = ai.get("intro_lines", [])
-    if not isinstance(intro_lines, list) or len(intro_lines) != 3:
-        intro_lines = [
-            "오늘 하루가 너무 무거웠다면,",
-            "잠깐 우주 속으로 사라져도 괜찮아.",
-            "138억 광년 너머엔, 아무도 너를 찾지 않으니까.",
-        ]
+    # shorts_intro 검증 (1줄 문자열 보장)
+    shorts_intro = ai.get("shorts_intro", "")
+    if not isinstance(shorts_intro, str) or not shorts_intro.strip():
+        shorts_intro = "오늘 밤, 은하수는 2천억 개의 별로 빛나고 있다."
 
     return {
         "category":                 category,
@@ -359,7 +345,7 @@ JSON만 응답:
         "shorts_title":             ai.get("shorts_title", ""),
         "title_sub":                ai.get("title_sub", "오늘 밤만큼은"),
         "subtitle_en":              ai.get("subtitle_en", "Drift into the cosmos"),
-        "intro_lines":              intro_lines,
+        "shorts_intro":             shorts_intro,
         "description_ko":           ai.get("description_ko", ""),
         "description_en":           ai.get("description_en", ""),
         "tags":                     merged_tags,

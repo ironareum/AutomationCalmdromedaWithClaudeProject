@@ -81,6 +81,7 @@ class Config:
     # Thumbnail
     thumbnail_size: tuple = (1280, 720)
     thumbnail_font_size: int = 52
+    thumbnail_cosmic_overlay_alpha: int = 60  # 코스믹 썸네일 오버레이 투명도 (0=투명, 255=불투명)
 
     # Upload 설정
     upload_enabled: bool = os.getenv("UPLOAD_ENABLED", "true").lower() == "true"
