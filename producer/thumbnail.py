@@ -229,7 +229,7 @@ class ThumbnailGenerator:
         subtitle_en: str = "Healing Music",
         output_name: str | None = None,
         style:       str = "classic",
-        font_style:  str = "nanum",
+        font_style:  str = "ridibatang",
     ) -> Path:
         """영상 첫 프레임을 배경으로 썸네일 생성"""
         bg = None
@@ -255,7 +255,7 @@ class ThumbnailGenerator:
         subtitle_en: str = "Healing Music",
         output_name: str | None = None,
         style:       str = "classic",
-        font_style:  str = "nanum",
+        font_style:  str = "ridibatang",
     ) -> Path:
         """이미지 파일을 배경으로 썸네일 생성 (jpg/png 지원)"""
         bg = None
@@ -276,7 +276,7 @@ class ThumbnailGenerator:
         subtitle_en: str,
         output_name: str | None,
         style:       str = "classic",
-        font_style:  str = "nanum",
+        font_style:  str = "ridibatang",
     ) -> Path:
         """공통 썸네일 렌더링 (배경 이미지를 받아 텍스트/로고/저장까지 처리)"""
         if style == "cosmic":
@@ -394,7 +394,7 @@ class ThumbnailGenerator:
         title:       str,
         subtitle_en: str,
         output_name: str | None,
-        font_style:  str = "nanum",
+        font_style:  str = "ridibatang",
     ) -> Path:
         """코스믹 모드: 감정 카피(#FFE135) + 영문 감성 문구(흰색) 2줄
         font_style: "ridibatang" | "nanum" | "pretendard"
