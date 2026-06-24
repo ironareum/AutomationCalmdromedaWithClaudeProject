@@ -58,6 +58,25 @@ def _fen(size, style="italic"):
     }[style]), size)
 
 
+def _fnanum(size, weight="bold"):
+    return ImageFont.truetype(_resolve({
+        "regular": "NanumMyeongjo.ttf",
+        "bold":    "NanumMyeongjoBold.ttf",
+        "extrabold": "NanumMyeongjoExtraBold.ttf",
+    }[weight]), size)
+
+
+def _fpretendard(size, weight="extrabold"):
+    return ImageFont.truetype(_resolve({
+        "regular":    "Pretendard-Regular.ttf",
+        "medium":     "Pretendard-Medium.ttf",
+        "semibold":   "Pretendard-SemiBold.ttf",
+        "bold":       "Pretendard-Bold.ttf",
+        "extrabold":  "Pretendard-ExtraBold.ttf",
+        "black":      "Pretendard-Black.ttf",
+    }[weight]), size)
+
+
 # ── 로고 ──────────────────────────────────────────────────────────────
 def _rm_black(img: Image.Image, thr=45) -> Image.Image:
     img = img.convert("RGBA")
@@ -210,6 +229,7 @@ class ThumbnailGenerator:
         subtitle_en: str = "Healing Music",
         output_name: str | None = None,
         style:       str = "classic",
+        font_style:  str = "ridibatang",
     ) -> Path:
         """영상 첫 프레임을 배경으로 썸네일 생성"""
         bg = None
@@ -224,7 +244,7 @@ class ThumbnailGenerator:
         if not bg:
             log.info("썸네일 배경: 그라디언트 폴백")
 
-        return self._render(bg, title, category, title_sub, subtitle_en, output_name, style)
+        return self._render(bg, title, category, title_sub, subtitle_en, output_name, style, font_style)
 
     def generate_from_image(
         self,
@@ -235,6 +255,7 @@ class ThumbnailGenerator:
         subtitle_en: str = "Healing Music",
         output_name: str | None = None,
         style:       str = "classic",
+        font_style:  str = "ridibatang",
     ) -> Path:
         """이미지 파일을 배경으로 썸네일 생성 (jpg/png 지원)"""
         bg = None
@@ -244,7 +265,7 @@ class ThumbnailGenerator:
         except Exception as e:
             log.warning(f"이미지 로드 실패: {e}")
 
-        return self._render(bg, title, category, title_sub, subtitle_en, output_name, style)
+        return self._render(bg, title, category, title_sub, subtitle_en, output_name, style, font_style)
 
     def _render(
         self,
@@ -255,10 +276,11 @@ class ThumbnailGenerator:
         subtitle_en: str,
         output_name: str | None,
         style:       str = "classic",
+        font_style:  str = "ridibatang",
     ) -> Path:
         """공통 썸네일 렌더링 (배경 이미지를 받아 텍스트/로고/저장까지 처리)"""
         if style == "cosmic":
-            return self._render_cosmic(bg, title, subtitle_en, output_name)
+            return self._render_cosmic(bg, title, subtitle_en, output_name, font_style)
         W, H = self.SIZE
         t    = THEMES.get(category, THEMES["forest"])
 
@@ -372,8 +394,11 @@ class ThumbnailGenerator:
         title:       str,
         subtitle_en: str,
         output_name: str | None,
+        font_style:  str = "ridibatang",
     ) -> Path:
-        """코스믹 모드: 감정 카피(#FFE135) + 영문 감성 문구(흰색 이탤릭) 2줄"""
+        """코스믹 모드: 감정 카피(#FFE135) + 영문 감성 문구(흰색) 2줄
+        font_style: "ridibatang" | "nanum" | "pretendard"
+        """
         W, H = self.SIZE
         alpha = Config.thumbnail_cosmic_overlay_alpha
 
@@ -402,12 +427,23 @@ class ThumbnailGenerator:
         base = Image.alpha_composite(base.convert("RGBA"), gl)
         draw = ImageDraw.Draw(base)
 
-        # ── 3. 폰트 준비
+        # ── 3. 폰트 준비 (font_style별 분기)
         sc    = _stroke_color(bg) if bg else (5, 5, 20)
         max_w = int(W * 0.85)
+
+        if font_style == "nanum":
+            def _make_ko(size): return _fnanum(size, "bold")
+            def _make_en(size): return _fnanum(size, "regular")
+        elif font_style == "pretendard":
+            def _make_ko(size): return _fpretendard(size, "extrabold")
+            def _make_en(size): return _fpretendard(size, "semibold")
+        else:  # ridibatang (default)
+            def _make_ko(size): return _fko(size)
+            def _make_en(size): return _fen(size, "italic")
+
         em_size = _fit_font_size(emotion_copy, max_w, max_size=70, min_size=24)
-        f_em  = _fko(em_size)
-        f_sub = _fen(36, "italic")
+        f_em  = _make_ko(em_size)
+        f_sub = _make_en(36)
 
         # ── 4. 레이아웃 (세로 중앙 정렬)
         em_h  = int(em_size * 1.2)
@@ -427,8 +463,8 @@ class ThumbnailGenerator:
         base = _paste_logo_tl(base)
 
         # ── 7. 저장
-        fname = output_name or f"thumb_cosmic_{random.randint(1000, 9999)}.jpg"
+        fname = output_name or f"thumb_cosmic_{font_style}_{random.randint(1000, 9999)}.jpg"
         out   = self.thumb_dir / fname
         base.convert("RGB").save(out, "JPEG", quality=95)
-        log.info(f"Thumbnail (cosmic) saved: {out.name}")
+        log.info(f"Thumbnail (cosmic/{font_style}) saved: {out.name}")
         return out
