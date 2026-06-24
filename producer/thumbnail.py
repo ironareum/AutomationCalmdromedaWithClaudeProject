@@ -229,7 +229,7 @@ class ThumbnailGenerator:
         subtitle_en: str = "Healing Music",
         output_name: str | None = None,
         style:       str = "classic",
-        font_style:  str = "ridibatang",
+        font_style:  str = "nanum",
     ) -> Path:
         """영상 첫 프레임을 배경으로 썸네일 생성"""
         bg = None
@@ -255,7 +255,7 @@ class ThumbnailGenerator:
         subtitle_en: str = "Healing Music",
         output_name: str | None = None,
         style:       str = "classic",
-        font_style:  str = "ridibatang",
+        font_style:  str = "nanum",
     ) -> Path:
         """이미지 파일을 배경으로 썸네일 생성 (jpg/png 지원)"""
         bg = None
@@ -276,7 +276,7 @@ class ThumbnailGenerator:
         subtitle_en: str,
         output_name: str | None,
         style:       str = "classic",
-        font_style:  str = "ridibatang",
+        font_style:  str = "nanum",
     ) -> Path:
         """공통 썸네일 렌더링 (배경 이미지를 받아 텍스트/로고/저장까지 처리)"""
         if style == "cosmic":
@@ -394,7 +394,7 @@ class ThumbnailGenerator:
         title:       str,
         subtitle_en: str,
         output_name: str | None,
-        font_style:  str = "ridibatang",
+        font_style:  str = "nanum",
     ) -> Path:
         """코스믹 모드: 감정 카피(#FFE135) + 영문 감성 문구(흰색) 2줄
         font_style: "ridibatang" | "nanum" | "pretendard"
@@ -441,23 +441,33 @@ class ThumbnailGenerator:
             def _make_ko(size): return _fko(size)
             def _make_en(size): return _fen(size, "italic")
 
-        em_size = _fit_font_size(emotion_copy, max_w, max_size=70, min_size=24)
+        em_size = _fit_font_size(emotion_copy, max_w, max_size=52, min_size=20)
         f_em  = _make_ko(em_size)
-        f_sub = _make_en(36)
+        f_sub = _make_en(28)
 
-        # ── 4. 레이아웃 (세로 중앙 정렬)
+        # ── 4. 레이아웃 (좌하단 배치)
         em_h  = int(em_size * 1.2)
-        sub_h = f_sub.getbbox("A")[3] + 8
-        gap   = 18
+        sub_h = f_sub.getbbox("A")[3] + 6
+        gap   = 14
+        pad_x = int(W * 0.06)   # 좌측 여백
+        pad_y = int(H * 0.12)   # 하단 여백
         total = em_h + gap + sub_h
-        y_em  = (H - total) // 2
+        y_em  = H - pad_y - total
         y_sub = y_em + em_h + gap
 
-        # ── 5. 텍스트 렌더링
-        _stroke_center(draw, emotion_copy, y_em, f_em, W,
-                       fill=(255, 225, 53), sc=sc, sw=5)
-        _stroke_center(draw, subtitle_en, y_sub, f_sub, W,
-                       fill=(255, 255, 255, 220), sc=sc, sw=3)
+        # ── 5. 텍스트 렌더링 (좌측 정렬)
+        def _stroke_left(draw, text, y, fnt, fill, sc, sw):
+            for dx in range(-sw, sw+1):
+                for dy in range(-sw, sw+1):
+                    if dx == 0 and dy == 0: continue
+                    if abs(dx) + abs(dy) > sw + 2: continue
+                    draw.text((pad_x+dx, y+dy), text, font=fnt, fill=(*sc, 225))
+            draw.text((pad_x, y), text, font=fnt, fill=fill)
+
+        _stroke_left(draw, emotion_copy, y_em, f_em,
+                     fill=(255, 225, 53), sc=sc, sw=4)
+        _stroke_left(draw, subtitle_en, y_sub, f_sub,
+                     fill=(255, 255, 255, 210), sc=sc, sw=3)
 
         # ── 6. 좌상단 로고만
         base = _paste_logo_tl(base)
