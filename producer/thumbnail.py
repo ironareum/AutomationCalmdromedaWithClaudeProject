@@ -445,17 +445,13 @@ class ThumbnailGenerator:
         f_em  = _make_ko(em_size)
         f_sub = _make_en(28)
 
-        # ── 4. 레이아웃 (좌하단 배치)
+        # ── 4. 레이아웃 (좌하단 배치, 1줄)
         em_h  = int(em_size * 1.2)
-        sub_h = f_sub.getbbox("A")[3] + 6
-        gap   = 14
         pad_x = int(W * 0.06)   # 좌측 여백
         pad_y = int(H * 0.12)   # 하단 여백
-        total = em_h + gap + sub_h
-        y_em  = H - pad_y - total
-        y_sub = y_em + em_h + gap
+        y_em  = H - pad_y - em_h
 
-        # ── 5. 텍스트 렌더링 (좌측 정렬)
+        # ── 5. 텍스트 렌더링 (좌측 정렬, emotion_copy만)
         def _stroke_left(draw, text, y, fnt, fill, sc, sw):
             for dx in range(-sw, sw+1):
                 for dy in range(-sw, sw+1):
@@ -466,8 +462,6 @@ class ThumbnailGenerator:
 
         _stroke_left(draw, emotion_copy, y_em, f_em,
                      fill=(255, 225, 53), sc=sc, sw=4)
-        _stroke_left(draw, subtitle_en, y_sub, f_sub,
-                     fill=(255, 255, 255, 210), sc=sc, sw=3)
 
         # ── 6. 좌상단 로고만
         base = _paste_logo_tl(base)
