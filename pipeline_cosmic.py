@@ -93,6 +93,19 @@ def _logo_inputs_and_filter(producer: VideoProducer) -> tuple[list, str, str]:
     return extra_inputs, ";".join(parts), final
 
 
+def _logo_inputs_and_filter_cosmic(producer: VideoProducer) -> tuple[list, str, str]:
+    """코스믹 파이프라인 전용: 우하단 원형 로고만 (좌상단 헤딩 로고 제외)"""
+    if not LOGO_PATH.exists():
+        return [], "", "0:v"
+
+    extra_inputs = ["-i", str(LOGO_PATH)]
+    filter_complex = (
+        "[1:v]scale=180:-2,format=rgba,colorchannelmixer=aa=0.6[lc];"
+        "[0:v][lc]overlay=W-w-20:H-h-20[vout]"
+    )
+    return extra_inputs, filter_complex, "vout"
+
+
 # ── Step 1: 음원 수집 (Jamendo, 가장 긴 트랙 선택) ───────────────────────
 
 def collect_longest_music(concept: dict, work_dir: Path, cfg: Config) -> tuple[list[Path], dict | None]:
@@ -199,7 +212,7 @@ def produce_longform(
 
     # Pass 1-b: stream_loop + logo
     video_loop = temp_dir / "video_loop.mp4"
-    extra_in, filter_complex, final_map = _logo_inputs_and_filter(producer)
+    extra_in, filter_complex, final_map = _logo_inputs_and_filter_cosmic(producer)
 
     if filter_complex:
         cmd_loop = [
@@ -274,7 +287,7 @@ def produce_shorts(
 
     # 비디오 15s (9:16, loop + logo)
     video_15 = temp_dir / "video_15s.mp4"
-    extra_in, filter_complex, final_map = _logo_inputs_and_filter(producer)
+    extra_in, filter_complex, final_map = _logo_inputs_and_filter_cosmic(producer)
     vf_crop = "crop=ih*9/16:ih:(iw-ih*9/16)/2:0,scale=1080:1920"
 
     if filter_complex:

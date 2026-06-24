@@ -33,7 +33,7 @@ COSMIC_CATEGORIES = [
 
 # ── Jamendo 설정 ───────────────────────────────────────────────────────────
 
-JAMENDO_SEARCH_TAGS = ["ambient", "atmospheric"]
+JAMENDO_SEARCH_TAGS = ["ambient"]
 
 _VARTAGS_BASE = ["meditative", "meditation", "calm", "dreamy"]
 JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
@@ -43,7 +43,7 @@ JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
     "nebula":  _VARTAGS_BASE + ["dreamy"],
 }
 
-JAMENDO_EXCLUDE_TAGS = ["piano", "upbeat", "dance", "pop", "rock", "jazz"]
+JAMENDO_EXCLUDE_TAGS = ["piano", "upbeat", "dance", "pop", "rock", "jazz", "dark", "eerie"]
 
 # ── Pexels 영상 쿼리 ───────────────────────────────────────────────────────
 

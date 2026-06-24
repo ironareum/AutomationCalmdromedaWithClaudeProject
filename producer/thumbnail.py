@@ -441,17 +441,22 @@ class ThumbnailGenerator:
             def _make_ko(size): return _fko(size)
             def _make_en(size): return _fen(size, "italic")
 
-        em_size = _fit_font_size(emotion_copy, max_w, max_size=52, min_size=20)
-        f_em  = _make_ko(em_size)
-        f_sub = _make_en(28)
+        # 2줄 분리
+        l1, l2 = _split_two_lines(emotion_copy)
+        longer = l1 if len(l1) >= len(l2) else l2
 
-        # ── 4. 레이아웃 (좌하단 배치, 1줄)
+        em_size = _fit_font_size(longer, max_w, max_size=52, min_size=20)
+        f_em  = _make_ko(em_size)
+
+        # ── 4. 레이아웃 (좌상단 배치, 2줄)
         em_h  = int(em_size * 1.2)
         pad_x = int(W * 0.06)   # 좌측 여백
-        pad_y = int(H * 0.12)   # 하단 여백
-        y_em  = H - pad_y - em_h
+        pad_y = int(H * 0.11)   # 상단 여백
+        gap   = int(em_size * 0.15)
+        y_l1  = pad_y
+        y_l2  = y_l1 + em_h + gap
 
-        # ── 5. 텍스트 렌더링 (좌측 정렬, emotion_copy만)
+        # ── 5. 텍스트 렌더링 (좌측 정렬, 2줄)
         def _stroke_left(draw, text, y, fnt, fill, sc, sw):
             for dx in range(-sw, sw+1):
                 for dy in range(-sw, sw+1):
@@ -460,13 +465,11 @@ class ThumbnailGenerator:
                     draw.text((pad_x+dx, y+dy), text, font=fnt, fill=(*sc, 225))
             draw.text((pad_x, y), text, font=fnt, fill=fill)
 
-        _stroke_left(draw, emotion_copy, y_em, f_em,
-                     fill=(255, 225, 53), sc=sc, sw=4)
+        _stroke_left(draw, l1, y_l1, f_em, fill=(255, 225, 53), sc=sc, sw=4)
+        if l2:
+            _stroke_left(draw, l2, y_l2, f_em, fill=(255, 225, 53), sc=sc, sw=4)
 
-        # ── 6. 좌상단 로고만
-        base = _paste_logo_tl(base)
-
-        # ── 7. 저장
+        # ── 6. 저장 (로고 없음)
         fname = output_name or f"thumb_cosmic_{font_style}_{random.randint(1000, 9999)}.jpg"
         out   = self.thumb_dir / fname
         base.convert("RGB").save(out, "JPEG", quality=95)
