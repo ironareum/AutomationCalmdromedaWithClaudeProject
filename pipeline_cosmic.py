@@ -343,8 +343,6 @@ def _make_description(concept: dict, jamendo_meta: dict | None = None) -> str:
         "",
         concept.get("description_ko", ""),
         "",
-        concept.get("description_en", ""),
-        "",
         "─────────────────────────",
         "✦ Calmdromeda — 캄드로메다",
         "우주/코스믹 수면음악 채널 | 잠들기 위한 1시간",

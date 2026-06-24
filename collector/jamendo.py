@@ -108,6 +108,12 @@ class JamendoCollector:
                 log.debug(f"skip (excluded): {track.get('name')}")
                 continue
 
+            # 상업적 라이선스 필터: NC(비상업적) 제외 — 수익 창출 불가
+            license_url = (track.get("license_ccurl") or "").lower()
+            if "/by-nc" in license_url:
+                log.debug(f"skip (NC 라이선스): {track.get('name')} — {license_url}")
+                continue
+
             filtered.append(track)
 
         filtered.sort(key=lambda t: int(t.get("duration", 0)), reverse=True)
