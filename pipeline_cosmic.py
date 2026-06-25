@@ -337,10 +337,60 @@ def produce_shorts(
 
 # ── 설명문 생성 ───────────────────────────────────────────────────────────
 
+def _overlay_intro_text(clip_path: Path, shorts_intro: str, work_dir: Path) -> Path | None:
+    """쇼츠 인트로 텍스트 B-스타일 순차 페이드 오버레이 (나눔명조)
+    줄당 3s: fade-in 0.5s → hold 2s → fade-out 0.5s, 줄간 공백 0.25s
+    """
+    lines = [l.strip() for l in shorts_intro.split("\n") if l.strip()]
+    if not lines:
+        return clip_path
+
+    font_path = Path(__file__).parent / "assets" / "fonts" / "NanumMyeongjo.ttf"
+    if not font_path.exists():
+        log.warning("나눔명조 폰트 없음 — 텍스트 오버레이 스킵")
+        return clip_path
+
+    segment, gap, fade = 3.0, 0.25, 0.5
+    vf_parts = []
+
+    for i, line in enumerate(lines[:4]):
+        ts = round(i * (segment + gap), 2)
+        te = round(ts + segment, 2)
+        safe = line.replace(":", "\\:").replace("'", " ")
+        alpha = (
+            f"if(lt(t\\,{ts})\\,0\\,"
+            f"if(lt(t\\,{round(ts+fade,2)})\\,(t-{ts})/{fade}\\,"
+            f"if(lt(t\\,{round(te-fade,2)})\\,1\\,"
+            f"if(lt(t\\,{te})\\,({te}-t)/{fade}\\,0))))"
+        )
+        vf_parts.append(
+            f"drawtext="
+            f"fontfile='{str(font_path)}':"
+            f"text='{safe}':"
+            f"fontsize=40:fontcolor=white:"
+            f"shadowcolor=black@0.6:shadowx=2:shadowy=2:"
+            f"x=(w-text_w)/2:y=h*0.30:"
+            f"alpha='{alpha}'"
+        )
+
+    out = work_dir / (clip_path.stem + "_intro.mp4")
+    if not _run([
+        "ffmpeg", "-y", "-i", str(clip_path),
+        "-vf", ",".join(vf_parts),
+        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+        "-c:a", "copy", str(out),
+    ], "쇼츠 인트로 텍스트 오버레이"):
+        return clip_path
+
+    try:
+        clip_path.unlink()
+    except Exception:
+        pass
+    return out
+
+
 def _make_description(concept: dict, jamendo_meta: dict | None = None) -> str:
     lines = [
-        concept["title"],
-        "",
         concept.get("description_ko", ""),
         "",
         "─────────────────────────",
@@ -533,6 +583,7 @@ def main():
                 video_path=video_file,
                 subtitle_en=concept.get("subtitle_en", "Drift into the cosmos"),
                 style="cosmic",
+                font_style="nanum",
             )
 
             # 메타데이터
@@ -581,7 +632,7 @@ def main():
             log.info("=== [숏폼] 15s 제작 시작 ===")
             producer = VideoProducer(work_dir)
 
-            start_sec = (effective_duration * 2) // 3
+            start_sec = 0
             sp = producer.extract_shorts_clip(
                 longform_path,
                 duration=DURATION_SHORTS,
@@ -589,6 +640,9 @@ def main():
                 clip_index=1,
             )
             if sp:
+                intro = concept.get("shorts_intro", "")
+                if intro:
+                    sp = _overlay_intro_text(sp, intro, work_dir) or sp
                 yt_s = upload_youtube(
                     sp, concept, cfg,
                     is_shorts=True, hour_kst=18, minute_kst=45,

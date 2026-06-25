@@ -33,7 +33,7 @@ COSMIC_CATEGORIES = [
 
 # ── Jamendo 설정 ───────────────────────────────────────────────────────────
 
-JAMENDO_SEARCH_TAGS = ["ambient"]
+JAMENDO_SEARCH_TAGS = ["ambient", "sleep", "lullaby"]
 
 _VARTAGS_BASE = ["meditative", "meditation", "calm", "dreamy"]
 JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
@@ -43,7 +43,7 @@ JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
     "nebula":  _VARTAGS_BASE + ["dreamy"],
 }
 
-JAMENDO_EXCLUDE_TAGS = ["piano", "upbeat", "dance", "pop", "rock", "jazz", "dark", "eerie"]
+JAMENDO_EXCLUDE_TAGS = ["upbeat", "dance", "pop", "rock", "jazz", "dark", "eerie"]
 
 # ── Pexels 영상 쿼리 ───────────────────────────────────────────────────────
 
@@ -256,12 +256,13 @@ def generate_cosmic_concept(
 2. title_back: 제목 뒷부분 SEO 키워드 (아래 목록에서 emotion_copy 분위기에 맞는 것 1개 선택)
 {title_back_str}
 
-3. shorts_intro: 쇼츠 시작 화면에 표시될 한 줄 (30자 이내)
-   - 화자 없이 팩트 또는 시적 관찰 — "너/넌" 직접 화법 절대 금지
-   - 우주적 사실이나 이미지에서 출발, 보는 사람이 스스로 의미 부여하게
-   - ✅ 예시: "오늘 밤, 은하수는 2천억 개의 별로 빛나고 있다."
-   - ✅ 예시: "지구에서 가장 가까운 별까지는 4.2광년이다."
-   - ❌ 금지: "지친 마음을 내려놓고", "쉬어도 괜찮아" 류 직접 위로
+3. shorts_intro: 쇼츠 시작 화면 텍스트 4줄 (\n 으로 구분, 각 줄 20자 이내)
+   - 잠들기 직전 혹은 꿈에서 깨어난 직후 쓴 일기체
+   - "~았다" "~었다" "~인지 모른다" 과거형 일기체 유지
+   - 구조: ①시간/장소 불확실 → ②감각 경계 허물어짐 → ③조용한 공간 감각 → ④{cat_name} 연결 담담한 우주 이미지
+   - 마지막 줄: 짧고 심플 (예: "별이 많았다." "오로라가 흘렀다." "성운이 피어났다.")
+   - 수치/과학 표현 금지, 전문용어 금지, "너/넌" 직접 화법 절대 금지
+   - ✅ 예시: "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다."
 
 4. shorts_title: 쇼츠용 감성 제목 (30자 이내, 롱폼 제목과 완전히 다르게)
    - 직접 화법("너/넌") 금지, 상황/현상 묘사로 공감 자극
@@ -273,7 +274,10 @@ def generate_cosmic_concept(
 6. subtitle_en: 썸네일 영문 감성 문구 (2~4단어, 시적이고 감성적)
    - 직역 금지. 예: "Drift into the cosmos", "Lost among the stars", "Fade into stardust", "Above the noise"
 
-7. description_ko: 한국어 설명 2~3문장 (감성적, 구어체)
+7. description_ko: 한국어 설명 2~3문장 (감성적, 구어체, 일상 언어)
+   - 전문 음악 용어 금지 (신디사이저, 드론, 텍스처, 주파수, 앰비언트 등)
+   - 소리를 풍경/감각으로 묘사 (예: "조용히 흐르는 음악", "밤하늘 아래 잠겨드는 소리")
+   - 읽으면 잠이 올 것 같은 문체
 8. description_en: 영문 설명 2~3문장 (글로벌 시청자용)
 9. tags: 한국어 위주 10~15개 태그
 
@@ -310,7 +314,7 @@ JSON만 응답:
         ai = {
             "emotion_copy":   "오늘 밤은 우주 속으로 사라져도 괜찮아",
             "title_back":     "수면 명상음악 1시간",
-            "shorts_intro":   "오늘 밤, 은하수는 2천억 개의 별로 빛나고 있다.",
+            "shorts_intro":   "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다.",
             "shorts_title":   "잠이 안 와서 틀었다가 잠든 영상",
             "title_sub":      "오늘 밤만큼은",
             "subtitle_en":    "Drift into the cosmos",
@@ -341,7 +345,7 @@ JSON만 응답:
     # shorts_intro 검증 (1줄 문자열 보장)
     shorts_intro = ai.get("shorts_intro", "")
     if not isinstance(shorts_intro, str) or not shorts_intro.strip():
-        shorts_intro = "오늘 밤, 은하수는 2천억 개의 별로 빛나고 있다."
+        shorts_intro = "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다."
 
     return {
         "category":                 category,
