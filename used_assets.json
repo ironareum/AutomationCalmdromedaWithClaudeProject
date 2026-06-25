@@ -1554,5 +1554,22 @@
       "268960_Cicada_Insects_8_25_13_9_55_PM.mp3": -33.7
     },
     "excluded_sources": {}
+  },
+  "20260625_021244": {
+    "title": "숲속 소리 ASMR | 고요한 새벽숲에서 마음이 맑아지는 소리 | Forest Morning - Sleep Music Nature Sounds",
+    "category": "forest",
+    "created_at": "2026-06-25 04:13:56",
+    "quality": "pending",
+    "sounds": [
+      "268955_Cicada_Insects_8_25_13_10_06_P.mp3"
+    ],
+    "videos": [
+      "pexels_31807897_2160p.mp4"
+    ],
+    "audio_lufs": -30.9,
+    "source_lufs": {
+      "268955_Cicada_Insects_8_25_13_10_06_P.mp3": -30.2
+    },
+    "excluded_sources": {}
   }
 }
