@@ -338,10 +338,12 @@ def produce_shorts(
 # ── 설명문 생성 ───────────────────────────────────────────────────────────
 
 def _overlay_intro_text(clip_path: Path, shorts_intro: str, work_dir: Path) -> Path | None:
-    """쇼츠 인트로 텍스트 B-스타일 순차 페이드 오버레이 (나눔명조)
+    """Pillow로 텍스트 PNG 생성 + FFmpeg overlay + fade — B-스타일 순차 오버레이
     줄당 3s: fade-in 0.5s → hold 2s → fade-out 0.5s, 줄간 공백 0.25s
     """
-    lines = [l.strip() for l in shorts_intro.split("\n") if l.strip()]
+    from PIL import Image, ImageDraw, ImageFont
+
+    lines = [l.strip() for l in shorts_intro.split("\n") if l.strip()][:4]
     if not lines:
         return clip_path
 
@@ -350,48 +352,78 @@ def _overlay_intro_text(clip_path: Path, shorts_intro: str, work_dir: Path) -> P
         log.warning("나눔명조 폰트 없음 — 텍스트 오버레이 스킵")
         return clip_path
 
+    W, H = 1080, 1920
     segment, gap, fade = 3.0, 0.25, 0.5
-    vf_parts = []
 
-    for i, line in enumerate(lines[:4]):
-        ts = round(i * (segment + gap), 2)
-        te = round(ts + segment, 2)
-        safe = line.replace(":", "\\:").replace("'", " ")
-        alpha = (
-            f"if(lt(t\\,{ts})\\,0\\,"
-            f"if(lt(t\\,{round(ts+fade,2)})\\,(t-{ts})/{fade}\\,"
-            f"if(lt(t\\,{round(te-fade,2)})\\,1\\,"
-            f"if(lt(t\\,{te})\\,({te}-t)/{fade}\\,0))))"
-        )
-        vf_parts.append(
-            f"drawtext="
-            f"fontfile='{str(font_path)}':"
-            f"text='{safe}':"
-            f"fontsize=40:fontcolor=white:"
-            f"shadowcolor=black@0.6:shadowx=2:shadowy=2:"
-            f"x=(w-text_w)/2:y=h*0.30:"
-            f"alpha='{alpha}'"
-        )
-
-    out = work_dir / (clip_path.stem + "_intro.mp4")
-    if not _run([
-        "ffmpeg", "-y", "-i", str(clip_path),
-        "-vf", ",".join(vf_parts),
-        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-        "-c:a", "copy", str(out),
-    ], "쇼츠 인트로 텍스트 오버레이"):
+    # Pillow로 RGBA 텍스트 PNG 생성 (투명 배경 + 흰 글씨 + 검은 그림자)
+    try:
+        font = ImageFont.truetype(str(font_path), 40)
+    except Exception as e:
+        log.warning(f"폰트 로드 실패 — 스킵: {e}")
         return clip_path
 
-    try:
-        clip_path.unlink()
-    except Exception:
-        pass
-    return out
+    png_paths: list[Path] = []
+    for i, line in enumerate(lines):
+        img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        bbox = draw.textbbox((0, 0), line, font=font)
+        tw = bbox[2] - bbox[0]
+        x = (W - tw) // 2
+        y = int(H * 0.30)
+        draw.text((x + 2, y + 2), line, font=font, fill=(0, 0, 0, 160))
+        draw.text((x, y), line, font=font, fill=(255, 255, 255, 255))
+        p = work_dir / f"_intro_text_{i}.png"
+        img.save(str(p))
+        png_paths.append(p)
+
+    # FFmpeg: -loop 1로 PNG를 비디오 스트림화 → fade in/out → overlay
+    cmd = ["ffmpeg", "-y", "-i", str(clip_path)]
+    for p in png_paths:
+        cmd += ["-loop", "1", "-i", str(p)]
+
+    fc: list[str] = []
+    prev = "0:v"
+    for i in range(len(lines)):
+        ts = round(i * (segment + gap), 2)
+        te = round(ts + segment, 2)
+        idx = i + 1
+        fc.append(
+            f"[{idx}:v]format=rgba,"
+            f"fade=t=in:st={ts}:d={fade}:alpha=1,"
+            f"fade=t=out:st={round(te - fade, 2)}:d={fade}:alpha=1[t{i}]"
+        )
+        fc.append(f"[{prev}][t{i}]overlay=0:0[v{i}]")
+        prev = f"v{i}"
+
+    out = work_dir / (clip_path.stem + "_intro.mp4")
+    ok = _run([
+        "ffmpeg", "-y", "-i", str(clip_path),
+        *[arg for p in png_paths for arg in ["-loop", "1", "-i", str(p)]],
+        "-filter_complex", ";".join(fc),
+        "-map", f"[{prev}]", "-map", "0:a",
+        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+        "-c:a", "copy", "-t", "15",
+        str(out),
+    ], "쇼츠 인트로 텍스트 오버레이")
+
+    for p in png_paths:
+        try:
+            p.unlink()
+        except Exception:
+            pass
+
+    if ok and out.exists():
+        try:
+            clip_path.unlink()
+        except Exception:
+            pass
+        return out
+    return clip_path
 
 
 def _make_description(concept: dict, jamendo_meta: dict | None = None) -> str:
     lines = [
-        concept.get("description_ko", ""),
+        "\n".join(s.strip() for s in concept.get("description_ko", "").split(". ") if s.strip()),
         "",
         "─────────────────────────",
         "✦ Calmdromeda — 캄드로메다",
