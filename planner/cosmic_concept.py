@@ -33,7 +33,7 @@ COSMIC_CATEGORIES = [
 
 # ── Jamendo 설정 ───────────────────────────────────────────────────────────
 
-JAMENDO_SEARCH_TAGS = ["ambient", "sleep", "lullaby"]
+JAMENDO_SEARCH_TAGS = ["ambient", "sleep", "lullaby", "meditation", "relaxing", "atmospheric"]
 
 _VARTAGS_BASE = ["meditative", "meditation", "calm", "dreamy"]
 JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
