@@ -22,7 +22,7 @@
 |---------|-----------------|----------------|
 | `galaxy` | 우주 수면음악 | Deep Space Sleep Music |
 | `aurora` | 오로라 수면음악 | Aurora Sleep Music |
-| `stellar` | 별빛 수면음악 | Starlight Sleep Music |
+| `stellar` | 밤하늘 수면음악 | Starlight Sleep Music |
 | `nebula` | 성운 수면음악 | Nebula Sleep Music |
 
 ---
@@ -44,7 +44,7 @@
 ```
 ✅ 오로라 수면음악 | Aurora Sleep Music | 1 Hour Ambient Sound
 ✅ 우주 수면음악 | Deep Space Sleep Music | 1 Hour Ambient Sound
-✅ 별빛 수면음악 | Starlight Sleep Music | 1 Hour Ambient Sound
+✅ 밤하늘 수면음악 | Starlight Sleep Music | 1 Hour Ambient Sound
 ```
 
 ### 나쁜 예 vs 좋은 예

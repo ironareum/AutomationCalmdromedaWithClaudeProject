@@ -94,7 +94,7 @@ TITLE_BACK_FIXED = "1 Hour Ambient Sound"
 TITLE_KO = {
     "galaxy":  "우주 수면음악",
     "aurora":  "오로라 수면음악",
-    "stellar": "별빛 수면음악",
+    "stellar": "밤하늘 수면음악",
     "nebula":  "성운 수면음악",
 }
 
