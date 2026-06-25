@@ -87,7 +87,23 @@ CATEGORY_KO = {
     "nebula":  "성운/코스믹",
 }
 
-TITLE_BACK_FIXED = "1시간 수면명상음악"
+TITLE_BACK_FIXED = "1 Hour Ambient Sound"
+
+# ── 카테고리별 검색 최적화 제목 키워드 ────────────────────────────────────
+
+TITLE_KO = {
+    "galaxy":  "우주 수면음악",
+    "aurora":  "오로라 수면음악",
+    "stellar": "별빛 수면음악",
+    "nebula":  "성운 수면음악",
+}
+
+TITLE_EN = {
+    "galaxy":  "Deep Space Sleep Music",
+    "aurora":  "Aurora Sleep Music",
+    "stellar": "Starlight Sleep Music",
+    "nebula":  "Nebula Sleep Music",
+}
 
 # ── 공통 태그 ─────────────────────────────────────────────────────────────
 
@@ -230,18 +246,7 @@ def generate_cosmic_concept(
 
 [요구사항]
 
-1. emotion_copy: 제목 앞부분 카피 (25자 이내)
-   - "~요" 체 — 따뜻하고 편안한 말투, 시청자가 경험을 공유하는 느낌
-   - 읽자마자 "우주 + 잠" 두 느낌이 동시에 오는 문장
-   - 잠들다 / 빠져들다 / 잠들어버리다 계열 동사 사용 ("잠겨들다" 금지 — 어색한 표현)
-   - "1시간" 포함 금지 (제목 뒷부분에 이미 있음)
-   - 직접적 위로·감정 호소·고민 해소 금지. 분위기로만 전달.
-   - ✅ 좋은 예: "어느새 깊은 잠에 빠져들었어요", "별 보다가 그냥 잠들었어요", "우주 틀었다가 눈 떠보니 아침이었어요", "오로라 보다 잠들어버렸어요", "그냥 잠들었어요"
-   - ❌ 금지: "사라져도 괜찮아", "내려놓고", "힘들었죠", "쉬어도 괜찮아", 카테고리명 직접 언급, "1시간"
-   - ❌ 단어 금지: "극광" (오로라 카테고리여도 "극광" 대신 "오로라" 사용)
-   - 최근 제목과 겹치지 않게
-
-2. shorts_intro: 쇼츠 시작 화면 텍스트 4줄 (\n 으로 구분, 각 줄 20자 이내)
+1. shorts_intro: 쇼츠 시작 화면 텍스트 4줄 (\n 으로 구분, 각 줄 20자 이내)
    - 잠들기 직전 혹은 꿈에서 깨어난 직후 쓴 일기체
    - "~았다" "~었다" "~인지 모른다" 과거형 일기체 유지
    - 구조: ①시간/장소 불확실 → ②감각 경계 허물어짐 → ③조용한 공간 감각 → ④{cat_name} 연결 담담한 우주 이미지
@@ -268,7 +273,6 @@ def generate_cosmic_concept(
 
 JSON만 응답:
 {{
-  "emotion_copy": "...",
   "shorts_intro": "...",
   "shorts_title": "...",
   "title_sub": "...",
@@ -291,13 +295,11 @@ JSON만 응답:
             if raw.startswith("json"):
                 raw = raw[4:]
         ai = json.loads(raw.strip())
-        log.info(f"Cosmic 콘셉트 생성: {ai.get('emotion_copy', '')} | {ai.get('title_back', '')}")
+        log.info(f"Cosmic 콘셉트 생성: {ai.get('shorts_title', '')} / {ai.get('subtitle_en', '')}")
 
     except Exception as e:
         log.error(f"Claude API 오류: {e} — 기본 콘셉트 사용")
         ai = {
-            "emotion_copy":   "오늘 밤은 우주 속으로 사라져도 괜찮아",
-            "title_back":     "수면 명상음악 1시간",
             "shorts_intro":   "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다.",
             "shorts_title":   "잠이 안 와서 틀었다가 잠든 영상",
             "title_sub":      "오늘 밤만큼은",
@@ -315,10 +317,10 @@ JSON만 응답:
             "tags": [],
         }
 
-    # 제목 조합 (title_back 고정)
-    emotion_copy = ai.get("emotion_copy", "어느새 깊은 잠에 빠져들었어요").strip()
-    title_back   = TITLE_BACK_FIXED
-    title        = f"{emotion_copy} | {title_back}"
+    # 제목 조합 — 검색 최적화 고정 포맷
+    title_ko = TITLE_KO.get(category, "우주 수면음악")
+    title_en = TITLE_EN.get(category, "Space Sleep Music")
+    title    = f"{title_ko} | {title_en} | {TITLE_BACK_FIXED}"
     log.info(f"Cosmic 제목: {title}")
 
     # 태그 조합
