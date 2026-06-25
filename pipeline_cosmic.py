@@ -654,15 +654,46 @@ def main():
                 excluded_sources=excluded,
             )
 
-            # 업로드 (롱폼: D+2 19:45 KST)
+            # 업로드 (롱폼: UPLOAD_DAYS_AHEAD 후 UPLOAD_HOUR_KST:UPLOAD_MINUTE_KST)
             yt = upload_youtube(longform_path, concept, cfg,
-                                hour_kst=19, minute_kst=45, thumbnail=thumbnail,
-                                days_ahead=2, description_override=desc)
+                                hour_kst=cfg.upload_hour_kst, minute_kst=cfg.upload_minute_kst,
+                                thumbnail=thumbnail, days_ahead=cfg.upload_days_ahead,
+                                description_override=desc)
             if yt:
                 log.info(f"롱폼 YouTube: {yt['url']} (공개: {yt['publish_at']})")
 
-        # ── 숏폼 (롱폼 2/3 지점, D+3 18:45 예약) ────────────────────────
-        if args.mode in ("shorts", "both") and longform_path:
+        # ── 숏폼 단독 모드 (--mode shorts) ───────────────────────────────
+        if args.mode == "shorts":
+            log.info("=== [숏폼 단독] 15s 제작 시작 ===")
+            shorts_path = produce_shorts(sound_files, video_file, concept, work_dir)
+            if shorts_path:
+                intro = concept.get("shorts_intro", "")
+                if intro:
+                    shorts_path = _overlay_intro_text(shorts_path, intro, work_dir) or shorts_path
+                desc_s = _make_description(concept, jamendo_meta)
+                yt_s = upload_youtube(
+                    shorts_path, concept, cfg,
+                    is_shorts=True,
+                    hour_kst=cfg.shorts_upload_hour_kst,
+                    minute_kst=cfg.shorts_upload_minute_kst,
+                    days_ahead=cfg.upload_days_ahead,
+                    description_override=desc_s,
+                )
+                if yt_s:
+                    log.info(f"숏폼 YouTube: {yt_s['url']} (공개: {yt_s['publish_at']})")
+            else:
+                log.warning("숏폼 제작 실패")
+            # 음원 이력 미등록 — 롱폼 dedup 풀 보존
+            register_used_session(
+                session_id=session_id,
+                title=concept.get("shorts_title", concept["title"]),
+                sound_files=[],
+                video_files=[video_file],
+                category=concept["category"],
+            )
+
+        # ── both 모드 숏폼 (롱폼에서 추출, D+UPLOAD_DAYS_AHEAD+1 예약) ──
+        if args.mode == "both" and longform_path:
             log.info("=== [숏폼] 15s 제작 시작 ===")
             producer = VideoProducer(work_dir)
 
@@ -679,8 +710,10 @@ def main():
                     sp = _overlay_intro_text(sp, intro, work_dir) or sp
                 yt_s = upload_youtube(
                     sp, concept, cfg,
-                    is_shorts=True, hour_kst=18, minute_kst=45,
-                    days_ahead=3,
+                    is_shorts=True,
+                    hour_kst=cfg.shorts_upload_hour_kst,
+                    minute_kst=cfg.shorts_upload_minute_kst,
+                    days_ahead=cfg.upload_days_ahead + 1,
                     description_override=desc,
                 )
                 if yt_s:

@@ -89,6 +89,7 @@ class Config:
     upload_minute_kst: int = int(os.getenv("UPLOAD_MINUTE_KST", "30"))       # 30분
     shorts_upload_hour_kst: int = int(os.getenv("SHORTS_UPLOAD_HOUR_KST", "18"))    # 숏폼 오후 6시 KST
     shorts_upload_minute_kst: int = int(os.getenv("SHORTS_UPLOAD_MINUTE_KST", "30"))  # 30분
+    upload_days_ahead: int = int(os.getenv("UPLOAD_DAYS_AHEAD", "2"))              # 예약 공개까지 일수
     youtube_token_path: str = os.getenv("YOUTUBE_TOKEN", "credentials/token.json")
 
     # [미사용] Instagram 설정
