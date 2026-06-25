@@ -108,10 +108,11 @@ class JamendoCollector:
                 log.debug(f"skip (excluded): {track.get('name')}")
                 continue
 
-            # 상업적 라이선스 필터: NC(비상업적) 제외 — 수익 창출 불가
+            # 상업적 라이선스 화이트리스트: BY / BY-SA 만 허용
             license_url = (track.get("license_ccurl") or "").lower()
-            if "/by-nc" in license_url:
-                log.debug(f"skip (NC 라이선스): {track.get('name')} — {license_url}")
+            allowed = ["/licenses/by/", "/licenses/by-sa/"]
+            if not license_url or not any(p in license_url for p in allowed):
+                log.debug(f"skip (비허용 라이선스): {track.get('name')} — {license_url}")
                 continue
 
             filtered.append(track)
