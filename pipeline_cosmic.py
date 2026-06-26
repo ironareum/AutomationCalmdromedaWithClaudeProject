@@ -47,7 +47,38 @@ log = logging.getLogger(__name__)
 
 DURATION_LONGFORM = 1 * 3600   # 3600초
 DURATION_TEST     = 3 * 60     # 180초 (테스트 모드)
-DURATION_SHORTS   = 15          # 15초
+DURATION_SHORTS   = 15         # 15초
+
+
+# ── 시리즈 카운트 헬퍼 ────────────────────────────────────────────────────
+
+def _get_longform_series_count(used_assets_path: Path) -> int:
+    """현재 longform 시리즈 카운트 반환 (없으면 0)"""
+    if not used_assets_path.exists():
+        return 0
+    try:
+        data = json.loads(used_assets_path.read_text(encoding="utf-8"))
+        return data.get("series", {}).get("longform", 0)
+    except Exception:
+        return 0
+
+
+def _increment_longform_series_count(used_assets_path: Path) -> int:
+    """longform 시리즈 카운트 +1 저장, 새 값 반환"""
+    try:
+        data = {}
+        if used_assets_path.exists():
+            data = json.loads(used_assets_path.read_text(encoding="utf-8"))
+        series = data.get("series", {"longform": 0, "shorts": 0})
+        series.setdefault("longform", 0)
+        series.setdefault("shorts", 0)
+        series["longform"] += 1
+        data["series"] = series
+        used_assets_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        return series["longform"]
+    except Exception as e:
+        log.warning(f"시리즈 카운트 저장 실패: {e}")
+        return 0
 
 
 # ── FFmpeg 유틸 ────────────────────────────────────────────────────────────
@@ -609,34 +640,38 @@ def main():
                 return
             longform_path, used_sounds, audio_lufs, source_lufs, excluded = result
 
-            # 썸네일 (코스믹 모드)
+            # 썸네일 (코스믹 v2)
+            series_num = _get_longform_series_count(USED_ASSETS_FILE) + 1
             thumb_gen = ThumbnailGenerator(work_dir)
             thumbnail = thumb_gen.generate(
-                title=concept["title"],
-                category=concept["category"],
                 video_path=video_file,
-                subtitle_en=concept.get("subtitle_en", "Drift into the cosmos"),
                 style="cosmic",
-                font_style="nanum",
+                subconcept_en=concept["subconcept_en"],
+                category_color=concept["subconcept_color"],
+                series_number=series_num,
             )
 
             # 메타데이터
             desc = _make_description(concept, jamendo_meta)
             metadata = {
-                "session_id":     session_id,
-                "session_type":   "cosmic",
-                "title":          concept["title"],
-                "category":       concept["category"],
-                "duration_hours": round(effective_duration / 3600, 2),
-                "tags":           concept["tags"],
-                "description":    desc,
-                "jamendo_track":  jamendo_meta or {},
-                "video_path":     str(longform_path),
-                "thumbnail_path": str(thumbnail) if thumbnail else "",
-                "shorts_intro":   concept.get("shorts_intro", ""),
-                "created_at":     datetime.now().isoformat(),
-                "used_sounds":    [f.name for f in used_sounds],
-                "used_videos":    [video_file.name],
+                "session_id":      session_id,
+                "session_type":    "cosmic",
+                "title":           concept["title"],
+                "category":        concept["category"],
+                "subconcept_id":   concept.get("subconcept_id", ""),
+                "subconcept_en":   concept.get("subconcept_en", ""),
+                "subconcept_ko":   concept.get("subconcept_ko", ""),
+                "series_number":   series_num,
+                "duration_hours":  round(effective_duration / 3600, 2),
+                "tags":            concept["tags"],
+                "description":     desc,
+                "jamendo_track":   jamendo_meta or {},
+                "video_path":      str(longform_path),
+                "thumbnail_path":  str(thumbnail) if thumbnail else "",
+                "shorts_intro":    concept.get("shorts_intro", ""),
+                "created_at":      datetime.now().isoformat(),
+                "used_sounds":     [f.name for f in used_sounds],
+                "used_videos":     [video_file.name],
             }
             (work_dir / "metadata.json").write_text(
                 json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8"
@@ -653,6 +688,10 @@ def main():
                 source_lufs=source_lufs,
                 excluded_sources=excluded,
             )
+
+            # 롱폼 시리즈 카운트 저장
+            _increment_longform_series_count(USED_ASSETS_FILE)
+            log.info(f"Space Journey #{series_num:03d} — 시리즈 카운트 저장")
 
             # 업로드 (롱폼: UPLOAD_DAYS_AHEAD 후 UPLOAD_HOUR_KST:UPLOAD_MINUTE_KST)
             yt = upload_youtube(longform_path, concept, cfg,

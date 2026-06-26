@@ -1,15 +1,12 @@
 """
-우주/코스믹 앰비언트 롱폼 + 숏폼 콘셉트 생성기
-2026.06.22 신규
+우주/코스믹 앰비언트 롱폼 + 숏폼 콘셉트 생성기 (v2.0)
+2026.06.26 3계층 구조 (Category → Sub Concept → Story) 적용
 
-채널 개편 방향:
-  - 채널 철학: 우주의 시선으로 보면 지금의 고민은 아무것도 아니야
-  - 컨텐츠: 우주/코스믹 앰비언트 단일 파이프라인
-  - 음원: Jamendo ambient/atmospheric
-  - 영상: Pexels 우주/은하/오로라/성운
-
-제목 포맷: "[감정 카피] | [장르+검색키워드]"
-  예) "오늘 밤은 우주 속으로 사라져도 괜찮아 | 수면 명상음악 1시간"
+흐름:
+  rotation.py → 카테고리 로테이션 + 서브컨셉 히스토리 선택
+  prompt_builder.py → 5-Part 프롬프트 조립
+  Claude Haiku → shorts_intro(4줄 기억 조각) + description + tags 생성
+  제목: subconcept SEO 기반 고정 포맷
 """
 
 import json
@@ -18,18 +15,14 @@ from pathlib import Path
 
 import anthropic
 
+from planner.rotation import pick_category_and_subconcept
+from planner.prompt_builder import build_shorts_script_prompt, sample_mood_and_sensory
+
 log = logging.getLogger(__name__)
 
 MODEL = "claude-haiku-4-5-20251001"
 
-# ── 카테고리 정의 ──────────────────────────────────────────────────────────
-
-COSMIC_CATEGORIES = [
-    "galaxy",   # 은하/딥스페이스
-    "aurora",   # 오로라
-    "stellar",  # 별/은하수
-    "nebula",   # 성운/코스믹
-]
+TITLE_BACK_FIXED = "1 Hour Ambient Sound"
 
 # ── Jamendo 설정 ───────────────────────────────────────────────────────────
 
@@ -44,66 +37,6 @@ JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
 }
 
 JAMENDO_EXCLUDE_TAGS = ["upbeat", "dance", "pop", "rock", "jazz", "dark", "eerie"]
-
-# ── Pexels 영상 쿼리 ───────────────────────────────────────────────────────
-
-PEXELS_QUERIES = {
-    "galaxy": [
-        "deep space galaxy timelapse",
-        "milky way timelapse night",
-        "galaxy zoom space abstract",
-        "universe deep space stars",
-        "cosmic space dark background",
-    ],
-    "aurora": [
-        "northern lights aurora timelapse",
-        "aurora borealis night sky",
-        "aurora timelapse green sky",
-        "polar lights night landscape",
-        "northern lights reflection water",
-    ],
-    "stellar": [
-        "star trail night sky timelapse",
-        "stars timelapse dark sky",
-        "night sky milky way stars",
-        "starry night landscape timelapse",
-        "constellation stars night",
-    ],
-    "nebula": [
-        "nebula cosmos space abstract",
-        "colorful nebula space timelapse",
-        "cosmic cloud space purple",
-        "space nebula motion abstract",
-        "interstellar space colorful",
-    ],
-}
-
-# ── 카테고리 한국어 설명 ───────────────────────────────────────────────────
-
-CATEGORY_KO = {
-    "galaxy":  "은하/딥스페이스",
-    "aurora":  "오로라",
-    "stellar": "별/은하수",
-    "nebula":  "성운/코스믹",
-}
-
-TITLE_BACK_FIXED = "1 Hour Ambient Sound"
-
-# ── 카테고리별 검색 최적화 제목 키워드 ────────────────────────────────────
-
-TITLE_KO = {
-    "galaxy":  "우주 수면음악",
-    "aurora":  "오로라 수면음악",
-    "stellar": "밤하늘 수면음악",
-    "nebula":  "성운 수면음악",
-}
-
-TITLE_EN = {
-    "galaxy":  "Deep Space Sleep Music",
-    "aurora":  "Aurora Sleep Music",
-    "stellar": "Starlight Sleep Music",
-    "nebula":  "Nebula Sleep Music",
-}
 
 # ── 공통 태그 ─────────────────────────────────────────────────────────────
 
@@ -125,7 +58,7 @@ CATEGORY_TAGS = {
     "nebula":  ["성운", "코스믹", "Nebula Music", "Cosmic Sounds", "우주명상"],
 }
 
-# ── 카테고리별 음악 특성 힌트 ─────────────────────────────────────────────
+# ── 카테고리별 Jamendo 음악 특성 힌트 ────────────────────────────────────
 
 SOUND_HINTS = {
     "galaxy": (
@@ -151,52 +84,6 @@ SOUND_HINTS = {
 }
 
 
-# ── 카테고리 선택 ─────────────────────────────────────────────────────────
-
-def _pick_category(used_assets_path: Path) -> str:
-    """최근 사용 cosmic 카테고리 피해서 순환 선택"""
-    if not used_assets_path.exists():
-        return COSMIC_CATEGORIES[0]
-
-    content = used_assets_path.read_text(encoding="utf-8").strip()
-    if not content:
-        return COSMIC_CATEGORIES[0]
-    try:
-        data = json.loads(content)
-    except json.JSONDecodeError:
-        return COSMIC_CATEGORIES[0]
-
-    cosmic_sessions = {k: v for k, v in data.items() if k.startswith("cosmic_")}
-    recent = sorted(cosmic_sessions.keys(), reverse=True)[:len(COSMIC_CATEGORIES)]
-    used_cats = [cosmic_sessions[s].get("category", "") for s in recent]
-
-    for cat in COSMIC_CATEGORIES:
-        if cat not in used_cats:
-            log.info(f"Cosmic 카테고리 선택: {cat} (미사용)")
-            return cat
-
-    chosen = COSMIC_CATEGORIES[len(recent) % len(COSMIC_CATEGORIES)]
-    log.info(f"Cosmic 카테고리 선택: {chosen} (순환)")
-    return chosen
-
-
-def _get_recent_cosmic_titles(used_assets_path: Path, n: int = 10) -> list[str]:
-    """최근 cosmic 세션 제목 목록 (중복 방지용)"""
-    if not used_assets_path.exists():
-        return []
-    content = used_assets_path.read_text(encoding="utf-8").strip()
-    if not content:
-        return []
-    try:
-        data = json.loads(content)
-    except json.JSONDecodeError:
-        return []
-
-    cosmic_sessions = {k: v for k, v in data.items() if k.startswith("cosmic_")}
-    recent = sorted(cosmic_sessions.keys(), reverse=True)[:n]
-    return [cosmic_sessions[s].get("title", "") for s in recent if cosmic_sessions[s].get("title")]
-
-
 # ── 콘셉트 생성 ───────────────────────────────────────────────────────────
 
 def generate_cosmic_concept(
@@ -205,16 +92,18 @@ def generate_cosmic_concept(
     force_category: str | None = None,
 ) -> dict:
     """
-    Claude Haiku로 우주/코스믹 1h 롱폼 콘셉트 생성
+    3계층 구조 기반 코스믹 콘셉트 생성
 
     반환 예시:
     {
         "category": "galaxy",
-        "title": "오늘 밤은 우주 속으로 사라져도 괜찮아 | 수면 명상음악 1시간",
+        "subconcept_id": "milky_way",
+        "subconcept_en": "Milky Way",
+        "subconcept_ko": "은하수",
+        "subconcept_color": "#5B7FFF",
+        "title": "은하수 수면음악 | Milky Way Sleep Music | 1 Hour Ambient Sound",
         "shorts_title": "잠이 안 와서 틀었다가 잠든 영상",
-        "title_sub": "오늘 밤만큼은",
-        "subtitle_en": "Drift into the cosmos",
-        "shorts_intro": "오늘 밤, 은하수는 2천억 개의 별로 빛나고 있다.",
+        "shorts_intro": "몇 시였는지 모른다.\n별이 많았다.\n...",
         "description_ko": "...",
         "description_en": "...",
         "tags": [...],
@@ -224,70 +113,42 @@ def generate_cosmic_concept(
         "pexels_queries": [...],
     }
     """
-    category = force_category or _pick_category(used_assets_path)
-    cat_name = CATEGORY_KO.get(category, category)
-    sound_hint = SOUND_HINTS.get(category, "")
-    jamendo_vartags = JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY.get(category, _VARTAGS_BASE)
-    pexels_q = PEXELS_QUERIES.get(category, [])
+    subconcept = pick_category_and_subconcept(used_assets_path, force_category)
+    category = subconcept.get("category", "galaxy")
 
-    recent_titles = _get_recent_cosmic_titles(used_assets_path)
-    recent_str = "\n".join(f"- {t}" for t in recent_titles) or "없음"
+    mood_sample, sensory_sample = sample_mood_and_sensory(subconcept)
+    script_prompt = build_shorts_script_prompt(subconcept, mood_sample, sensory_sample)
 
-    prompt = f"""너는 한국 유튜브 수면음악 채널 'Calmdromeda'의 콘텐츠 기획자야.
-채널 철학: "우주의 분위기 속으로 스며들어 잠드는 경험을 만든다. 고민을 해소해주는 게 아니라, 잠드는 공간을 만드는 것."
-채널 컨셉: Calm(잠) + Andromeda(우주) — 잠과 우주, 이 두 가지가 콘텐츠의 전부다.
-오늘 업로드할 1시간 우주/코스믹 앰비언트 수면음악 영상의 콘셉트를 만들어줘.
+    sc_en = subconcept["display_name"]["en"]
+    sc_ko = subconcept["display_name"]["ko"]
+    seo_ko = subconcept["seo"]["ko"]
+    seo_en = subconcept["seo"]["en"]
 
-[카테고리] {cat_name}
-[사운드 특성] {sound_hint}
+    full_prompt = f"""{script_prompt}
 
-[최근 업로드 제목 (겹치면 안 됨)]
-{recent_str}
+위 규칙으로 shorts_intro(4줄 기억 조각)를 작성하고, 아래 필드도 함께 생성하세요.
 
-[요구사항]
-
-1. shorts_intro: 쇼츠 시작 화면 텍스트 4줄 (\n 으로 구분, 각 줄 20자 이내)
-   - 잠들기 직전 혹은 꿈에서 깨어난 직후 쓴 일기체
-   - "~았다" "~었다" "~인지 모른다" 과거형 일기체 유지
-   - 구조: ①시간/장소 불확실 → ②감각 경계 허물어짐 → ③조용한 공간 감각 → ④{cat_name} 연결 담담한 우주 이미지
-   - 마지막 줄: 짧고 심플 (예: "별이 많았다." "오로라가 흘렀다." "성운이 피어났다.")
-   - 수치/과학 표현 금지, 전문용어 금지, "너/넌" 직접 화법 절대 금지
-   - ✅ 예시: "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다."
-
-4. shorts_title: 쇼츠용 감성 제목 (30자 이내, 롱폼 제목과 완전히 다르게)
-   - 직접 화법("너/넌") 금지, 상황/현상 묘사로 공감 자극
-   - 예: "잠이 안 와서 틀었다가 잠든 영상", "머릿속이 꺼지는 소리"
-
-5. title_sub: 썸네일 상단 짧은 문구 (8자 이내)
-   - 예: "오늘 밤만큼은", "지금 이 순간", "별빛 아래서"
-
-6. subtitle_en: 썸네일 영문 감성 문구 (2~4단어, 시적이고 감성적)
-   - 직역 금지. 예: "Drift into the cosmos", "Lost among the stars", "Fade into stardust", "Above the noise"
-
-7. description_ko: 한국어 설명 2~3문장 (감성적, 구어체, 일상 언어)
-   - 전문 음악 용어 금지 (신디사이저, 드론, 텍스처, 주파수, 앰비언트 등)
-   - 소리를 풍경/감각으로 묘사 (예: "조용히 흐르는 음악", "밤하늘 아래 잠겨드는 소리")
-   - 읽으면 잠이 올 것 같은 문체
-8. description_en: 영문 설명 2~3문장 (글로벌 시청자용)
-9. tags: 한국어 위주 10~15개 태그
+shorts_title: 유튜브 쇼츠 제목 (30자 이내, 한국어, 감성적, 독자에게 직접 말 걸기 금지)
+description_ko: 한국어 영상 설명 2문장 (전문 음악 용어 금지, 소리를 풍경/감각으로 묘사)
+description_en: 영문 설명 2문장 (글로벌 시청자용)
+tags: {sc_ko}/{sc_en} 관련 태그 5~8개
 
 JSON만 응답:
 {{
-  "shorts_intro": "...",
+  "shorts_intro": "줄1\\n줄2\\n줄3\\n줄4",
   "shorts_title": "...",
-  "title_sub": "...",
-  "subtitle_en": "...",
   "description_ko": "...",
   "description_en": "...",
   "tags": ["...", "..."]
 }}"""
 
+    ai = {}
     try:
         client = anthropic.Anthropic(api_key=api_key)
         msg = client.messages.create(
             model=MODEL,
             max_tokens=768,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": full_prompt}]
         )
         raw = msg.content[0].text.strip()
         if raw.startswith("```"):
@@ -295,50 +156,42 @@ JSON만 응답:
             if raw.startswith("json"):
                 raw = raw[4:]
         ai = json.loads(raw.strip())
-        log.info(f"Cosmic 콘셉트 생성: {ai.get('shorts_title', '')} / {ai.get('subtitle_en', '')}")
+        log.info(f"콘셉트 생성: {sc_en} / {ai.get('shorts_title', '')}")
 
     except Exception as e:
         log.error(f"Claude API 오류: {e} — 기본 콘셉트 사용")
         ai = {
             "shorts_intro":   "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다.",
             "shorts_title":   "잠이 안 와서 틀었다가 잠든 영상",
-            "title_sub":      "오늘 밤만큼은",
-            "subtitle_en":    "Drift into the cosmos",
-            "description_ko": (
-                "오늘 하루가 버거웠다면, 잠깐 우주 속으로 사라져도 괜찮아요. "
-                "138억 광년의 광활함 속에서 지금의 고민을 잠시 내려놓아 보세요. "
-                "1시간 코스믹 앰비언트로 깊은 수면과 명상을 도와드립니다."
-            ),
-            "description_en": (
-                f"1 hour of cosmic {cat_name} ambient for deep sleep and meditation. "
-                "Let the vastness of the universe quiet your mind. "
-                "Best experienced with headphones in a dark, quiet space."
-            ),
+            "description_ko": f"조용히 {sc_ko}를 여행하다 잠드는 1시간.",
+            "description_en": f"1 hour of {sc_en} ambient for deep sleep.",
             "tags": [],
         }
 
-    # 제목 조합 — 검색 최적화 고정 포맷
-    title_ko = TITLE_KO.get(category, "우주 수면음악")
-    title_en = TITLE_EN.get(category, "Space Sleep Music")
-    title    = f"{title_ko} | {title_en} | {TITLE_BACK_FIXED}"
-    log.info(f"Cosmic 제목: {title}")
+    # 제목 조합 — SEO 고정 포맷
+    title = f"{seo_ko} | {seo_en} | {TITLE_BACK_FIXED}"
+    log.info(f"제목: {title}")
 
     # 태그 조합
-    cat_tags   = CATEGORY_TAGS.get(category, [])
-    ai_tags    = ai.get("tags", [])
+    cat_tags    = CATEGORY_TAGS.get(category, [])
+    ai_tags     = ai.get("tags", [])
     merged_tags = list(dict.fromkeys(ai_tags + cat_tags + COMMON_TAGS))[:50]
 
-    # shorts_intro 검증 (1줄 문자열 보장)
+    # shorts_intro 검증
     shorts_intro = ai.get("shorts_intro", "")
     if not isinstance(shorts_intro, str) or not shorts_intro.strip():
         shorts_intro = "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다."
 
+    jamendo_vartags = JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY.get(category, _VARTAGS_BASE)
+
     return {
         "category":                 category,
+        "subconcept_id":            subconcept.get("id", ""),
+        "subconcept_en":            sc_en,
+        "subconcept_ko":            sc_ko,
+        "subconcept_color":         subconcept.get("color", "#5B7FFF"),
         "title":                    title,
         "shorts_title":             ai.get("shorts_title", ""),
-        "title_sub":                ai.get("title_sub", "오늘 밤만큼은"),
-        "subtitle_en":              ai.get("subtitle_en", "Drift into the cosmos"),
         "shorts_intro":             shorts_intro,
         "description_ko":           ai.get("description_ko", ""),
         "description_en":           ai.get("description_en", ""),
@@ -346,6 +199,5 @@ JSON만 응답:
         "jamendo_tags":             JAMENDO_SEARCH_TAGS,
         "jamendo_required_vartags": jamendo_vartags,
         "jamendo_exclude":          JAMENDO_EXCLUDE_TAGS,
-        "pexels_queries":           pexels_q,
-        "sound_hint":               sound_hint,
+        "pexels_queries":           subconcept.get("pexels_queries", []),
     }

@@ -145,19 +145,41 @@ def _stroke_color(img: Image.Image) -> tuple:
 
 # ── 폰트 크기 자동 조정 ────────────────────────────────────────────────
 def _fit_font_size(text: str, max_px: int,
-                   max_size=100, min_size=38) -> int:
+                   max_size=100, min_size=38, font_fn=None) -> int:
     """text가 max_px 너비 안에 들어오는 최대 폰트 크기 반환 (실제 픽셀 측정)"""
+    if font_fn is None:
+        font_fn = _fko
     dummy_img  = Image.new("RGB", (1,1))
     dummy_draw = ImageDraw.Draw(dummy_img)
     for size in range(max_size, min_size-1, -2):
         try:
-            fnt  = _fko(size)
+            fnt  = font_fn(size)
             bbox = dummy_draw.textbbox((0,0), text, font=fnt)
             if (bbox[2]-bbox[0]) <= max_px:
                 return size
         except:
             pass
     return min_size
+
+
+def _hex_to_rgb(hex_color: str) -> tuple:
+    """'#5B7FFF' → (91, 127, 255)"""
+    h = hex_color.lstrip("#")
+    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+
+def _load_en_font(size: int):
+    """Pretendard Black → NanumMyeongjo ExtraBold → RIDIBatang 순 폴백"""
+    for fn in [
+        lambda s: _fpretendard(s, "black"),
+        lambda s: _fnanum(s, "extrabold"),
+        lambda s: _fko(s),
+    ]:
+        try:
+            return fn(size)
+        except FileNotFoundError:
+            continue
+    raise RuntimeError("사용 가능한 폰트 없음")
 
 
 # ── 타이틀 2줄 분할 ────────────────────────────────────────────────────
@@ -222,14 +244,17 @@ class ThumbnailGenerator:
 
     def generate(
         self,
-        title:       str,
-        category:    str,
-        video_path:  Path | None = None,
-        title_sub:   str = "잠잘때 듣기 좋은",
-        subtitle_en: str = "Healing Music",
-        output_name: str | None = None,
-        style:       str = "classic",
-        font_style:  str = "ridibatang",
+        title:          str = "",
+        category:       str = "",
+        video_path:     Path | None = None,
+        title_sub:      str = "잠잘때 듣기 좋은",
+        subtitle_en:    str = "Healing Music",
+        output_name:    str | None = None,
+        style:          str = "classic",
+        font_style:     str = "ridibatang",
+        subconcept_en:  str = "",
+        category_color: str = "#5B7FFF",
+        series_number:  int | None = None,
     ) -> Path:
         """영상 첫 프레임을 배경으로 썸네일 생성"""
         bg = None
@@ -244,18 +269,22 @@ class ThumbnailGenerator:
         if not bg:
             log.info("썸네일 배경: 그라디언트 폴백")
 
-        return self._render(bg, title, category, title_sub, subtitle_en, output_name, style, font_style)
+        return self._render(bg, title, category, title_sub, subtitle_en, output_name, style, font_style,
+                            subconcept_en, category_color, series_number)
 
     def generate_from_image(
         self,
-        title:       str,
-        category:    str,
-        image_path:  Path,
-        title_sub:   str = "잠잘때 듣기 좋은",
-        subtitle_en: str = "Healing Music",
-        output_name: str | None = None,
-        style:       str = "classic",
-        font_style:  str = "ridibatang",
+        title:          str = "",
+        category:       str = "",
+        image_path:     Path = None,
+        title_sub:      str = "잠잘때 듣기 좋은",
+        subtitle_en:    str = "Healing Music",
+        output_name:    str | None = None,
+        style:          str = "classic",
+        font_style:     str = "ridibatang",
+        subconcept_en:  str = "",
+        category_color: str = "#5B7FFF",
+        series_number:  int | None = None,
     ) -> Path:
         """이미지 파일을 배경으로 썸네일 생성 (jpg/png 지원)"""
         bg = None
@@ -265,22 +294,27 @@ class ThumbnailGenerator:
         except Exception as e:
             log.warning(f"이미지 로드 실패: {e}")
 
-        return self._render(bg, title, category, title_sub, subtitle_en, output_name, style, font_style)
+        return self._render(bg, title, category, title_sub, subtitle_en, output_name, style, font_style,
+                            subconcept_en, category_color, series_number)
 
     def _render(
         self,
-        bg:          Image.Image | None,
-        title:       str,
-        category:    str,
-        title_sub:   str,
-        subtitle_en: str,
-        output_name: str | None,
-        style:       str = "classic",
-        font_style:  str = "ridibatang",
+        bg:             Image.Image | None,
+        title:          str,
+        category:       str,
+        title_sub:      str,
+        subtitle_en:    str,
+        output_name:    str | None,
+        style:          str = "classic",
+        font_style:     str = "ridibatang",
+        subconcept_en:  str = "",
+        category_color: str = "#5B7FFF",
+        series_number:  int | None = None,
     ) -> Path:
         """공통 썸네일 렌더링 (배경 이미지를 받아 텍스트/로고/저장까지 처리)"""
         if style == "cosmic":
-            return self._render_cosmic(bg, title, subtitle_en, output_name, font_style)
+            return self._render_cosmic(bg, subconcept_en or title,
+                                       category_color, series_number, output_name)
         W, H = self.SIZE
         t    = THEMES.get(category, THEMES["forest"])
 
@@ -390,88 +424,93 @@ class ThumbnailGenerator:
 
     def _render_cosmic(
         self,
-        bg:          Image.Image | None,
-        title:       str,
-        subtitle_en: str,
-        output_name: str | None,
-        font_style:  str = "ridibatang",
+        bg:             Image.Image | None,
+        subconcept_en:  str,
+        category_color: str = "#5B7FFF",
+        series_number:  int | None = None,
+        output_name:    str | None = None,
     ) -> Path:
-        """코스믹 모드: 감정 카피(#FFE135) + 영문 감성 문구(흰색) 2줄
-        font_style: "ridibatang" | "nanum" | "pretendard"
+        """코스믹 v2: Sub Concept 키워드 중앙 배치 + 카테고리 컬러 + 시리즈 번호
+
+        레이아웃 (시리즈 번호 있을 때):
+          Space Journey   ← 작은 흰색
+          #001            ← 중간 흰색
+          MILKY WAY       ← 큰 카테고리 컬러 (박스 높이 H*0.20 기준, 폭 자동 축소)
+
+        시리즈 번호 없을 때: 키워드만 중앙 배치.
         """
         W, H = self.SIZE
-        alpha = Config.thumbnail_cosmic_overlay_alpha
+        cat_rgb = _hex_to_rgb(category_color)
+        sc = _stroke_color(bg) if bg else (5, 5, 20)
 
-        # 제목에서 emotion_copy 추출 ("감정 카피 | SEO키워드" 포맷)
-        emotion_copy = title.split(" | ")[0].strip() if " | " in title else title.strip()
-
-        # ── 1. 배경 합성
+        # ── 1. 배경 합성 ─────────────────────────────────────────────
         if bg:
             base = bg.resize((W, H), Image.LANCZOS).convert("RGBA")
             ov   = Image.new("RGBA", (W, H), (0, 0, 0, 0))
             od   = ImageDraw.Draw(ov)
             for y in range(H):
-                a = int(alpha * 0.6 + alpha * 0.4 * y / H)
+                a = int(155 * 0.6 + 155 * 0.4 * y / H)
                 od.line([(0, y), (W, y)], fill=(0, 0, 0, a))
             base = Image.alpha_composite(base, ov)
         else:
-            base = Image.new("RGBA", (W, H), (5, 5, 20, 255))
+            base = Image.new("RGBA", (W, H), (8, 17, 31, 255))
 
-        # ── 2. 글로우 (dark purple/navy)
+        # ── 2. 글로우 (카테고리 컬러 기반) ──────────────────────────
         gl = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         gd = ImageDraw.Draw(gl)
         cx, cy = W // 2, H // 2 - 10
         for r in range(260, 0, -26):
-            a = int(14 * (1 - r / 260))
-            gd.ellipse([(cx - r * 2, cy - r), (cx + r * 2, cy + r)], fill=(50, 30, 100, a))
+            a = int(12 * (1 - r / 260))
+            gd.ellipse([(cx - r * 2, cy - r), (cx + r * 2, cy + r)], fill=(*cat_rgb, a))
         base = Image.alpha_composite(base.convert("RGBA"), gl)
         draw = ImageDraw.Draw(base)
 
-        # ── 3. 폰트 준비 (font_style별 분기)
-        sc    = _stroke_color(bg) if bg else (5, 5, 20)
-        max_w = int(W * 0.85)
+        # ── 3. 키워드 폰트 (목표 높이 H*0.20, 폭 자동 축소) ─────────
+        keyword = subconcept_en.upper()
+        max_w   = int(W * 0.85)
 
-        if font_style == "nanum":
-            def _make_ko(size): return _fnanum(size, "bold")
-            def _make_en(size): return _fnanum(size, "regular")
-        elif font_style == "pretendard":
-            def _make_ko(size): return _fpretendard(size, "extrabold")
-            def _make_en(size): return _fpretendard(size, "semibold")
-        else:  # ridibatang (default)
-            def _make_ko(size): return _fko(size)
-            def _make_en(size): return _fen(size, "italic")
-
-        # 2줄 분리
-        l1, l2 = _split_two_lines(emotion_copy)
+        # 2줄 분리 (긴 키워드는 split, 짧은 건 단일 줄)
+        l1, l2 = _split_two_lines(keyword)
         longer = l1 if len(l1) >= len(l2) else l2
 
-        em_size = _fit_font_size(longer, max_w, max_size=52, min_size=20)
-        f_em  = _make_ko(em_size)
+        # 목표 글자 높이 ≈ H * 0.20 (144px at 720p) → max_size로 시작
+        kw_size = _fit_font_size(longer, max_w, max_size=140, min_size=50,
+                                  font_fn=lambda s: _load_en_font(s))
+        f_kw = _load_en_font(kw_size)
+        kw_line_h = int(kw_size * 1.15)
+        kw_total_h = kw_line_h * (2 if l2 else 1)
 
-        # ── 4. 레이아웃 (좌상단 배치, 2줄)
-        em_h  = int(em_size * 1.2)
-        pad_x = int(W * 0.06)   # 좌측 여백
-        pad_y = int(H * 0.11)   # 상단 여백
-        gap   = int(em_size * 0.15)
-        y_l1  = pad_y
-        y_l2  = y_l1 + em_h + gap
+        # ── 4. 레이아웃 계산 ────────────────────────────────────────
+        if series_number is not None:
+            f_series = _load_en_font(22)
+            f_num    = _load_en_font(44)
+            series_h = 22 + 10
+            num_h    = 44 + 18
+            total_h  = series_h + num_h + kw_total_h
+            y_start  = (H - total_h) // 2 - 20
+            y_series = y_start
+            y_num    = y_series + series_h
+            y_kw     = y_num + num_h
+        else:
+            y_kw = (H - kw_total_h) // 2 - 20
 
-        # ── 5. 텍스트 렌더링 (좌측 정렬, 2줄)
-        def _stroke_left(draw, text, y, fnt, fill, sc, sw):
-            for dx in range(-sw, sw+1):
-                for dy in range(-sw, sw+1):
-                    if dx == 0 and dy == 0: continue
-                    if abs(dx) + abs(dy) > sw + 2: continue
-                    draw.text((pad_x+dx, y+dy), text, font=fnt, fill=(*sc, 225))
-            draw.text((pad_x, y), text, font=fnt, fill=fill)
+        # ── 5. 텍스트 렌더링 ────────────────────────────────────────
+        if series_number is not None:
+            _stroke_center(draw, "Space Journey", y_series, f_series, W,
+                           fill=(220, 220, 220, 190), sc=sc, sw=2)
+            _stroke_center(draw, f"#{series_number:03d}", y_num, f_num, W,
+                           fill=(255, 255, 255), sc=sc, sw=3)
 
-        _stroke_left(draw, l1, y_l1, f_em, fill=(255, 225, 53), sc=sc, sw=4)
+        _stroke_center(draw, l1, y_kw, f_kw, W,
+                       fill=(*cat_rgb, 255), sc=sc, sw=5)
         if l2:
-            _stroke_left(draw, l2, y_l2, f_em, fill=(255, 225, 53), sc=sc, sw=4)
+            _stroke_center(draw, l2, y_kw + kw_line_h, f_kw, W,
+                           fill=(*cat_rgb, 255), sc=sc, sw=5)
 
-        # ── 6. 저장 (로고 없음)
-        fname = output_name or f"thumb_cosmic_{font_style}_{random.randint(1000, 9999)}.jpg"
+        # ── 6. 저장 ─────────────────────────────────────────────────
+        slug  = subconcept_en.lower().replace(" ", "_")
+        fname = output_name or f"thumb_cosmic_{slug}_{random.randint(1000, 9999)}.jpg"
         out   = self.thumb_dir / fname
         base.convert("RGB").save(out, "JPEG", quality=95)
-        log.info(f"Thumbnail (cosmic/{font_style}) saved: {out.name}")
+        log.info(f"Thumbnail (cosmic v2 / {subconcept_en}) saved: {out.name}")
         return out
