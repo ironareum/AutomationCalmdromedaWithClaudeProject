@@ -31,3 +31,27 @@ v1.0이 완성될 때까지 여기에만 적는다. 절대 v1.0에 넣지 않는
 
 - 캄드로메다 v2: 제2 채널 런칭 (다른 컨셉 — 예: 빗소리, 자연소리)
 - GitHub Actions → n8n 또는 Airflow 전환 검토 (워크플로우 복잡도 증가 시)
+
+---
+
+## 문서 구조 개편
+
+- README.md → 실행 가이드만 (소개/설치/실행/구조/License)
+- CALMDROMEDA_BLUEPRINT.md → 브랜드 헌법 유지 (철학/카테고리/규칙/프롬프트/Decision Log)
+- ARCHITECTURE.md 신규 → 개발자 문서 (Pipeline/Data Flow/used_assets/Actions/Planner/Producer/Uploader)
+- docs/legacy/ 신규 → 이전 컨셉 보존 (nature_pipeline.md, mandala_pipeline.md, zen_pipeline.md)
+- README 문서 네비게이션: README → Blueprint → Architecture → Legacy → Ideas 링크 구조
+
+---
+
+## 리뷰 기준 (CLAUDE.md 추가 예정)
+
+새 요청이 오면 아래 순서로 검토:
+
+1. Blueprint와 일치하는가? (브랜드 철학 / 문체 규칙 / 데이터 구조)
+2. 설계가 유지되는가? (책임 분리 / 확장성 / 데이터-로직 분리)
+3. 구현 품질은? (중복 / 테스트 가능성 / 유지보수)
+
+새 아이디어가 오면 먼저 질문: **"이게 Blueprint를 바꾸는 일인가, 구현을 바꾸는 일인가?"**
+- Blueprint를 바꾸는 일 → 신중하게 (브랜드 기준이 바뀌는 것)
+- 구현을 바꾸는 일 → 비교적 자유롭게 (더 나은 방법이면 개선)
