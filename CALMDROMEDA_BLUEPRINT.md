@@ -3,6 +3,10 @@
 > **"Calmdromeda creates the experience of falling asleep among the stars."**
 > **"캄드로메다는 별들 사이에서 잠드는 경험을 만든다."**
 
+이 문서는 캄드로메다가 **무엇인지**를 정의한다. 구현은 바뀔 수 있지만, 이 문서의 원칙은 의도적인 아키텍처 결정이 아닌 이상 쉽게 바뀌지 않는다.
+
+*This document defines what Calmdromeda is — not how it is implemented. Implementation may evolve, but the principles in this document should change only through deliberate architectural decisions.*
+
 이 문서는 코드가 바뀌어도, AI 모델이 바뀌어도, 채널이 커져도 흔들리지 않는 기준점이다.
 새로운 기능 추가 전 반드시 확인: **이것이 이 미션에 맞는가?**
 
@@ -14,7 +18,11 @@
 |------|------|
 | **Purpose** | 캄드로메다 브랜드 헌법 + 기술 설계서 |
 | **Scope** | 콘텐츠 전략, 프롬프트 기준, 비주얼 아이덴티티, 기술 아키텍처 |
-| **Status** | v1.0 Frozen |
+| **Version** | 1.0 |
+| **Status** | Stable |
+
+> 문서 상태 흐름: Draft → Approved → **Stable**
+> Stable = 운영 중 기준점. 원칙 변경은 Decision Log에 기록 필수.
 
 ### Version History
 
@@ -54,6 +62,16 @@
 - 문학적이지만 어렵지 않다
 - 감정을 강요하지 않는다
 - 설명하지 않고 경험하게 한다
+
+### Tone of Voice
+
+브랜드가 세상에 말을 거는 방식.
+
+- 담백하다.
+- 조용하다.
+- 설명하지 않는다.
+- 여백을 남긴다.
+- 천천히 흘러간다.
 
 ### 핵심 키워드
 
@@ -145,6 +163,15 @@ Sub Concept 선택: 최근 10개 제외 → priority 가중 랜덤
 - 썸네일: Sub Concept 키워드 + 시리즈 번호
 - 카테고리별 Jamendo 음악 특성에 맞는 vartag 필터링
 
+### Never Optimize for Virality
+
+> "우리는 조회수를 위해 자극적인 제목을 쓰지 않는다."
+
+- 클릭을 위한 과장된 제목 금지
+- 트렌드를 쫓는 임시 콘텐츠 금지
+- 채널 성장 전략은 **검색 자산 축적** — 바이럴이 아닌 롱게임
+- 브랜드 일관성이 단기 조회수보다 항상 우선한다
+
 ### 제목 포맷
 
 ```
@@ -210,9 +237,25 @@ AI 생성: 서브컨셉별 5~8개
 | 독자에게 말 걸기 | 브랜드 세계관 유지 |
 | AI 과장 표현 | 담백한 문체 유지 |
 
+### LLM Independence
+
+프롬프트는 특정 AI 모델에 종속되지 않는다.
+
+- Claude, GPT, Gemini 어떤 모델에서도 동일한 철학이 유지되어야 한다
+- 프롬프트 효과가 모델에 따라 달라질 수 있지만, **의도**는 변하지 않는다
+- 모델 교체 시 프롬프트 구조(5-Part)는 유지, 표현만 튜닝
+
 ---
 
 ## 6. Visual Identity
+
+### Brand Consistency
+
+> "영상마다 같은 채널처럼 보여야 한다."
+
+- 100번째 영상도 1번째 영상과 같은 분위기여야 한다
+- 색상, 레이아웃, 폰트 규칙은 예외 없이 적용한다
+- 개별 영상의 완성도보다 채널 전체의 일관성이 우선한다
 
 ### Core Brand Colors
 
@@ -367,7 +410,30 @@ used_assets.json → data 브랜치 저장
 
 ---
 
-## 9. Future Roadmap
+## 9. Design Principles
+
+이 원칙들은 새로운 기능이나 변경을 검토할 때 기준이 된다.
+
+**1. 자동화는 브랜드 경험을 해치지 않는다**
+편의를 위해 브랜드 톤이나 품질 기준을 낮추지 않는다.
+자동화가 불가능하다면, 차라리 하지 않는다.
+
+**2. AI는 작가가 아니라 도구다**
+AI가 만드는 콘텐츠도 캄드로메다의 기준을 따라야 한다.
+프롬프트가 곧 편집장이다.
+
+**3. 검색은 수단이고, 브랜드가 목적이다**
+SEO는 사람들이 찾아오게 하는 수단이다.
+찾아온 사람들이 머무는 이유는 브랜드다.
+검색을 위해 브랜드를 훼손하지 않는다.
+
+**4. 일관성이 새 기능보다 먼저다**
+지금 있는 것을 잘 유지하는 것이
+새로운 것을 추가하는 것보다 항상 우선한다.
+
+---
+
+## 10. Future Roadmap
 
 ### v1.0 (현재)
 
@@ -388,7 +454,7 @@ used_assets.json → data 브랜치 저장
 
 ---
 
-## 10. Decision Log
+## 11. Decision Log
 
 ### v1.0 — 2026-06-26
 
