@@ -1571,5 +1571,22 @@
       "268955_Cicada_Insects_8_25_13_10_06_P.mp3": -30.2
     },
     "excluded_sources": {}
+  },
+  "mandala_20260628_040544": {
+    "title": "명상음악 | 패턴 속에서 마음이 풀리는 1시간 | Meditation Music - Fractal Ambient Meditation",
+    "category": "fractal",
+    "created_at": "2026-06-28 05:11:07",
+    "quality": "pending",
+    "sounds": [
+      "jamendo_979868_Diaspore.mp3"
+    ],
+    "videos": [
+      "pexels_35406051_1080p.mp4"
+    ],
+    "audio_lufs": -12.4,
+    "source_lufs": {
+      "jamendo_979868_Diaspore.mp3": -11.8
+    },
+    "excluded_sources": {}
   }
 }
