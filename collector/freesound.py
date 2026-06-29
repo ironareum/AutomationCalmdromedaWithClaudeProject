@@ -179,7 +179,7 @@ def is_sound_used(filename: str) -> bool:
     return any(
         filename in entry.get("sounds", [])
         for entry in data.values()
-        if isinstance(entry, dict)
+        if isinstance(entry, dict) and "sounds" in entry
     )
 
 
@@ -189,7 +189,7 @@ def is_video_used(video_id: str) -> bool:
     return any(
         any(video_id in fname for fname in entry.get("videos", []))
         for entry in data.values()
-        if isinstance(entry, dict)
+        if isinstance(entry, dict) and "videos" in entry
     )
 
 

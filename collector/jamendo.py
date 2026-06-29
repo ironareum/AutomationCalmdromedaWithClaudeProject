@@ -39,7 +39,7 @@ class JamendoCollector:
             return set()
         used_ids: set[str] = set()
         for session in data.values():
-            if not isinstance(session, dict):
+            if not isinstance(session, dict) or "sounds" not in session:
                 continue
             for fname in session.get("sounds", []):
                 # fname 형식: jamendo_{id}_{name}.mp3
