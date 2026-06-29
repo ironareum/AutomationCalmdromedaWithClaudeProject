@@ -34,7 +34,9 @@ from collector.pexels import PexelsCollector
 from config import Config
 from planner.cosmic_concept import generate_cosmic_concept
 from producer.ffmpeg_producer import VideoProducer, LOGO_PATH, LOGO_HEADING_PATH
+from producer.ffmpeg_cosmic import CosmicProducer
 from producer.thumbnail import ThumbnailGenerator
+from producer.thumbnail_cosmic import CosmicThumbnailGenerator
 from uploader.youtube import YouTubeUploader
 
 load_dotenv()
@@ -269,12 +271,12 @@ def produce_longform(
       Pass 2: video + audio merge (stream copy)
     반환: (output_path, actual_sounds, audio_lufs, source_lufs, excluded)
     """
-    producer = VideoProducer(work_dir)
+    producer = CosmicProducer(work_dir)
     temp_dir = work_dir / "temp"
     temp_dir.mkdir(exist_ok=True)
 
-    log.info("오디오 믹싱...")
-    mix = producer.mix_sounds(sound_files, duration, category=concept["category"])
+    log.info("오디오 믹싱 (Jamendo 음악 전용, loudnorm 없음)...")
+    mix = producer.mix_sounds_music(sound_files, duration)
     if not mix:
         return None
     audio, actual_sounds, audio_lufs, source_lufs, excluded = mix
@@ -292,34 +294,74 @@ def produce_longform(
     ], "클립 1080p 정규화"):
         return None
 
-    # Pass 1-b: stream_loop + logo
+    # Pass 1-b: loop 필터 + logo (stream_loop PTS 불연속 → loop 필터로 대체)
     video_loop = temp_dir / "video_loop.mp4"
     extra_in, filter_complex, final_map = _logo_inputs_and_filter_cosmic(producer)
 
-    if filter_complex:
+    dur_label = f"{duration // 60}min" if duration < 3600 else f"{duration // 3600}h"
+    frame_count = producer._get_frame_count(norm)
+    concat_f = None  # fallback용
+
+    if frame_count and filter_complex:
+        # loop 필터를 filter_complex 앞에 삽입 + 로고 overlay
+        fc_with_loop = (
+            f"[0:v]loop=-1:size={frame_count}:start=0[vloop];"
+            + filter_complex.replace("[0:v]", "[vloop]")
+        )
         cmd_loop = [
             "ffmpeg", "-y",
-            "-stream_loop", "-1", "-i", str(norm),
+            "-i", str(norm),
             *extra_in,
-            "-filter_complex", filter_complex,
+            "-filter_complex", fc_with_loop,
             "-map", f"[{final_map}]",
             "-t", str(duration),
             "-c:v", "libx264", "-preset", "fast", "-crf", "28",
             "-movflags", "+faststart", "-an", str(video_loop),
         ]
-    else:
+    elif frame_count:
+        # loop 필터 (로고 없음)
         cmd_loop = [
             "ffmpeg", "-y",
-            "-stream_loop", "-1", "-i", str(norm),
+            "-i", str(norm),
+            "-vf", f"loop=-1:size={frame_count}:start=0",
             "-t", str(duration),
             "-c:v", "libx264", "-preset", "fast", "-crf", "28",
             "-movflags", "+faststart", "-an", str(video_loop),
         ]
+    else:
+        # fallback: concat demuxer (프레임 수 조회 실패 시)
+        log.warning("프레임 수 조회 실패 — concat demuxer fallback")
+        norm_dur = producer.get_duration(norm)
+        repeat = max(1, int(duration / max(norm_dur, 1)) + 2)
+        concat_f = temp_dir / "concat_loop.txt"
+        with open(concat_f, "w") as fp:
+            for _ in range(repeat):
+                fp.write(f"file '{norm.resolve()}'\n")
+        if filter_complex:
+            cmd_loop = [
+                "ffmpeg", "-y",
+                "-f", "concat", "-safe", "0", "-i", str(concat_f),
+                *extra_in,
+                "-filter_complex", filter_complex,
+                "-map", f"[{final_map}]",
+                "-t", str(duration),
+                "-c:v", "libx264", "-preset", "fast", "-crf", "28",
+                "-movflags", "+faststart", "-an", str(video_loop),
+            ]
+        else:
+            cmd_loop = [
+                "ffmpeg", "-y",
+                "-f", "concat", "-safe", "0", "-i", str(concat_f),
+                "-t", str(duration),
+                "-c:v", "libx264", "-preset", "fast", "-crf", "28",
+                "-movflags", "+faststart", "-an", str(video_loop),
+            ]
 
-    dur_label = f"{duration // 60}min" if duration < 3600 else f"{duration // 3600}h"
     if not _run(cmd_loop, f"Loop {dur_label} + logo (Pass 1)"):
         return None
     producer._delete(norm)
+    if concat_f:
+        producer._delete(concat_f)
 
     # Pass 2: merge (stream copy)
     safe = "".join(c for c in concept["title"][:40] if c.isalnum() or c in " _-").strip().replace(" ", "_")
@@ -701,11 +743,11 @@ def main():
                 f" → Space Journey #{series_num:03d}"
             )
 
-            thumb_gen = ThumbnailGenerator(work_dir)
+            thumb_gen = CosmicThumbnailGenerator(work_dir)
             thumbnail = thumb_gen.generate(
                 video_path=video_file,
-                style="cosmic",
-                subconcept_en=concept["subconcept_en"],
+                seo_ko=concept.get("seo_ko", concept.get("subconcept_ko", "")),
+                seo_en=concept.get("seo_en", concept.get("subconcept_en", "")),
                 category_color=concept["subconcept_color"],
                 series_number=series_num,
             )

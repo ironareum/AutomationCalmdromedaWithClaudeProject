@@ -189,6 +189,8 @@ JSON만 응답:
         "subconcept_id":            subconcept.get("id", ""),
         "subconcept_en":            sc_en,
         "subconcept_ko":            sc_ko,
+        "seo_ko":                   seo_ko,
+        "seo_en":                   seo_en,
         "subconcept_color":         subconcept.get("color", "#5B7FFF"),
         "title":                    title,
         "shorts_title":             ai.get("shorts_title", ""),
