@@ -28,15 +28,19 @@ TITLE_BACK_FIXED = "1 Hour Ambient Sound"
 
 JAMENDO_SEARCH_TAGS = ["ambient", "sleep", "lullaby", "meditation", "relaxing", "atmospheric"]
 
-_VARTAGS_BASE = ["meditative", "meditation", "calm", "dreamy"]
+_VARTAGS_BASE = [
+    "ambient", "space", "atmospheric", "slow", "drone", "cinematic",
+    "sleep", "calm", "meditation", "dreamy", "relax", "relaxing",
+    "ethereal", "floating",
+]
 JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
     "galaxy":  _VARTAGS_BASE,
-    "aurora":  _VARTAGS_BASE + ["ambient"],
+    "aurora":  _VARTAGS_BASE,
     "stellar": _VARTAGS_BASE,
-    "nebula":  _VARTAGS_BASE + ["dreamy"],
+    "nebula":  _VARTAGS_BASE,
 }
 
-JAMENDO_EXCLUDE_TAGS = ["upbeat", "dance", "pop", "rock", "jazz", "dark", "eerie"]
+JAMENDO_EXCLUDE_TAGS = ["rock", "pop", "dance", "metal", "punk"]
 
 # ── 공통 태그 ─────────────────────────────────────────────────────────────
 
