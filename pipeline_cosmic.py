@@ -49,6 +49,12 @@ DURATION_LONGFORM = 1 * 3600   # 3600초
 DURATION_TEST     = 3 * 60     # 180초 (테스트 모드)
 DURATION_SHORTS   = 15         # 15초
 
+# ── 버전 상수 ─────────────────────────────────────────────────────────────
+BLUEPRINT_VERSION      = "1.0"
+PIPELINE_VERSION       = "cosmic-v1"
+PROMPT_VERSION         = "1.0"
+BOTH_MODE_SHORTS_DELAY = 1    # both 모드: 숏폼을 롱폼보다 하루 늦게 공개
+
 
 # ── 시리즈 카운트 헬퍼 ────────────────────────────────────────────────────
 
@@ -79,6 +85,51 @@ def _increment_longform_series_count(used_assets_path: Path) -> int:
     except Exception as e:
         log.warning(f"시리즈 카운트 저장 실패: {e}")
         return 0
+
+
+# ── 메타데이터 빌더 ───────────────────────────────────────────────────────
+
+def _build_metadata(
+    session_id: str,
+    concept: dict,
+    series_num: int,
+    effective_duration: int,
+    desc: str,
+    longform_path: Path,
+    thumbnail: Path | None,
+    video_file: Path,
+    used_sounds: list[Path],
+    jamendo_meta: dict | None,
+    audio_lufs: float | None,
+    source_lufs: dict,
+    excluded: dict,
+) -> dict:
+    return {
+        "session_id":        session_id,
+        "session_type":      "cosmic",
+        "blueprint_version": BLUEPRINT_VERSION,
+        "pipeline_version":  PIPELINE_VERSION,
+        "prompt_version":    PROMPT_VERSION,
+        "title":             concept["title"],
+        "category":          concept["category"],
+        "subconcept_id":     concept.get("subconcept_id", ""),
+        "subconcept_en":     concept.get("subconcept_en", ""),
+        "subconcept_ko":     concept.get("subconcept_ko", ""),
+        "series":            {"longform": series_num, "shorts": 0},
+        "duration_hours":    round(effective_duration / 3600, 2),
+        "tags":              concept["tags"],
+        "description":       desc,
+        "jamendo_track":     jamendo_meta or {},
+        "video_path":        str(longform_path),
+        "thumbnail_path":    str(thumbnail) if thumbnail else "",
+        "shorts_intro":      concept.get("shorts_intro", ""),
+        "created_at":        datetime.now().isoformat(),
+        "used_sounds":       [f.name for f in used_sounds],
+        "used_videos":       [video_file.name],
+        "audio_lufs":        audio_lufs,
+        "source_lufs":       source_lufs or {},
+        "excluded_sources":  excluded or {},
+    }
 
 
 # ── FFmpeg 유틸 ────────────────────────────────────────────────────────────
@@ -603,7 +654,9 @@ def main():
     log.info(f"=== Cosmic Pipeline Start: {session_id} / mode={args.mode} / test={args.test} ===")
 
     try:
-        # 콘셉트 생성
+        # ── Collect Phase ────────────────────────────────────────────────
+        log.info("=== Collect Phase ===")
+
         concept = generate_cosmic_concept(
             api_key=cfg.claude_api_key,
             used_assets_path=USED_ASSETS_FILE,
@@ -611,28 +664,29 @@ def main():
         )
         log.info(f"콘셉트: {concept['title']}")
 
-        # 음원 수집
         sound_files, jamendo_meta = collect_longest_music(concept, work_dir, cfg)
         if not sound_files:
             log.error("음원 수집 실패 — 종료")
             return
 
-        # 영상 수집
         video_file = collect_best_video(concept, work_dir, cfg)
         if not video_file:
             log.error("영상 수집 실패 — 종료")
             return
 
+        # ── 초기화 ──────────────────────────────────────────────────────
         longform_path = None
-        used_sounds = sound_files
-        audio_lufs = None
-        source_lufs = {}
-        excluded = {}
+        used_sounds   = sound_files
+        audio_lufs    = None
+        source_lufs   = {}
+        excluded      = {}
 
-        # ── 롱폼 ────────────────────────────────────────────────────────
+        # ── Produce Phase ────────────────────────────────────────────────
+        log.info("=== Produce Phase ===")
+
         if args.mode in ("longform", "both"):
             dur_label = f"{effective_duration//60}분" if args.test else "1시간"
-            log.info(f"=== [롱폼] {dur_label} 영상 제작 시작 ===")
+            log.info(f"[롱폼] {dur_label} 영상 제작 시작")
             result = produce_longform(sound_files, video_file, concept, work_dir,
                                       duration=effective_duration)
             if not result:
@@ -640,8 +694,13 @@ def main():
                 return
             longform_path, used_sounds, audio_lufs, source_lufs, excluded = result
 
-            # 썸네일 (코스믹 v2)
             series_num = _get_longform_series_count(USED_ASSETS_FILE) + 1
+            log.info(
+                f"콘셉트 확정: {concept['category'].upper()}"
+                f" → {concept['subconcept_en']}"
+                f" → Space Journey #{series_num:03d}"
+            )
+
             thumb_gen = ThumbnailGenerator(work_dir)
             thumbnail = thumb_gen.generate(
                 video_path=video_file,
@@ -651,33 +710,26 @@ def main():
                 series_number=series_num,
             )
 
-            # 메타데이터
             desc = _make_description(concept, jamendo_meta)
-            metadata = {
-                "session_id":      session_id,
-                "session_type":    "cosmic",
-                "title":           concept["title"],
-                "category":        concept["category"],
-                "subconcept_id":   concept.get("subconcept_id", ""),
-                "subconcept_en":   concept.get("subconcept_en", ""),
-                "subconcept_ko":   concept.get("subconcept_ko", ""),
-                "series_number":   series_num,
-                "duration_hours":  round(effective_duration / 3600, 2),
-                "tags":            concept["tags"],
-                "description":     desc,
-                "jamendo_track":   jamendo_meta or {},
-                "video_path":      str(longform_path),
-                "thumbnail_path":  str(thumbnail) if thumbnail else "",
-                "shorts_intro":    concept.get("shorts_intro", ""),
-                "created_at":      datetime.now().isoformat(),
-                "used_sounds":     [f.name for f in used_sounds],
-                "used_videos":     [video_file.name],
-            }
+            metadata = _build_metadata(
+                session_id=session_id,
+                concept=concept,
+                series_num=series_num,
+                effective_duration=effective_duration,
+                desc=desc,
+                longform_path=longform_path,
+                thumbnail=thumbnail,
+                video_file=video_file,
+                used_sounds=used_sounds,
+                jamendo_meta=jamendo_meta,
+                audio_lufs=audio_lufs,
+                source_lufs=source_lufs,
+                excluded=excluded,
+            )
             (work_dir / "metadata.json").write_text(
                 json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8"
             )
 
-            # used_assets 등록
             register_used_session(
                 session_id=session_id,
                 title=concept["title"],
@@ -689,11 +741,11 @@ def main():
                 excluded_sources=excluded,
             )
 
-            # 롱폼 시리즈 카운트 저장
             _increment_longform_series_count(USED_ASSETS_FILE)
             log.info(f"Space Journey #{series_num:03d} — 시리즈 카운트 저장")
 
-            # 업로드 (롱폼: UPLOAD_DAYS_AHEAD 후 UPLOAD_HOUR_KST:UPLOAD_MINUTE_KST)
+            # ── Upload Phase ─────────────────────────────────────────────
+            log.info("=== Upload Phase ===")
             yt = upload_youtube(longform_path, concept, cfg,
                                 hour_kst=cfg.upload_hour_kst, minute_kst=cfg.upload_minute_kst,
                                 thumbnail=thumbnail, days_ahead=cfg.upload_days_ahead,
@@ -703,13 +755,15 @@ def main():
 
         # ── 숏폼 단독 모드 (--mode shorts) ───────────────────────────────
         if args.mode == "shorts":
-            log.info("=== [숏폼 단독] 15s 제작 시작 ===")
+            log.info("=== Produce Phase ===")
+            log.info("[숏폼 단독] 15s 제작 시작")
             shorts_path = produce_shorts(sound_files, video_file, concept, work_dir)
             if shorts_path:
                 intro = concept.get("shorts_intro", "")
                 if intro:
                     shorts_path = _overlay_intro_text(shorts_path, intro, work_dir) or shorts_path
                 desc_s = _make_description(concept, jamendo_meta)
+                log.info("=== Upload Phase ===")
                 yt_s = upload_youtube(
                     shorts_path, concept, cfg,
                     is_shorts=True,
@@ -731,9 +785,9 @@ def main():
                 category=concept["category"],
             )
 
-        # ── both 모드 숏폼 (롱폼에서 추출, D+UPLOAD_DAYS_AHEAD+1 예약) ──
+        # ── both 모드 숏폼 (롱폼에서 추출, D+UPLOAD_DAYS_AHEAD+BOTH_MODE_SHORTS_DELAY 예약) ──
         if args.mode == "both" and longform_path:
-            log.info("=== [숏폼] 15s 제작 시작 ===")
+            log.info("[숏폼] 15s 제작 시작")
             producer = VideoProducer(work_dir)
 
             start_sec = 0
@@ -752,7 +806,7 @@ def main():
                     is_shorts=True,
                     hour_kst=cfg.shorts_upload_hour_kst,
                     minute_kst=cfg.shorts_upload_minute_kst,
-                    days_ahead=cfg.upload_days_ahead + 1,
+                    days_ahead=cfg.upload_days_ahead + BOTH_MODE_SHORTS_DELAY,
                     description_override=desc,
                 )
                 if yt_s:
