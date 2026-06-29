@@ -176,7 +176,11 @@ def register_used_session(session_id: str, title: str,
 def is_sound_used(filename: str) -> bool:
     """파일명이 이미 사용된 소스인지 확인"""
     data = load_used_assets()
-    return any(filename in entry.get("sounds", []) for entry in data.values())
+    return any(
+        filename in entry.get("sounds", [])
+        for entry in data.values()
+        if isinstance(entry, dict)
+    )
 
 
 def is_video_used(video_id: str) -> bool:
@@ -185,6 +189,7 @@ def is_video_used(video_id: str) -> bool:
     return any(
         any(video_id in fname for fname in entry.get("videos", []))
         for entry in data.values()
+        if isinstance(entry, dict)
     )
 
 

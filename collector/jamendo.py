@@ -39,6 +39,8 @@ class JamendoCollector:
             return set()
         used_ids: set[str] = set()
         for session in data.values():
+            if not isinstance(session, dict):
+                continue
             for fname in session.get("sounds", []):
                 # fname 형식: jamendo_{id}_{name}.mp3
                 if fname.startswith("jamendo_"):
