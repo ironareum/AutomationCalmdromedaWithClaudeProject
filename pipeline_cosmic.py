@@ -478,6 +478,28 @@ def _wrap_text_to_width(text: str, font, draw, max_width: int) -> list[str]:
     return lines
 
 
+def _wrap_text_balanced(text: str, font, draw, max_width: int) -> list[str]:
+    """그리디 줄바꿈과 동일한 줄 수를 유지하는 선에서 가장 좁은 폭을 찾아
+    줄 길이를 균형있게 재분배 (CSS text-wrap: balance와 동일한 원리).
+    마지막 줄에 단어 1개만 남는 등의 불균형한 고아 줄을 방지한다."""
+    base_lines = _wrap_text_to_width(text, font, draw, max_width)
+    target_count = len(base_lines)
+    if target_count <= 1:
+        return base_lines
+
+    lo, hi = max_width // 2, max_width
+    best = base_lines
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        trial = _wrap_text_to_width(text, font, draw, mid)
+        if len(trial) == target_count:
+            best = trial
+            hi = mid - 1
+        else:
+            lo = mid + 1
+    return best
+
+
 def _overlay_intro_text(clip_path: Path, intro_text: str, work_dir: Path) -> Path | None:
     """Pillow로 문장 자동 줄바꿈 텍스트 블록 PNG 1장 생성 + FFmpeg overlay
     fade-in 1s → hold → fade-out 1s (총 15s 기준, out 시작 st=13)
@@ -512,7 +534,7 @@ def _overlay_intro_text(clip_path: Path, intro_text: str, work_dir: Path) -> Pat
             return clip_path
         wrapped = []
         for s in sentences:
-            wrapped += _wrap_text_to_width(s, fnt, draw_dummy, max_w)
+            wrapped += _wrap_text_balanced(s, fnt, draw_dummy, max_w)
         if len(wrapped) <= 6:
             font_size = size
             lines = wrapped
@@ -521,7 +543,7 @@ def _overlay_intro_text(clip_path: Path, intro_text: str, work_dir: Path) -> Pat
         font_size = 28
         fnt = ImageFont.truetype(str(font_path), font_size)
         for s in sentences:
-            lines += _wrap_text_to_width(s, fnt, draw_dummy, max_w)
+            lines += _wrap_text_balanced(s, fnt, draw_dummy, max_w)
         lines = lines[:6]
 
     font = ImageFont.truetype(str(font_path), font_size)
