@@ -571,6 +571,22 @@ def _make_description(concept: dict, jamendo_meta: dict | None = None) -> str:
     return "\n".join(lines)
 
 
+def _make_shorts_description(concept: dict, jamendo_meta: dict | None = None) -> str:
+    """쇼츠 전용 설명 — shorts_description 필드 사용, 없으면 description_ko 폴백"""
+    body = concept.get("shorts_description") or concept.get("description_ko", "")
+    lines = [body]
+    if jamendo_meta and jamendo_meta.get("name"):
+        lines += [
+            "",
+            "─────────────────────────",
+            f"🎵 Music: {jamendo_meta['name']} by {jamendo_meta.get('artist_name', '')}",
+            f"License: {jamendo_meta.get('license_ccurl', 'https://creativecommons.org/licenses/by/3.0/')}",
+            "Source: Jamendo (jamendo.com)",
+            "─────────────────────────",
+        ]
+    return "\n".join(lines)
+
+
 # ── YouTube 업로드 ────────────────────────────────────────────────────────
 
 def upload_youtube(
@@ -746,10 +762,7 @@ def main():
             thumb_gen = CosmicThumbnailGenerator(work_dir)
             thumbnail = thumb_gen.generate(
                 video_path=video_file,
-                seo_ko=concept.get("seo_ko", concept.get("subconcept_ko", "")),
-                seo_en=concept.get("seo_en", concept.get("subconcept_en", "")),
-                category_color=concept["subconcept_color"],
-                series_number=series_num,
+                emotion_copy=concept.get("longform_emotional", ""),
             )
 
             desc = _make_description(concept, jamendo_meta)
@@ -804,7 +817,7 @@ def main():
                 intro = concept.get("shorts_intro", "")
                 if intro:
                     shorts_path = _overlay_intro_text(shorts_path, intro, work_dir) or shorts_path
-                desc_s = _make_description(concept, jamendo_meta)
+                desc_s = _make_shorts_description(concept, jamendo_meta)
                 log.info("=== Upload Phase ===")
                 yt_s = upload_youtube(
                     shorts_path, concept, cfg,
@@ -843,13 +856,14 @@ def main():
                 intro = concept.get("shorts_intro", "")
                 if intro:
                     sp = _overlay_intro_text(sp, intro, work_dir) or sp
+                desc_shorts = _make_shorts_description(concept, jamendo_meta)
                 yt_s = upload_youtube(
                     sp, concept, cfg,
                     is_shorts=True,
                     hour_kst=cfg.shorts_upload_hour_kst,
                     minute_kst=cfg.shorts_upload_minute_kst,
                     days_ahead=cfg.upload_days_ahead + BOTH_MODE_SHORTS_DELAY,
-                    description_override=desc,
+                    description_override=desc_shorts,
                 )
                 if yt_s:
                     log.info(f"숏폼 YouTube: {yt_s['url']} (공개: {yt_s['publish_at']})")
