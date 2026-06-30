@@ -219,8 +219,15 @@ class CosmicThumbnailGenerator:
         _draw_fading_line(base, pad_x, div_y, div_w, height=1)
 
         # ── 7. 로고 (좌하단, 텍스트 시작점과 좌측 정렬) ───────────────
+        # logo_cosmic.png는 원형 배지 둘레에 투명 여백이 넓게 있어 원본 그대로
+        # pad_x에 붙이면 보이는 원이 텍스트보다 한참 오른쪽에서 시작한다.
+        # 알파 채널 기준으로 실제 보이는 영역만 잘라낸 뒤 정렬한다.
         if LOGO_PATH.exists():
             logo = Image.open(LOGO_PATH).convert("RGBA")
+            visible_mask = logo.split()[3].point(lambda a: 255 if a > 30 else 0)
+            bbox = visible_mask.getbbox()
+            if bbox:
+                logo = logo.crop(bbox)
             logo_h = int(H * 0.20)
             ratio = logo_h / logo.height
             logo_w = int(logo.width * ratio)
