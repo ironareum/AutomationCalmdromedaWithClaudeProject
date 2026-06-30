@@ -124,7 +124,7 @@ def _build_metadata(
         "jamendo_track":     jamendo_meta or {},
         "video_path":        str(longform_path),
         "thumbnail_path":    str(thumbnail) if thumbnail else "",
-        "shorts_intro":      concept.get("shorts_intro", ""),
+        "shorts_overlay_text": concept.get("description_ko", ""),
         "created_at":        datetime.now().isoformat(),
         "used_sounds":       [f.name for f in used_sounds],
         "used_videos":       [video_file.name],
@@ -461,14 +461,32 @@ def produce_shorts(
 
 # ── 설명문 생성 ───────────────────────────────────────────────────────────
 
-def _overlay_intro_text(clip_path: Path, shorts_intro: str, work_dir: Path) -> Path | None:
-    """Pillow로 전체 4줄 블록 PNG 1장 생성 + FFmpeg overlay
+def _wrap_text_to_width(text: str, font, draw, max_width: int) -> list[str]:
+    """공백 기준으로 단어를 쌓다가 폭 초과 시 줄바꿈"""
+    words = text.split(" ")
+    lines, cur = [], ""
+    for w in words:
+        trial = f"{cur} {w}".strip()
+        bbox = draw.textbbox((0, 0), trial, font=font)
+        if (bbox[2] - bbox[0]) <= max_width or not cur:
+            cur = trial
+        else:
+            lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
+    return lines
+
+
+def _overlay_intro_text(clip_path: Path, intro_text: str, work_dir: Path) -> Path | None:
+    """Pillow로 문장 자동 줄바꿈 텍스트 블록 PNG 1장 생성 + FFmpeg overlay
     fade-in 1s → hold → fade-out 1s (총 15s 기준, out 시작 st=13)
     """
     from PIL import Image, ImageDraw, ImageFont
 
-    lines = [l.strip() for l in shorts_intro.split("\n") if l.strip()][:4]
-    if not lines:
+    sentences = [s.strip() for s in intro_text.replace("\n", " ").split(". ") if s.strip()]
+    sentences = [s if s.endswith(".") else f"{s}." for s in sentences]
+    if not sentences:
         return clip_path
 
     font_path = Path(__file__).parent / "assets" / "fonts" / "NanumMyeongjo.ttf"
@@ -477,18 +495,37 @@ def _overlay_intro_text(clip_path: Path, shorts_intro: str, work_dir: Path) -> P
         return clip_path
 
     W, H = 1080, 1920
-    font_size = 40
-    line_gap = 14  # 줄 사이 추가 여백
+    max_w = int(W * 0.84)
+    line_gap = 12
 
-    try:
-        font = ImageFont.truetype(str(font_path), font_size)
-    except Exception as e:
-        log.warning(f"폰트 로드 실패 — 스킵: {e}")
-        return clip_path
-
-    # 전체 블록 높이 계산
     img_dummy = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     draw_dummy = ImageDraw.Draw(img_dummy)
+
+    # 폰트 크기 44→28까지 줄이며 6줄 이내로 맞는 크기 탐색
+    font_size = 28
+    lines: list[str] = []
+    for size in range(44, 27, -2):
+        try:
+            fnt = ImageFont.truetype(str(font_path), size)
+        except Exception as e:
+            log.warning(f"폰트 로드 실패 — 스킵: {e}")
+            return clip_path
+        wrapped = []
+        for s in sentences:
+            wrapped += _wrap_text_to_width(s, fnt, draw_dummy, max_w)
+        if len(wrapped) <= 6:
+            font_size = size
+            lines = wrapped
+            break
+    if not lines:
+        font_size = 28
+        fnt = ImageFont.truetype(str(font_path), font_size)
+        for s in sentences:
+            lines += _wrap_text_to_width(s, fnt, draw_dummy, max_w)
+        lines = lines[:6]
+
+    font = ImageFont.truetype(str(font_path), font_size)
+
     line_heights = []
     for line in lines:
         bbox = draw_dummy.textbbox((0, 0), line, font=font)
@@ -817,7 +854,7 @@ def main():
             log.info("[숏폼 단독] 15s 제작 시작")
             shorts_path = produce_shorts(sound_files, video_file, concept, work_dir)
             if shorts_path:
-                intro = concept.get("shorts_intro", "")
+                intro = concept.get("description_ko", "")
                 if intro:
                     shorts_path = _overlay_intro_text(shorts_path, intro, work_dir) or shorts_path
                 desc_s = _make_shorts_description(concept, jamendo_meta)
@@ -856,7 +893,7 @@ def main():
                 clip_index=1,
             )
             if sp:
-                intro = concept.get("shorts_intro", "")
+                intro = concept.get("description_ko", "")
                 if intro:
                     sp = _overlay_intro_text(sp, intro, work_dir) or sp
                 desc_shorts = _make_shorts_description(concept, jamendo_meta)

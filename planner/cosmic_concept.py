@@ -1,11 +1,11 @@
 """
 우주/코스믹 앰비언트 롱폼 + 숏폼 콘셉트 생성기 (v2.0)
 2026.06.26 3계층 구조 (Category → Sub Concept → Story) 적용
+2026.06.30 shorts_intro(4줄 고정 포맷) 폐기 — description_ko를 쇼츠 텍스트 오버레이로도 재사용
 
 흐름:
   rotation.py → 카테고리 로테이션 + 서브컨셉 히스토리 선택
-  prompt_builder.py → 5-Part 프롬프트 조립
-  Claude Haiku → shorts_intro(4줄 기억 조각) + description + tags 생성
+  Claude Haiku → longform_emotional + shorts_title + description_ko + tags 생성
   제목: subconcept SEO 기반 고정 포맷
 """
 
@@ -16,7 +16,6 @@ from pathlib import Path
 import anthropic
 
 from planner.rotation import pick_category_and_subconcept
-from planner.prompt_builder import build_shorts_script_prompt, sample_mood_and_sensory
 
 log = logging.getLogger(__name__)
 
@@ -107,9 +106,7 @@ def generate_cosmic_concept(
         "subconcept_color": "#5B7FFF",
         "title": "은하수 수면음악 | Milky Way Sleep Music | 1 Hour Ambient Sound",
         "shorts_title": "잠이 안 와서 틀었다가 잠든 영상",
-        "shorts_intro": "몇 시였는지 모른다.\n별이 많았다.\n...",
         "description_ko": "...",
-        "description_en": "...",
         "tags": [...],
         "jamendo_tags": [...],
         "jamendo_required_vartags": [...],
@@ -120,28 +117,30 @@ def generate_cosmic_concept(
     subconcept = pick_category_and_subconcept(used_assets_path, force_category)
     category = subconcept.get("category", "galaxy")
 
-    mood_sample, sensory_sample = sample_mood_and_sensory(subconcept)
-    script_prompt = build_shorts_script_prompt(subconcept, mood_sample, sensory_sample)
-
     sc_en = subconcept["display_name"]["en"]
     sc_ko = subconcept["display_name"]["ko"]
     seo_ko = subconcept["seo"]["ko"]
     seo_en = subconcept["seo"]["en"]
 
-    full_prompt = f"""{script_prompt}
+    full_prompt = f"""당신은 'Calmdromeda'의 전속 작가입니다.
+Calmdromeda는 '우주에서 잠드는 경험'을 만드는 브랜드입니다.
+모든 문장은 잠들기 직전의 기억처럼 조용하고 담담해야 합니다.
+초등학생도 이해할 수 있는 쉬운 단어를 쓰고, 어려운 비유나 전문 음악 용어는 쓰지 않습니다.
+감정을 직접 말하지 않고 감각(보이는 것, 느껴지는 것)으로 표현합니다.
 
-위 규칙으로 shorts_intro(4줄 기억 조각)를 작성하고, 아래 필드도 함께 생성하세요.
+Sub Concept: {sc_en} ({sc_ko})
+
+아래 필드를 생성하세요.
 
 longform_emotional: 롱폼 썸네일용 감성 문구 (20자 이내, 한국어, 잠들기 전 기억처럼 담백하게, 독자에게 말 걸기 금지)
   예시: "오로라 따라가다 그냥 잠들었어요" / "별빛이 손가락 사이로 흘렀다" / "우주 끝에서 눈이 감겼다"
 shorts_title: 유튜브 쇼츠 제목 (30자 이내, 한국어, 감성적, longform_emotional과 다른 문장, 독자에게 직접 말 걸기 금지)
   예시: "우주 틀었다가 깨보니 새벽이었던 영상"
-description_ko: 한국어 설명 2~3문장 (몰입감 있는 서술, 보는 사람이 그 공간에 빠져드는 느낌, 시적이되 전문 음악 용어 금지) — 롱폼 영상 설명란에 사용됩니다
+description_ko: 한국어 설명 2~3문장 (몰입감 있는 서술, 보는 사람이 그 공간에 빠져드는 느낌, 시적이되 전문 음악 용어 금지) — 롱폼 영상 설명란과 쇼츠 영상 텍스트 오버레이에 함께 사용됩니다
 tags: {sc_ko}/{sc_en} 관련 태그 5~8개
 
 JSON만 응답:
 {{
-  "shorts_intro": "줄1\\n줄2\\n줄3\\n줄4",
   "longform_emotional": "...",
   "shorts_title": "...",
   "description_ko": "...",
@@ -153,7 +152,7 @@ JSON만 응답:
         client = anthropic.Anthropic(api_key=api_key)
         msg = client.messages.create(
             model=MODEL,
-            max_tokens=1024,
+            max_tokens=768,
             messages=[{"role": "user", "content": full_prompt}]
         )
         raw = msg.content[0].text.strip()
@@ -167,7 +166,6 @@ JSON만 응답:
     except Exception as e:
         log.error(f"Claude API 오류: {e} — 기본 콘셉트 사용")
         ai = {
-            "shorts_intro":       "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다.",
             "longform_emotional": f"{sc_ko} 따라가다 그냥 잠들었어요",
             "shorts_title":       "잠이 안 와서 틀었다가 잠든 영상",
             "description_ko":     f"말없이 {sc_ko} 속으로 빠져드는 시간이었어요. 생각이 하나둘 사라지고, 어느새 깊은 곳에 있었어요.",
@@ -183,11 +181,6 @@ JSON만 응답:
     ai_tags     = ai.get("tags", [])
     merged_tags = list(dict.fromkeys(ai_tags + cat_tags + COMMON_TAGS))[:50]
 
-    # shorts_intro 검증
-    shorts_intro = ai.get("shorts_intro", "")
-    if not isinstance(shorts_intro, str) or not shorts_intro.strip():
-        shorts_intro = "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다."
-
     jamendo_vartags = JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY.get(category, _VARTAGS_BASE)
 
     return {
@@ -201,7 +194,6 @@ JSON만 응답:
         "title":                    title,
         "longform_emotional":       ai.get("longform_emotional", f"{sc_ko}"),
         "shorts_title":             ai.get("shorts_title", ""),
-        "shorts_intro":             shorts_intro,
         "description_ko":           ai.get("description_ko", ""),
         "tags":                     merged_tags,
         "jamendo_tags":             JAMENDO_SEARCH_TAGS,
