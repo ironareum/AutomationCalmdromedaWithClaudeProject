@@ -196,10 +196,10 @@ JSON만 응답:
     ai_tags     = ai.get("tags", [])
     merged_tags = list(dict.fromkeys(ai_tags + cat_tags + COMMON_TAGS))[:50]
 
-    # shorts_intro 검증 — 4줄 아니면 기본값으로 폴백
+    # shorts_intro 검증 — 4줄 아니면 에러 (동일 기본 텍스트가 반복 노출되는 것을 방지)
     shorts_intro = ai.get("shorts_intro", "")
     if not isinstance(shorts_intro, str) or len([l for l in shorts_intro.split("\n") if l.strip()]) != 4:
-        shorts_intro = "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다."
+        raise ValueError(f"shorts_intro 형식 오류 — 4줄이 아님: {shorts_intro!r}")
 
     jamendo_vartags = JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY.get(category, _VARTAGS_BASE)
 
