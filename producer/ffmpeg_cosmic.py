@@ -10,6 +10,7 @@ Cosmic Pipeline FFmpeg Producer
 """
 
 import logging
+import re
 import subprocess
 from pathlib import Path
 
@@ -71,6 +72,42 @@ class CosmicProducer(VideoProducer):
 
         return None
 
+    def _detect_leading_silence(
+        self,
+        audio_path: Path,
+        threshold_db: float = -45,
+        min_silence: float = 1.0,
+        max_trim: float = 20.0,
+    ) -> float:
+        """
+        오디오 시작 부분 무음 길이 측정 (silencedetect).
+        0초부터 시작하는 무음 구간만 감지 — 곡 중간 무음은 건드리지 않음.
+        무음 없거나 측정 실패 시 0.0 반환 (트리밍 스킵, 기존 동작 유지).
+        """
+        try:
+            r = subprocess.run(
+                [
+                    "ffmpeg", "-hide_banner", "-nostats",
+                    "-i", str(audio_path),
+                    "-af", f"silencedetect=noise={threshold_db}dB:d={min_silence}",
+                    "-f", "null", "-",
+                ],
+                capture_output=True, text=True, timeout=30,
+            )
+        except Exception as e:
+            log.warning(f"무음 감지 실패 ({audio_path.name}): {e}")
+            return 0.0
+
+        if not re.search(r"silence_start:\s*0(?:\.0+)?\b", r.stderr):
+            return 0.0
+        m = re.search(r"silence_end:\s*([\d.]+)", r.stderr)
+        if not m:
+            return 0.0
+
+        dur = min(float(m.group(1)), max_trim)
+        log.info(f"시작 무음 {dur:.1f}s 감지 — {audio_path.name}")
+        return dur
+
     def mix_sounds_music(
         self,
         sound_files: list[Path],
@@ -98,9 +135,26 @@ class CosmicProducer(VideoProducer):
 
         # 음악은 단일 트랙 (가장 앞에 있는 것 = 가장 긴 것)
         music_file = valid[0]
+        audio_source = music_file  # 실제 루프/믹싱에 쓰이는 소스 (트리밍 시 교체됨)
 
-        # LUFS 측정 (첫 60초 샘플링)
-        measured_lufs = self._measure_lufs(music_file)
+        # 시작 무음 트리밍 — 루프 걸기 전에 한 번만 잘라내서 루프 반복마다 무음이
+        # 재발하는 것을 방지 (stream_loop는 루프마다 파일 진짜 처음으로 되돌아감)
+        leading_silence = self._detect_leading_silence(music_file)
+        if leading_silence > 0:
+            trimmed = self.temp_dir / f"trimmed_{music_file.name}"
+            if self._run([
+                "ffmpeg", "-y",
+                "-ss", str(leading_silence),
+                "-i", str(music_file),
+                "-c", "copy",
+                str(trimmed),
+            ], f"시작 무음 {leading_silence:.1f}s 트리밍"):
+                audio_source = trimmed
+            else:
+                log.warning("무음 트리밍 실패 — 원본 트랙 그대로 사용")
+
+        # LUFS 측정 (첫 60초 샘플링) — 원본 파일명으로 기록 (크레딧/메타데이터용)
+        measured_lufs = self._measure_lufs(audio_source)
         source_lufs: dict[str, float | None] = {music_file.name: measured_lufs}
         log.info(f"음악 소스 LUFS: {measured_lufs} dB — {music_file.name}")
 
@@ -124,7 +178,7 @@ class CosmicProducer(VideoProducer):
         cmd = [
             "ffmpeg", "-y",
             "-stream_loop", "-1",
-            "-i", str(music_file),
+            "-i", str(audio_source),
             "-t", str(target_duration),
             "-af", af,
             "-b:a", "192k",
