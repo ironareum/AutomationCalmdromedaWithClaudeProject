@@ -39,7 +39,7 @@ JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
     "nebula":  _VARTAGS_BASE,
 }
 
-JAMENDO_EXCLUDE_TAGS = ["rock", "pop", "dance", "metal", "punk", "horror", "industrial", "noise", "experimental"]
+JAMENDO_EXCLUDE_TAGS = ["rock", "pop", "dance", "metal", "punk", "horror", "industrial", "noise", "experimental", "dark", "eerie", "jazz"]
 
 # ── 공통 태그 ─────────────────────────────────────────────────────────────
 
@@ -136,7 +136,15 @@ longform_emotional: 롱폼 썸네일용 감성 문구 (20자 이내, 한국어, 
   예시: "오로라 따라가다 그냥 잠들었어요" / "별빛이 손가락 사이로 흘렀다" / "우주 끝에서 눈이 감겼다"
 shorts_title: 유튜브 쇼츠 제목 (30자 이내, 한국어, 감성적, longform_emotional과 다른 문장, 독자에게 직접 말 걸기 금지)
   예시: "우주 틀었다가 깨보니 새벽이었던 영상"
-description_ko: 한국어 설명 2~3문장 (몰입감 있는 서술, 보는 사람이 그 공간에 빠져드는 느낌) — 롱폼 영상 설명란과 쇼츠 영상 텍스트 오버레이에 함께 사용됩니다
+shorts_intro: 쇼츠 영상 텍스트 오버레이용, 정확히 4줄 (한국어) — 우주를 여행하다 잠든 사람이 다음 날 희미하게 기억나는 장면을 메모장에 4줄만 적는 느낌
+  줄마다 8~15자 정도로 짧게 씁니다.
+  4줄이 하나의 장면으로 자연스럽게 이어지게 씁니다 — 각 줄은 독립된 이미지가 아니라 같은 장면의 다음 순간입니다.
+  마침표로 끝냅니다. 이모지·해시태그·따옴표 금지.
+  첫 줄 패턴을 반복하지 않습니다 — 매번 다른 도입부를 씁니다.
+  "오늘도 수고했어요", "좋은 꿈 꾸세요", "힐링", "위로", "명언" 같은 표현은 금지합니다. 독자에게 말을 걸거나 교훈을 주지 않습니다.
+  "은하의 숨결", "우주의 속삭임", "영원의 빛" 같은 AI 특유의 과장된 클리셰 표현은 금지합니다.
+  예시: "몇 시였는지 모른다.\\n별이 먼저 보였다.\\n바람이 차갑게 스쳤다.\\n어느새 눈이 감겨 있었다."
+description_ko: 한국어 설명 2~3문장 (몰입감 있는 서술, 보는 사람이 그 공간에 빠져드는 느낌) — 롱폼 영상 설명란에 사용됩니다
   문장은 짧고 담백한 단문으로 씁니다.
   한 문장에 비유(직유/은유)는 최대 1개까지만 사용합니다 — 여러 비유를 한 문장에 겹치지 않습니다.
   "은하의 숨결", "우주의 속삭임", "영원의 빛" 같은 AI 특유의 과장된 클리셰 표현은 금지합니다.
@@ -148,6 +156,7 @@ JSON만 응답:
 {{
   "longform_emotional": "...",
   "shorts_title": "...",
+  "shorts_intro": "줄1\\n줄2\\n줄3\\n줄4",
   "description_ko": "...",
   "tags": ["...", "..."]
 }}"""
@@ -173,6 +182,7 @@ JSON만 응답:
         ai = {
             "longform_emotional": f"{sc_ko} 따라가다 그냥 잠들었어요",
             "shorts_title":       "잠이 안 와서 틀었다가 잠든 영상",
+            "shorts_intro":       "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다.",
             "description_ko":     f"말없이 {sc_ko} 속으로 빠져드는 시간이었어요. 생각이 하나둘 사라지고, 어느새 깊은 곳에 있었어요.",
             "tags": [],
         }
@@ -185,6 +195,11 @@ JSON만 응답:
     cat_tags    = CATEGORY_TAGS.get(category, [])
     ai_tags     = ai.get("tags", [])
     merged_tags = list(dict.fromkeys(ai_tags + cat_tags + COMMON_TAGS))[:50]
+
+    # shorts_intro 검증 — 4줄 아니면 기본값으로 폴백
+    shorts_intro = ai.get("shorts_intro", "")
+    if not isinstance(shorts_intro, str) or len([l for l in shorts_intro.split("\n") if l.strip()]) != 4:
+        shorts_intro = "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다."
 
     jamendo_vartags = JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY.get(category, _VARTAGS_BASE)
 
@@ -199,6 +214,7 @@ JSON만 응답:
         "title":                    title,
         "longform_emotional":       ai.get("longform_emotional", f"{sc_ko}"),
         "shorts_title":             ai.get("shorts_title", ""),
+        "shorts_intro":             shorts_intro,
         "description_ko":           ai.get("description_ko", ""),
         "tags":                     merged_tags,
         "jamendo_tags":             JAMENDO_SEARCH_TAGS,

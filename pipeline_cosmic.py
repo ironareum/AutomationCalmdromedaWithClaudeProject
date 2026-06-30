@@ -124,7 +124,7 @@ def _build_metadata(
         "jamendo_track":     jamendo_meta or {},
         "video_path":        str(longform_path),
         "thumbnail_path":    str(thumbnail) if thumbnail else "",
-        "shorts_overlay_text": concept.get("description_ko", ""),
+        "shorts_overlay_text": concept.get("shorts_intro", ""),
         "created_at":        datetime.now().isoformat(),
         "used_sounds":       [f.name for f in used_sounds],
         "used_videos":       [video_file.name],
@@ -506,8 +506,7 @@ def _overlay_intro_text(clip_path: Path, intro_text: str, work_dir: Path) -> Pat
     """
     from PIL import Image, ImageDraw, ImageFont
 
-    sentences = [s.strip() for s in intro_text.replace("\n", " ").split(". ") if s.strip()]
-    sentences = [s if s.endswith(".") else f"{s}." for s in sentences]
+    sentences = [s.strip() for s in intro_text.split("\n") if s.strip()]
     if not sentences:
         return clip_path
 
@@ -876,7 +875,7 @@ def main():
             log.info("[숏폼 단독] 15s 제작 시작")
             shorts_path = produce_shorts(sound_files, video_file, concept, work_dir)
             if shorts_path:
-                intro = concept.get("description_ko", "")
+                intro = concept.get("shorts_intro", "")
                 if intro:
                     shorts_path = _overlay_intro_text(shorts_path, intro, work_dir) or shorts_path
                 desc_s = _make_shorts_description(concept, jamendo_meta)
@@ -915,7 +914,7 @@ def main():
                 clip_index=1,
             )
             if sp:
-                intro = concept.get("description_ko", "")
+                intro = concept.get("shorts_intro", "")
                 if intro:
                     sp = _overlay_intro_text(sp, intro, work_dir) or sp
                 desc_shorts = _make_shorts_description(concept, jamendo_meta)
