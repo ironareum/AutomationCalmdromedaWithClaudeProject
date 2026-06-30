@@ -1,6 +1,7 @@
 """
 Cosmic Pipeline Thumbnail Generator
-구 _render_cosmic() 스타일 복원 — 감성 문구 2줄, 좌정렬, 노랑 #FFE135, RIDIBatang
+2026.06.30 신규 레이아웃 — 상단 킥커 라벨 + 그라데이션 라인, 골드 2줄 제목,
+고정 서브타이틀, 하단 그라데이션 라인, 좌하단 로고 (사용자 레퍼런스 이미지 기반)
 
 [설계 원칙]
   - producer/thumbnail.py (자연소리 파이프라인) 수정 금지
@@ -18,9 +19,16 @@ log = logging.getLogger(__name__)
 
 _BASE     = Path(__file__).parent.parent
 FONTS_DIR = _BASE / "assets" / "fonts"
+LOGO_PATH = _BASE / "assets" / "logo_cosmic.png"
 
-YELLOW       = (255, 225, 53)   # #FFE135
+GOLD         = (212, 175, 55)    # #D4AF37
+OUTLINE      = (58, 42, 13)      # #3A2A0D
+SHADOW       = (0, 0, 0)
+SHADOW_ALPHA = 153                # rgba(0,0,0,0.6)
 DARK_PURPLE  = (30, 10, 60)
+
+KICKER_TEXT = "우 주  수 면 음 악"
+SUBTITLE_TEXT = "고요한 우주가 당신의 밤을 감싸줍니다"
 
 
 def _resolve_font(filename: str) -> str:
@@ -63,8 +71,43 @@ def _extract_frame(video: Path, out: Path, sec: int = 3) -> bool:
         return False
 
 
+def _draw_styled_text(draw, text, x, y, font, shadow_offset=3, outline_w=2):
+    """그림자(rgba(0,0,0,0.6)) → 외곽선(#3A2A0D) → 본문(#D4AF37) 순으로 그린다."""
+    draw.text((x + shadow_offset, y + shadow_offset), text, font=font,
+              fill=(*SHADOW, SHADOW_ALPHA))
+    for dx in range(-outline_w, outline_w + 1):
+        for dy in range(-outline_w, outline_w + 1):
+            if dx == 0 and dy == 0:
+                continue
+            draw.text((x + dx, y + dy), text, font=font, fill=(*OUTLINE, 255))
+    draw.text((x, y), text, font=font, fill=(*GOLD, 255))
+
+
+def _draw_sparkle(draw, cx: int, cy: int, size: int):
+    """RIDIBatang에 '✦' 글리프가 없어 폴리곤으로 4갈래 반짝임 아이콘을 직접 그린다."""
+    pts = [
+        (cx, cy - size), (cx + size * 0.22, cy - size * 0.22),
+        (cx + size, cy), (cx + size * 0.22, cy + size * 0.22),
+        (cx, cy + size), (cx - size * 0.22, cy + size * 0.22),
+        (cx - size, cy), (cx - size * 0.22, cy - size * 0.22),
+    ]
+    draw.polygon(pts, fill=(*GOLD, 255))
+
+
+def _draw_fading_line(base: Image.Image, x: int, y: int, width: int, height: int = 2):
+    """좌측이 진하고 우측으로 갈수록 사라지는 골드 그라데이션 라인."""
+    if width <= 0:
+        return
+    line_img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    ld = ImageDraw.Draw(line_img)
+    for i in range(width):
+        a = int(220 * (1 - i / width))
+        ld.line([(i, 0), (i, height - 1)], fill=(*GOLD, a))
+    base.alpha_composite(line_img, (x, y))
+
+
 class CosmicThumbnailGenerator:
-    """코스믹 파이프라인 전용 썸네일 — 구 _render_cosmic() 스타일."""
+    """코스믹 파이프라인 전용 썸네일 — 킥커 라벨 + 골드 제목 + 서브타이틀 + 로고."""
 
     SIZE = (1280, 720)
 
@@ -103,8 +146,7 @@ class CosmicThumbnailGenerator:
         output_name:  str | None,
     ) -> Path:
         W, H = self.SIZE
-        pad_x = int(W * 0.06)   # 좌측 여백 6%
-        pad_y = int(H * 0.11)   # 상단 여백 11%
+        pad_x = int(W * 0.07)   # 좌측 여백 7% — 모든 텍스트/라인/로고 시작점
 
         # ── 1. 배경 ────────────────────────────────────────────────────
         if bg:
@@ -129,43 +171,66 @@ class CosmicThumbnailGenerator:
         base = Image.alpha_composite(base, gl)
         draw = ImageDraw.Draw(base)
 
-        # ── 3. 텍스트: 좌정렬, 노랑 #FFE135, RIDIBatang, size 40~52 ──
+        # ── 3. 상단 킥커 라벨 + 별 아이콘 + 그라데이션 라인 ───────────
+        kicker_font = _load_ko_font(26)
+        ky = int(H * 0.135)
+        _draw_styled_text(draw, KICKER_TEXT, pad_x, ky, kicker_font)
+        kb = draw.textbbox((pad_x, ky), KICKER_TEXT, font=kicker_font)
+        star_cx = kb[2] + 28
+        star_cy = ky + 12
+        _draw_sparkle(draw, star_cx, star_cy, size=9)
+
+        line_y = ky + 14
+        line_start_x = star_cx + 22
+        line_end_x = int(W * 0.46)
+        _draw_fading_line(base, line_start_x, line_y, line_end_x - line_start_x)
+        draw = ImageDraw.Draw(base)
+
+        # ── 4. 메인 타이틀 2줄 (감성 문구) ─────────────────────────────
         l1, l2 = _split_two_lines(emotion_copy)
         longer = l1 if len(l1) >= len(l2) else l2
 
-        max_w = int(W * 0.88)
-        font_size = 52
-        for size in range(52, 39, -1):
-            try:
-                fnt = _load_ko_font(size)
-                dummy_draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
-                bbox = dummy_draw.textbbox((0, 0), longer, font=fnt)
-                if (bbox[2] - bbox[0]) <= max_w:
-                    font_size = size
-                    break
-            except Exception:
-                pass
+        max_w = int(W * 0.86)
+        title_size = 64
+        for size in range(64, 39, -1):
+            fnt = _load_ko_font(size)
+            dummy_draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+            bbox = dummy_draw.textbbox((0, 0), longer, font=fnt)
+            if (bbox[2] - bbox[0]) <= max_w:
+                title_size = size
+                break
 
-        fnt = _load_ko_font(font_size)
-        line_h = int(font_size * 1.35)
-        sw = 4
+        title_font = _load_ko_font(title_size)
+        line_h = int(title_size * 1.18)
+        ty = int(H * 0.235)
 
-        def draw_line(text: str, y: int):
-            sc = (10, 5, 30)
-            for dx in range(-sw, sw + 1):
-                for dy in range(-sw, sw + 1):
-                    if dx == 0 and dy == 0:
-                        continue
-                    if abs(dx) + abs(dy) > sw + 1:
-                        continue
-                    draw.text((pad_x + dx, y + dy), text, font=fnt, fill=(*sc, 200))
-            draw.text((pad_x, y), text, font=fnt, fill=(*YELLOW, 255))
-
-        draw_line(l1, pad_y)
+        _draw_styled_text(draw, l1, pad_x, ty, title_font)
         if l2:
-            draw_line(l2, pad_y + line_h)
+            _draw_styled_text(draw, l2, pad_x, ty + line_h, title_font)
 
-        # ── 4. 저장 (로고 없음) ────────────────────────────────────────
+        # ── 5. 서브타이틀 (고정 문구, 골드 통일) ──────────────────────
+        sub_font = _load_ko_font(24)
+        sub_y = ty + line_h * 2 + 28
+        _draw_styled_text(draw, SUBTITLE_TEXT, pad_x, sub_y, sub_font)
+
+        # ── 6. 하단 그라데이션 디바이더 ────────────────────────────────
+        div_y = sub_y + 50
+        div_w = int(W * 0.40)
+        _draw_fading_line(base, pad_x, div_y, div_w, height=1)
+
+        # ── 7. 로고 (좌하단, 텍스트 시작점과 좌측 정렬) ───────────────
+        if LOGO_PATH.exists():
+            logo = Image.open(LOGO_PATH).convert("RGBA")
+            logo_h = int(H * 0.20)
+            ratio = logo_h / logo.height
+            logo_w = int(logo.width * ratio)
+            logo_resized = logo.resize((logo_w, logo_h), Image.LANCZOS)
+            logo_y = H - logo_h - int(H * 0.06)
+            base.alpha_composite(logo_resized, (pad_x, logo_y))
+        else:
+            log.warning(f"로고 파일 없음: {LOGO_PATH}")
+
+        # ── 8. 저장 ────────────────────────────────────────────────────
         slug = emotion_copy.replace(" ", "_")[:20]
         fname = output_name or f"thumb_cosmic_{slug}_{random.randint(1000, 9999)}.jpg"
         out = self.thumb_dir / fname
