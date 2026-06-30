@@ -29,7 +29,7 @@ TITLE_BACK_FIXED = "1 Hour Ambient Sound"
 JAMENDO_SEARCH_TAGS = ["ambient", "sleep", "lullaby", "meditation", "relaxing", "atmospheric"]
 
 _VARTAGS_BASE = [
-    "ambient", "space", "atmospheric", "slow", "drone", "cinematic",
+    "ambient", "space", "atmospheric", "slow", "cinematic",
     "sleep", "calm", "meditation", "dreamy", "relax", "relaxing",
     "ethereal", "floating",
 ]
@@ -40,7 +40,7 @@ JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
     "nebula":  _VARTAGS_BASE,
 }
 
-JAMENDO_EXCLUDE_TAGS = ["rock", "pop", "dance", "metal", "punk"]
+JAMENDO_EXCLUDE_TAGS = ["rock", "pop", "dance", "metal", "punk", "horror", "industrial", "noise", "experimental"]
 
 # ── 공통 태그 ─────────────────────────────────────────────────────────────
 
@@ -136,8 +136,7 @@ longform_emotional: 롱폼 썸네일용 감성 문구 (20자 이내, 한국어, 
   예시: "오로라 따라가다 그냥 잠들었어요" / "별빛이 손가락 사이로 흘렀다" / "우주 끝에서 눈이 감겼다"
 shorts_title: 유튜브 쇼츠 제목 (30자 이내, 한국어, 감성적, longform_emotional과 다른 문장, 독자에게 직접 말 걸기 금지)
   예시: "우주 틀었다가 깨보니 새벽이었던 영상"
-description_ko: 한국어 롱폼 설명 2문장 (시적, 전문 음악 용어 금지, 소리를 풍경/감각으로 묘사)
-shorts_description: 한국어 쇼츠 설명 2~3문장 (몰입감 있는 서술, 보는 사람이 그 공간에 빠져드는 느낌)
+description_ko: 한국어 설명 2~3문장 (몰입감 있는 서술, 보는 사람이 그 공간에 빠져드는 느낌, 시적이되 전문 음악 용어 금지) — 롱폼 영상 설명란에 사용됩니다
 tags: {sc_ko}/{sc_en} 관련 태그 5~8개
 
 JSON만 응답:
@@ -146,7 +145,6 @@ JSON만 응답:
   "longform_emotional": "...",
   "shorts_title": "...",
   "description_ko": "...",
-  "shorts_description": "...",
   "tags": ["...", "..."]
 }}"""
 
@@ -172,8 +170,7 @@ JSON만 응답:
             "shorts_intro":       "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다.",
             "longform_emotional": f"{sc_ko} 따라가다 그냥 잠들었어요",
             "shorts_title":       "잠이 안 와서 틀었다가 잠든 영상",
-            "description_ko":     f"조용히 {sc_ko}를 여행하다 잠드는 1시간.",
-            "shorts_description": f"말없이 {sc_ko} 속으로 빠져드는 시간이었어요. 생각이 하나둘 사라지고, 어느새 깊은 곳에 있었어요.",
+            "description_ko":     f"말없이 {sc_ko} 속으로 빠져드는 시간이었어요. 생각이 하나둘 사라지고, 어느새 깊은 곳에 있었어요.",
             "tags": [],
         }
 
@@ -206,7 +203,6 @@ JSON만 응답:
         "shorts_title":             ai.get("shorts_title", ""),
         "shorts_intro":             shorts_intro,
         "description_ko":           ai.get("description_ko", ""),
-        "shorts_description":       ai.get("shorts_description", ""),
         "tags":                     merged_tags,
         "jamendo_tags":             JAMENDO_SEARCH_TAGS,
         "jamendo_required_vartags": jamendo_vartags,

@@ -281,13 +281,13 @@ def produce_longform(
         return None
     audio, actual_sounds, audio_lufs, source_lufs, excluded = mix
 
-    # Pass 1-a: 클립 1080p 정규화
+    # Pass 1-a: 클립 1080p 정규화 (crop 방식 — 검은 여백 없이 꽉 채워서 자르기)
     norm = temp_dir / "norm.mp4"
     if not _run([
         "ffmpeg", "-y", "-i", str(video_file),
         "-vf", (
-            "scale=1920:1080:force_original_aspect_ratio=decrease,"
-            "pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1"
+            "scale=1920:1080:force_original_aspect_ratio=increase,"
+            "crop=1920:1080,setsar=1"
         ),
         "-r", "24", "-c:v", "libx264", "-preset", "fast", "-crf", "28", "-an",
         str(norm),
@@ -572,9 +572,12 @@ def _make_description(concept: dict, jamendo_meta: dict | None = None) -> str:
 
 
 def _make_shorts_description(concept: dict, jamendo_meta: dict | None = None) -> str:
-    """쇼츠 전용 설명 — shorts_description 필드 사용, 없으면 description_ko 폴백"""
-    body = concept.get("shorts_description") or concept.get("description_ko", "")
-    lines = [body]
+    """쇼츠 전용 설명 — 정보성 고정 문구 + Jamendo 크레딧"""
+    lines = [
+        "🌙 Calmdromeda — 우주에서 잠드는 경험",
+        "이어폰보다는 스피커로, 볼륨은 낮게 틀어두고 잠들어보세요.",
+        "구독하면 매일 새로운 우주 사운드를 만나실 수 있어요.",
+    ]
     if jamendo_meta and jamendo_meta.get("name"):
         lines += [
             "",
