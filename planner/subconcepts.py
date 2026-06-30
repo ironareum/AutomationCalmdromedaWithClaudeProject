@@ -5,6 +5,9 @@ Category 4개 고정, Sub Concept 20개 스타터 세트.
 확장: SUBCONCEPTS 딕셔너리에 항목 추가
 비활성화: enabled=False (삭제 X)
 우선도 조정: priority 값 변경 (기본 1.0)
+
+2026.06.30 mood_pool / sensory_pool / memory_keywords는 현재 미사용 (prompt_builder.py 폐기로
+AI 프롬프트에 전달되지 않음). display_name / seo / pexels_queries / color만 실제 사용됨.
 """
 from __future__ import annotations
 
@@ -230,13 +233,13 @@ SUBCONCEPTS: dict[str, dict] = {
         "category": "stellar",
         "enabled": True,
         "priority": 1.0,
-        "display_name": {"ko": "별가루", "en": "Stardust"},
-        "seo": {"ko": "별가루 수면음악", "en": "Stardust Sleep Music"},
+        "display_name": {"ko": "우주먼지", "en": "Stardust"},
+        "seo": {"ko": "우주먼지 수면음악", "en": "Stardust Sleep Music"},
         "color": "#D8DDE8",
         "pexels_queries": ["stardust night sky 4k", "stars night timelapse", "star trail night"],
         "mood_pool": ["반짝임", "아득함", "고요함", "부유감", "별빛"],
-        "sensory_pool": ["흩날리는 빛", "희미한 반짝임", "가루 같은 별", "조용한 빛", "멀고 먼 빛"],
-        "memory_keywords": ["별", "가루", "빛", "반짝임", "밤"],
+        "sensory_pool": ["흩날리는 빛", "희미한 반짝임", "떠도는 먼지", "조용한 빛", "멀고 먼 빛"],
+        "memory_keywords": ["별", "먼지", "빛", "반짝임", "밤"],
     },
     "meteor_shower": {
         "id": "meteor_shower",
