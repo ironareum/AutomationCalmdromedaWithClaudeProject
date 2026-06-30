@@ -1588,5 +1588,22 @@
       "jamendo_979868_Diaspore.mp3": -11.8
     },
     "excluded_sources": {}
+  },
+  "20260630_021500": {
+    "title": "숲속 소리 ASMR | 새벽 숲에서 마음이 맑아지는 소리 | Forest Morning - Sleep Music Nature Sounds",
+    "category": "forest",
+    "created_at": "2026-06-30 03:42:51",
+    "quality": "pending",
+    "sounds": [
+      "268954_Cicada_Insects_8_25_13_10_06_P.mp3"
+    ],
+    "videos": [
+      "pexels_11349556_1080p.mp4"
+    ],
+    "audio_lufs": -31.1,
+    "source_lufs": {
+      "268954_Cicada_Insects_8_25_13_10_06_P.mp3": -30.0
+    },
+    "excluded_sources": {}
   }
 }
