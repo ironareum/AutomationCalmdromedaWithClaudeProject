@@ -25,6 +25,7 @@ HISTORY_LIMIT = 10
 def pick_category_and_subconcept(
     used_assets_path: Path,
     force_category: str | None = None,
+    extra_exclude_ids: list | None = None,
 ) -> dict:
     """
     1. used_assets.json에서 category_index, used_subconcepts 읽기
@@ -51,6 +52,8 @@ def pick_category_and_subconcept(
         return fallback[0] if fallback else {}
 
     used_recent = set(data.get("used_subconcepts", [])[-HISTORY_LIMIT:])
+    if extra_exclude_ids:
+        used_recent.update(extra_exclude_ids)
     fresh = [sc for sc in candidates if sc["id"] not in used_recent]
     pool = fresh if fresh else candidates
 

@@ -85,7 +85,7 @@ jobs:
           UPLOAD_DAYS_AHEAD:      "2"
           YOUTUBE_TOKEN:          "credentials/token.json"
           YOUTUBE_CLIENT_SECRET:  "credentials/client_secret.json"
-        run: python pipeline_cosmic.py --mode longform
+        run: python pipeline_cosmic.py --mode both
 
       - name: Commit data files
         if: always()

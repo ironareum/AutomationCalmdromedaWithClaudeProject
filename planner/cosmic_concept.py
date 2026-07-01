@@ -93,6 +93,7 @@ def generate_cosmic_concept(
     api_key: str,
     used_assets_path: Path,
     force_category: str | None = None,
+    extra_exclude_ids: list | None = None,
 ) -> dict:
     """
     3계층 구조 기반 코스믹 콘셉트 생성
@@ -114,7 +115,7 @@ def generate_cosmic_concept(
         "pexels_queries": [...],
     }
     """
-    subconcept = pick_category_and_subconcept(used_assets_path, force_category)
+    subconcept = pick_category_and_subconcept(used_assets_path, force_category, extra_exclude_ids=extra_exclude_ids)
     category = subconcept.get("category", "galaxy")
 
     sc_en = subconcept["display_name"]["en"]

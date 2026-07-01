@@ -11,7 +11,7 @@ name: Cosmic Shorts Pipeline
 
 on:
   schedule:
-    - cron: '0 0 * * 1,4,5'  # 월(1)·목(4)·금(5) UTC 00:00 = KST 09:00
+    - cron: '0 0 * * 1,5'  # 월(1)·금(5) UTC 00:00 = KST 09:00
   workflow_dispatch:
 
 jobs:
@@ -33,6 +33,12 @@ jobs:
           else
             rm -f used_assets.json
             echo "used_assets.json 없음 — 새로 시작"
+          fi
+          if git show origin/data:used_assets_shorts.json 2>/dev/null > used_assets_shorts.json && [ -s used_assets_shorts.json ]; then
+            echo "used_assets_shorts.json 복원됨"
+          else
+            rm -f used_assets_shorts.json
+            echo "used_assets_shorts.json 없음 — 새로 시작"
           fi
 
       - name: Set up Python
@@ -84,7 +90,7 @@ jobs:
           UPLOAD_ENABLED:             "true"
           SHORTS_UPLOAD_HOUR_KST:     "21"
           SHORTS_UPLOAD_MINUTE_KST:   "5"
-          UPLOAD_DAYS_AHEAD:          "1"
+          UPLOAD_DAYS_AHEAD:          "2"
           YOUTUBE_TOKEN:              "credentials/token.json"
           YOUTUBE_CLIENT_SECRET:      "credentials/client_secret.json"
         run: python pipeline_cosmic.py --mode shorts
@@ -93,10 +99,11 @@ jobs:
         if: always()
         run: |
           [ -f used_assets.json ] && cp used_assets.json /tmp/used_assets.json || true
+          [ -f used_assets_shorts.json ] && cp used_assets_shorts.json /tmp/used_assets_shorts.json || true
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin data 2>/dev/null || true
-          rm -f used_assets.json
+          rm -f used_assets.json used_assets_shorts.json
           if git ls-remote --heads origin data | grep -q data; then
             git checkout -B data origin/data
           else
@@ -104,7 +111,9 @@ jobs:
             git rm -rf . --quiet 2>/dev/null || true
           fi
           [ -f /tmp/used_assets.json ] && cp /tmp/used_assets.json used_assets.json || true
+          [ -f /tmp/used_assets_shorts.json ] && cp /tmp/used_assets_shorts.json used_assets_shorts.json || true
           [ -f used_assets.json ] && git add used_assets.json || true
+          [ -f used_assets_shorts.json ] && git add used_assets_shorts.json || true
           TODAY=$(date -u '+%Y-%m-%d %H:%M UTC')
           git diff --cached --quiet || git commit -m "data(cosmic-shorts): ${TODAY}"
           git push origin data
@@ -115,9 +124,12 @@ jobs:
         with:
           name: cosmic-shorts-${{ github.run_id }}
           path: |
+            output/**/*_intro.mp4
+            output/**/*_shorts.mp4
+            output/**/metadata_shorts.json
             output/**/pipeline_cosmic.log
             output/**/metadata.json
-          retention-days: 14
+          retention-days: 7
           if-no-files-found: warn
 
       - name: Cleanup sensitive files

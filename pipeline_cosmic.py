@@ -23,6 +23,7 @@ import json
 import logging
 import os
 import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -56,6 +57,7 @@ BLUEPRINT_VERSION      = "1.0"
 PIPELINE_VERSION       = "cosmic-v1"
 PROMPT_VERSION         = "1.0"
 BOTH_MODE_SHORTS_DELAY = 1    # both 모드: 숏폼을 롱폼보다 하루 늦게 공개
+USED_ASSETS_SHORTS = Path("used_assets_shorts.json")
 
 
 # ── 시리즈 카운트 헬퍼 ────────────────────────────────────────────────────
@@ -693,10 +695,113 @@ def upload_youtube(
     )
 
 
+# ── 쇼츠 메타데이터 저장 ─────────────────────────────────────────────────
+
+def _save_shorts_metadata(
+    session_dir: Path,
+    concept: dict,
+    shorts_video_path: Path,
+    description: str,
+    hour_kst: int,
+    minute_kst: int,
+    days_ahead: int,
+):
+    """쇼츠 업로드 재시도를 위한 메타데이터 저장"""
+    meta = {
+        "shorts_video_filename": shorts_video_path.name,
+        "shorts_title":          concept.get("shorts_title", ""),
+        "category":              concept.get("category", ""),
+        "tags":                  concept.get("tags", []),
+        "description":           description,
+        "hour_kst":              hour_kst,
+        "minute_kst":            minute_kst,
+        "days_ahead":            days_ahead,
+    }
+    path = session_dir / "metadata_shorts.json"
+    path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    log.info(f"쇼츠 메타데이터 저장: {path}")
+
+
+# ── 업로드 재시도 래퍼 ────────────────────────────────────────────────────
+
+def _upload_with_retry(
+    video_path: Path,
+    concept: dict,
+    cfg: Config,
+    *,
+    is_shorts: bool,
+    hour_kst: int,
+    minute_kst: int,
+    thumbnail: Path | None = None,
+    description_override: str | None = None,
+    days_ahead: int,
+    max_attempts: int = 3,
+) -> dict | None:
+    """upload_youtube() 실패 시 지수 백오프 재시도"""
+    for attempt in range(max_attempts):
+        try:
+            result = upload_youtube(
+                video_path=video_path,
+                concept=concept,
+                cfg=cfg,
+                is_shorts=is_shorts,
+                hour_kst=hour_kst,
+                minute_kst=minute_kst,
+                thumbnail=thumbnail,
+                description_override=description_override,
+                days_ahead=days_ahead,
+            )
+            if result:
+                return result
+            log.warning(f"업로드 반환값 없음 — 재시도 {attempt + 1}/{max_attempts}")
+        except Exception as e:
+            log.error(f"업로드 오류 (시도 {attempt + 1}/{max_attempts}): {e}")
+        if attempt < max_attempts - 1:
+            wait = 2 ** attempt
+            log.info(f"{wait}초 후 재시도...")
+            time.sleep(wait)
+    log.error(f"업로드 최종 실패 ({max_attempts}회 시도)")
+    return None
+
+
 # ── 업로드 전용 ───────────────────────────────────────────────────────────
 
-def _upload_only(session_dir: Path, cfg: Config):
+def _upload_only(session_dir: Path, cfg: Config, mode: str = "longform"):
     """기존 output 세션 폴더의 metadata.json을 읽어 업로드만 실행."""
+    if mode == "shorts":
+        meta_path = session_dir / "metadata_shorts.json"
+        if not meta_path.exists():
+            log.error(f"metadata_shorts.json 없음: {meta_path}")
+            return
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        video_filename = meta["shorts_video_filename"]
+        video_path = session_dir / video_filename
+        if not video_path.exists():
+            log.error(f"쇼츠 영상 파일 없음: {video_path}")
+            return
+        concept = {
+            "title":        meta.get("shorts_title", ""),
+            "shorts_title": meta.get("shorts_title", ""),
+            "tags":         meta.get("tags", []),
+            "category":     meta.get("category", ""),
+        }
+        yt = upload_youtube(
+            video_path=video_path,
+            concept=concept,
+            cfg=cfg,
+            is_shorts=True,
+            hour_kst=meta.get("hour_kst", cfg.shorts_upload_hour_kst),
+            minute_kst=meta.get("minute_kst", cfg.shorts_upload_minute_kst),
+            description_override=meta.get("description"),
+            days_ahead=meta.get("days_ahead", cfg.upload_days_ahead),
+        )
+        if yt:
+            log.info(f"쇼츠 업로드 완료: {yt['url']} (공개: {yt['publish_at']})")
+        else:
+            log.error("쇼츠 업로드 실패")
+        return
+
+    # mode == "longform" (기존 동작)
     meta_path = session_dir / "metadata.json"
     if not meta_path.exists():
         log.error(f"metadata.json 없음: {meta_path}")
@@ -748,7 +853,7 @@ def main():
     cfg = Config()
 
     if args.upload_only:
-        _upload_only(Path(args.upload_only), cfg)
+        _upload_only(Path(args.upload_only), cfg, mode=args.mode)
         return
 
     effective_duration = DURATION_TEST if args.test else DURATION_LONGFORM
@@ -776,10 +881,19 @@ def main():
         # ── Collect Phase ────────────────────────────────────────────────
         log.info("=== Collect Phase ===")
 
+        if args.mode == "shorts":
+            concept_assets_path = USED_ASSETS_SHORTS
+            _lf_data = json.loads(USED_ASSETS_FILE.read_text(encoding="utf-8")) if USED_ASSETS_FILE.exists() else {}
+            _extra_exclude = list(_lf_data.get("used_subconcepts", []))[-4:]
+        else:
+            concept_assets_path = USED_ASSETS_FILE
+            _extra_exclude = None
+
         concept = generate_cosmic_concept(
             api_key=cfg.claude_api_key,
-            used_assets_path=USED_ASSETS_FILE,
+            used_assets_path=concept_assets_path,
             force_category=args.category,
+            extra_exclude_ids=_extra_exclude,
         )
         log.info(f"콘셉트: {concept['title']}")
 
@@ -862,10 +976,13 @@ def main():
 
             # ── Upload Phase ─────────────────────────────────────────────
             log.info("=== Upload Phase ===")
-            yt = upload_youtube(longform_path, concept, cfg,
-                                hour_kst=cfg.upload_hour_kst, minute_kst=cfg.upload_minute_kst,
-                                thumbnail=thumbnail, days_ahead=cfg.upload_days_ahead,
-                                description_override=desc)
+            yt = _upload_with_retry(
+                longform_path, concept, cfg,
+                is_shorts=False,
+                hour_kst=cfg.upload_hour_kst, minute_kst=cfg.upload_minute_kst,
+                thumbnail=thumbnail, days_ahead=cfg.upload_days_ahead,
+                description_override=desc,
+            )
             if yt:
                 log.info(f"롱폼 YouTube: {yt['url']} (공개: {yt['publish_at']})")
 
@@ -880,7 +997,7 @@ def main():
                     shorts_path = _overlay_intro_text(shorts_path, intro, work_dir) or shorts_path
                 desc_s = _make_shorts_description(concept, jamendo_meta)
                 log.info("=== Upload Phase ===")
-                yt_s = upload_youtube(
+                yt_s = _upload_with_retry(
                     shorts_path, concept, cfg,
                     is_shorts=True,
                     hour_kst=cfg.shorts_upload_hour_kst,
@@ -890,6 +1007,11 @@ def main():
                 )
                 if yt_s:
                     log.info(f"숏폼 YouTube: {yt_s['url']} (공개: {yt_s['publish_at']})")
+                _save_shorts_metadata(
+                    work_dir, concept, shorts_path, desc_s,
+                    cfg.shorts_upload_hour_kst, cfg.shorts_upload_minute_kst,
+                    cfg.upload_days_ahead,
+                )
             else:
                 log.warning("숏폼 제작 실패")
             # 음원 이력 미등록 — 롱폼 dedup 풀 보존
@@ -899,6 +1021,7 @@ def main():
                 sound_files=[],
                 video_files=[video_file],
                 category=concept["category"],
+                path=USED_ASSETS_SHORTS,
             )
 
         # ── both 모드 숏폼 (롱폼에서 추출, D+UPLOAD_DAYS_AHEAD+BOTH_MODE_SHORTS_DELAY 예약) ──
@@ -918,7 +1041,7 @@ def main():
                 if intro:
                     sp = _overlay_intro_text(sp, intro, work_dir) or sp
                 desc_shorts = _make_shorts_description(concept, jamendo_meta)
-                yt_s = upload_youtube(
+                yt_s = _upload_with_retry(
                     sp, concept, cfg,
                     is_shorts=True,
                     hour_kst=cfg.shorts_upload_hour_kst,
@@ -928,6 +1051,11 @@ def main():
                 )
                 if yt_s:
                     log.info(f"숏폼 YouTube: {yt_s['url']} (공개: {yt_s['publish_at']})")
+                _save_shorts_metadata(
+                    work_dir, concept, sp, desc_shorts,
+                    cfg.shorts_upload_hour_kst, cfg.shorts_upload_minute_kst,
+                    cfg.upload_days_ahead + BOTH_MODE_SHORTS_DELAY,
+                )
             else:
                 log.warning("숏폼 제작 실패")
 
