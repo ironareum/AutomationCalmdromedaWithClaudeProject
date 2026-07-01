@@ -170,13 +170,19 @@ class CosmicThumbnailGenerator:
 
         # ── 1. 배경 ────────────────────────────────────────────────────
         if bg:
+            import numpy as np
             base = bg.resize((W, H), Image.LANCZOS).convert("RGBA")
-            ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-            od = ImageDraw.Draw(ov)
-            for yi in range(H):
-                a = int(110 + 110 * yi / H)
-                od.line([(0, yi), (W, yi)], fill=(0, 0, 0, a))
-            base = Image.alpha_composite(base, ov)
+            # 좌측(텍스트 영역): 기존 어두움 유지 / 우측: 원본 배경 밝기로 자연스럽게 복원
+            fade_start = int(W * 0.43)  # 텍스트 끝 지점
+            fade_end   = int(W * 0.72)  # 배경 완전 노출 지점
+            h_factor = np.ones(W, dtype=np.float32)
+            h_factor[fade_start:fade_end] = np.linspace(1.0, 0.0, fade_end - fade_start)
+            h_factor[fade_end:] = 0.0
+            v_alpha = np.linspace(110, 220, H, dtype=np.float32)
+            alpha_2d = np.clip(np.outer(v_alpha, h_factor), 0, 255).astype(np.uint8)
+            ov_arr = np.zeros((H, W, 4), dtype=np.uint8)
+            ov_arr[:, :, 3] = alpha_2d
+            base = Image.alpha_composite(base, Image.fromarray(ov_arr, "RGBA"))
         else:
             base = Image.new("RGBA", (W, H), (8, 4, 20, 255))
 
