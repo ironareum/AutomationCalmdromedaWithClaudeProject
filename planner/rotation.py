@@ -14,7 +14,11 @@ from planner.subconcepts import get_enabled
 
 log = logging.getLogger(__name__)
 
-CATEGORY_ORDER = ["galaxy", "aurora", "nebula", "stellar"]
+CATEGORY_ORDER = [
+    "galaxy", "aurora", "nebula", "stellar",
+    "galaxy",            "nebula", "stellar",
+    "galaxy",                      "stellar",
+]
 HISTORY_LIMIT = 10
 
 

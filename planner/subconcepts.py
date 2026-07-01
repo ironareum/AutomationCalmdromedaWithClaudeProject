@@ -110,7 +110,7 @@ SUBCONCEPTS: dict[str, dict] = {
     "green_aurora": {
         "id": "green_aurora",
         "category": "aurora",
-        "enabled": True,
+        "enabled": False,
         "priority": 1.0,
         "display_name": {"ko": "초록 오로라", "en": "Green Aurora"},
         "seo": {"ko": "초록 오로라 수면음악", "en": "Green Aurora Sleep Music"},
@@ -123,7 +123,7 @@ SUBCONCEPTS: dict[str, dict] = {
     "polar_light": {
         "id": "polar_light",
         "category": "aurora",
-        "enabled": True,
+        "enabled": False,
         "priority": 1.0,
         "display_name": {"ko": "극광", "en": "Polar Light"},
         "seo": {"ko": "극광 수면음악", "en": "Polar Light Sleep Music"},
@@ -136,7 +136,7 @@ SUBCONCEPTS: dict[str, dict] = {
     "polar_sky": {
         "id": "polar_sky",
         "category": "aurora",
-        "enabled": True,
+        "enabled": False,
         "priority": 1.0,
         "display_name": {"ko": "극지 하늘", "en": "Polar Sky"},
         "seo": {"ko": "극지 하늘 수면음악", "en": "Polar Sky Sleep Music"},
@@ -166,8 +166,8 @@ SUBCONCEPTS: dict[str, dict] = {
         "category": "nebula",
         "enabled": True,
         "priority": 1.0,
-        "display_name": {"ko": "진홍 성운", "en": "Crimson Nebula"},
-        "seo": {"ko": "진홍 성운 수면음악", "en": "Crimson Nebula Sleep Music"},
+        "display_name": {"ko": "붉은 성운", "en": "Crimson Nebula"},
+        "seo": {"ko": "붉은 성운 수면음악", "en": "Crimson Nebula Sleep Music"},
         "color": "#9A7BFF",
         "pexels_queries": ["nebula cosmos space abstract", "interstellar space colorful", "space nebula motion abstract"],
         "mood_pool": ["무게감", "몽환", "강렬함", "깊음", "어둠"],
@@ -177,7 +177,7 @@ SUBCONCEPTS: dict[str, dict] = {
     "purple_nebula": {
         "id": "purple_nebula",
         "category": "nebula",
-        "enabled": True,
+        "enabled": False,
         "priority": 1.0,
         "display_name": {"ko": "보라 성운", "en": "Purple Nebula"},
         "seo": {"ko": "보라 성운 수면음악", "en": "Purple Nebula Sleep Music"},
@@ -203,7 +203,7 @@ SUBCONCEPTS: dict[str, dict] = {
     "dust_cloud": {
         "id": "dust_cloud",
         "category": "nebula",
-        "enabled": True,
+        "enabled": False,
         "priority": 1.0,
         "display_name": {"ko": "먼지구름", "en": "Dust Cloud"},
         "seo": {"ko": "먼지구름 수면음악", "en": "Dust Cloud Sleep Music"},
