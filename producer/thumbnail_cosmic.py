@@ -38,14 +38,34 @@ def _resolve_font(filename: str) -> str:
     raise FileNotFoundError(f"폰트 없음: {filename} — assets/fonts/ 에 넣어주세요")
 
 
-def _load_ko_font(size: int) -> ImageFont.FreeTypeFont:
-    """RIDIBatang → NanumMyeongjoExtraBold → NanumMyeongjoBold 순 시도"""
-    for fn in ["RIDIBatang.otf", "NanumMyeongjoExtraBold.ttf", "NanumMyeongjoBold.ttf"]:
+def _load_kicker_font(size: int) -> ImageFont.FreeTypeFont:
+    """킥커용: Pretendard-Regular → RIDIBatang 폴백"""
+    for fn in ["Pretendard-Regular.ttf", "RIDIBatang.otf"]:
         try:
             return ImageFont.truetype(_resolve_font(fn), size)
         except FileNotFoundError:
             continue
-    raise RuntimeError("사용 가능한 한글 폰트 없음")
+    raise RuntimeError("킥커 폰트 없음")
+
+
+def _load_title_font(size: int) -> ImageFont.FreeTypeFont:
+    """제목용: NanumMyeongjo → NanumMyeongjoExtraBold → RIDIBatang 폴백"""
+    for fn in ["NanumMyeongjo.ttf", "NanumMyeongjoExtraBold.ttf", "RIDIBatang.otf"]:
+        try:
+            return ImageFont.truetype(_resolve_font(fn), size)
+        except FileNotFoundError:
+            continue
+    raise RuntimeError("제목 폰트 없음")
+
+
+def _load_subtitle_font(size: int) -> ImageFont.FreeTypeFont:
+    """서브타이틀용: Pretendard-ExtraLight → Pretendard-Regular → RIDIBatang 폴백"""
+    for fn in ["Pretendard-ExtraLight.ttf", "Pretendard-Regular.ttf", "RIDIBatang.otf"]:
+        try:
+            return ImageFont.truetype(_resolve_font(fn), size)
+        except FileNotFoundError:
+            continue
+    raise RuntimeError("서브타이틀 폰트 없음")
 
 
 def _split_two_lines(text: str) -> tuple[str, str]:
@@ -172,7 +192,7 @@ class CosmicThumbnailGenerator:
         draw = ImageDraw.Draw(base)
 
         # ── 3. 상단 킥커 라벨 + 별 아이콘 + 그라데이션 라인 ───────────
-        kicker_font = _load_ko_font(26)
+        kicker_font = _load_kicker_font(26)
         ky = int(H * 0.135)
         _draw_styled_text(draw, KICKER_TEXT, pad_x, ky, kicker_font)
         kb = draw.textbbox((pad_x, ky), KICKER_TEXT, font=kicker_font)
@@ -193,14 +213,14 @@ class CosmicThumbnailGenerator:
         max_w = int(W * 0.86)
         title_size = 64
         for size in range(64, 39, -1):
-            fnt = _load_ko_font(size)
+            fnt = _load_title_font(size)
             dummy_draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
             bbox = dummy_draw.textbbox((0, 0), longer, font=fnt)
             if (bbox[2] - bbox[0]) <= max_w:
                 title_size = size
                 break
 
-        title_font = _load_ko_font(title_size)
+        title_font = _load_title_font(title_size)
         line_h = int(title_size * 1.18)
         ty = int(H * 0.235)
 
@@ -209,7 +229,7 @@ class CosmicThumbnailGenerator:
             _draw_styled_text(draw, l2, pad_x, ty + line_h, title_font)
 
         # ── 5. 서브타이틀 (고정 문구, 골드 통일) ──────────────────────
-        sub_font = _load_ko_font(24)
+        sub_font = _load_subtitle_font(24)
         sub_y = ty + line_h * 2 + 28
         _draw_styled_text(draw, SUBTITLE_TEXT, pad_x, sub_y, sub_font)
 
