@@ -1,0 +1,298 @@
+"""
+Calmdromeda Sub-Concept Database (v1.0)
+
+Category 4개 고정, Sub Concept 20개 스타터 세트.
+확장: SUBCONCEPTS 딕셔너리에 항목 추가
+비활성화: enabled=False (삭제 X)
+우선도 조정: priority 값 변경 (기본 1.0)
+
+2026.06.30 mood_pool / sensory_pool / memory_keywords는 현재 미사용 (prompt_builder.py 폐기로
+AI 프롬프트에 전달되지 않음). display_name / seo / pexels_queries / color만 실제 사용됨.
+"""
+from __future__ import annotations
+
+SUBCONCEPTS: dict[str, dict] = {
+
+    # ── Galaxy ──────────────────────────────────────────────────────
+    "milky_way": {
+        "id": "milky_way",
+        "category": "galaxy",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "은하수", "en": "Milky Way"},
+        "seo": {"ko": "은하수 수면음악", "en": "Milky Way Sleep Music"},
+        "color": "#5B7FFF",
+        "pexels_queries": ["milky way timelapse night", "milky way night sky", "universe deep space stars"],
+        "mood_pool": ["고요함", "광활함", "부유감", "아득함", "무게감"],
+        "sensory_pool": ["희미한 빛", "수많은 별", "느린 움직임", "차가운 공기", "넓은 어둠"],
+        "memory_keywords": ["별", "빛", "고요", "밤", "은하"],
+    },
+    "deep_space": {
+        "id": "deep_space",
+        "category": "galaxy",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "딥스페이스", "en": "Deep Space"},
+        "seo": {"ko": "딥스페이스 수면음악", "en": "Deep Space Sleep Music"},
+        "color": "#5B7FFF",
+        "pexels_queries": ["deep space galaxy timelapse", "universe deep space stars", "cosmic space dark background"],
+        "mood_pool": ["심연", "정적", "무중력", "무한함", "어둠"],
+        "sensory_pool": ["칠흑 같은 어둠", "멀리서 오는 빛", "느린 별의 움직임", "소리 없는 공간", "차가운 공기"],
+        "memory_keywords": ["어둠", "정적", "별", "무한", "공간"],
+    },
+    "spiral_galaxy": {
+        "id": "spiral_galaxy",
+        "category": "galaxy",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "나선은하", "en": "Spiral Galaxy"},
+        "seo": {"ko": "나선은하 수면음악", "en": "Spiral Galaxy Sleep Music"},
+        "color": "#5B7FFF",
+        "pexels_queries": ["galaxy zoom space abstract", "galaxy timelapse", "deep space galaxy timelapse"],
+        "mood_pool": ["천천히", "회전", "광활함", "부유감", "넓음"],
+        "sensory_pool": ["천천히 도는 빛", "빛의 소용돌이", "멀리 보이는 중심", "희미한 반짝임", "느린 흐름"],
+        "memory_keywords": ["소용돌이", "별", "회전", "빛", "중심"],
+    },
+    "silent_orbit": {
+        "id": "silent_orbit",
+        "category": "galaxy",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "고요한 궤도", "en": "Silent Orbit"},
+        "seo": {"ko": "고요한 우주 수면음악", "en": "Silent Orbit Sleep Music"},
+        "color": "#5B7FFF",
+        "pexels_queries": ["deep space galaxy timelapse", "universe deep space stars", "cosmic space dark background"],
+        "mood_pool": ["정적", "규칙적", "고요함", "반복", "안정감"],
+        "sensory_pool": ["일정한 거리", "변하지 않는 속도", "조용한 이동", "밤의 궤도", "멀리 보이는 빛"],
+        "memory_keywords": ["궤도", "정적", "거리", "이동", "밤"],
+    },
+    "cosmic_ocean": {
+        "id": "cosmic_ocean",
+        "category": "galaxy",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "우주 바다", "en": "Cosmic Ocean"},
+        "seo": {"ko": "우주 바다 수면음악", "en": "Cosmic Ocean Sleep Music"},
+        "color": "#5B7FFF",
+        "pexels_queries": ["cosmic space dark background", "deep space galaxy timelapse", "milky way timelapse night"],
+        "mood_pool": ["깊음", "부유감", "넓음", "고요함", "흐름"],
+        "sensory_pool": ["파란빛", "깊은 곳", "소리 없는 물결", "빛의 굴절", "끝없는 깊이"],
+        "memory_keywords": ["바다", "빛", "깊이", "흐름", "파란"],
+    },
+
+    # ── Aurora ──────────────────────────────────────────────────────
+    "aurora": {
+        "id": "aurora",
+        "category": "aurora",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "오로라", "en": "Aurora"},
+        "seo": {"ko": "오로라 수면음악", "en": "Aurora Sleep Music"},
+        "color": "#67D5C8",
+        "pexels_queries": ["aurora borealis night sky", "aurora timelapse 4k", "northern lights"],
+        "mood_pool": ["흔들림", "차가움", "투명함", "빛의 파동", "고요함"],
+        "sensory_pool": ["초록빛 커튼", "빛의 물결", "차가운 공기", "조용한 진동", "하늘을 가로지르는 빛"],
+        "memory_keywords": ["초록", "빛", "하늘", "흔들림", "차가움"],
+    },
+    "northern_lights": {
+        "id": "northern_lights",
+        "category": "aurora",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "북극광", "en": "Northern Lights"},
+        "seo": {"ko": "북극광 수면음악", "en": "Northern Lights Sleep Music"},
+        "color": "#67D5C8",
+        "pexels_queries": ["northern lights timelapse", "northern lights reflection", "arctic night sky aurora"],
+        "mood_pool": ["차가움", "광활함", "고요함", "빛의 파동", "신비로움"],
+        "sensory_pool": ["지평선 너머의 빛", "반사되는 호수", "얼어있는 공기", "멀리서 오는 파동", "하얀 눈 위의 빛"],
+        "memory_keywords": ["북쪽", "빛", "눈", "차가움", "하늘"],
+    },
+    "green_aurora": {
+        "id": "green_aurora",
+        "category": "aurora",
+        "enabled": False,
+        "priority": 1.0,
+        "display_name": {"ko": "초록 오로라", "en": "Green Aurora"},
+        "seo": {"ko": "초록 오로라 수면음악", "en": "Green Aurora Sleep Music"},
+        "color": "#67D5C8",
+        "pexels_queries": ["green aurora night sky", "green northern lights 4k", "aurora green landscape"],
+        "mood_pool": ["투명함", "고요함", "흔들림", "선명함", "부드러움"],
+        "sensory_pool": ["초록빛", "천천히 움직이는 빛", "어두운 하늘", "빛의 경계선", "조용한 빛의 흔들림"],
+        "memory_keywords": ["초록", "빛", "투명", "하늘", "움직임"],
+    },
+    "polar_light": {
+        "id": "polar_light",
+        "category": "aurora",
+        "enabled": False,
+        "priority": 1.0,
+        "display_name": {"ko": "극광", "en": "Polar Light"},
+        "seo": {"ko": "극광 수면음악", "en": "Polar Light Sleep Music"},
+        "color": "#67D5C8",
+        "pexels_queries": ["polar aurora sky 4k", "arctic aurora landscape", "midnight aurora polar"],
+        "mood_pool": ["고요함", "차가움", "빛의 파동", "광활함", "정적"],
+        "sensory_pool": ["극지방의 어둠", "천천히 피어나는 빛", "얼음 위의 반사", "하늘을 덮는 색", "희미한 별빛"],
+        "memory_keywords": ["극지", "빛", "어둠", "반사", "하늘"],
+    },
+    "polar_sky": {
+        "id": "polar_sky",
+        "category": "aurora",
+        "enabled": False,
+        "priority": 1.0,
+        "display_name": {"ko": "극지 하늘", "en": "Polar Sky"},
+        "seo": {"ko": "극지 하늘 수면음악", "en": "Polar Sky Sleep Music"},
+        "color": "#67D5C8",
+        "pexels_queries": ["polar night sky stars", "arctic night sky", "midnight polar landscape"],
+        "mood_pool": ["광활함", "고요함", "차가움", "아득함", "무한함"],
+        "sensory_pool": ["지평선 너머의 어둠", "수천 개의 별", "차가운 바람", "적막한 설원", "얼어있는 하늘"],
+        "memory_keywords": ["극지", "하늘", "별", "차가움", "어둠"],
+    },
+
+    # ── Nebula ──────────────────────────────────────────────────────
+    "nebula": {
+        "id": "nebula",
+        "category": "nebula",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "성운", "en": "Nebula"},
+        "seo": {"ko": "성운 수면음악", "en": "Nebula Sleep Music"},
+        "color": "#9A7BFF",
+        "pexels_queries": ["nebula cosmos space abstract", "colorful nebula space timelapse", "cosmic cloud space purple"],
+        "mood_pool": ["몽환", "무게감", "안개", "부드러움", "색채"],
+        "sensory_pool": ["보랏빛 안개", "겹겹이 쌓인 빛", "천천히 흐르는 구름", "빛과 어둠의 경계", "멀고 먼 색"],
+        "memory_keywords": ["성운", "보라", "안개", "빛", "구름"],
+    },
+    "crimson_nebula": {
+        "id": "crimson_nebula",
+        "category": "nebula",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "붉은 성운", "en": "Crimson Nebula"},
+        "seo": {"ko": "붉은 성운 수면음악", "en": "Crimson Nebula Sleep Music"},
+        "color": "#9A7BFF",
+        "pexels_queries": ["nebula cosmos space abstract", "interstellar space colorful", "space nebula motion abstract"],
+        "mood_pool": ["무게감", "몽환", "강렬함", "깊음", "어둠"],
+        "sensory_pool": ["붉은빛", "뜨겁지 않은 열기", "천천히 퍼지는 색", "깊은 붉음", "어둠 속의 빛"],
+        "memory_keywords": ["붉은", "빛", "깊이", "열기", "어둠"],
+    },
+    "purple_nebula": {
+        "id": "purple_nebula",
+        "category": "nebula",
+        "enabled": False,
+        "priority": 1.0,
+        "display_name": {"ko": "보라 성운", "en": "Purple Nebula"},
+        "seo": {"ko": "보라 성운 수면음악", "en": "Purple Nebula Sleep Music"},
+        "color": "#9A7BFF",
+        "pexels_queries": ["cosmic cloud space purple", "colorful nebula space timelapse", "nebula cosmos space abstract"],
+        "mood_pool": ["몽환", "부드러움", "신비로움", "안개", "색채"],
+        "sensory_pool": ["보랏빛 안개", "멀고 먼 빛", "겹겹이 쌓인 색", "천천히 퍼지는 구름", "희미한 별빛"],
+        "memory_keywords": ["보라", "안개", "빛", "신비", "색"],
+    },
+    "cosmic_cloud": {
+        "id": "cosmic_cloud",
+        "category": "nebula",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "우주 구름", "en": "Cosmic Cloud"},
+        "seo": {"ko": "우주 구름 수면음악", "en": "Cosmic Cloud Sleep Music"},
+        "color": "#9A7BFF",
+        "pexels_queries": ["cosmic cloud space purple", "interstellar space colorful", "space nebula motion abstract"],
+        "mood_pool": ["무게감", "부드러움", "흐름", "고요함", "안개"],
+        "sensory_pool": ["천천히 흐르는 구름", "가벼운 무게", "흐릿한 경계", "어둠 속의 색", "겹겹이 쌓인 빛"],
+        "memory_keywords": ["구름", "흐름", "어둠", "빛", "안개"],
+    },
+    "dust_cloud": {
+        "id": "dust_cloud",
+        "category": "nebula",
+        "enabled": False,
+        "priority": 1.0,
+        "display_name": {"ko": "먼지구름", "en": "Dust Cloud"},
+        "seo": {"ko": "먼지구름 수면음악", "en": "Dust Cloud Sleep Music"},
+        "color": "#9A7BFF",
+        "pexels_queries": ["interstellar space colorful", "cosmic cloud space purple", "nebula cosmos space abstract"],
+        "mood_pool": ["흐릿함", "안개", "아득함", "고요함", "무게감"],
+        "sensory_pool": ["흩날리는 입자", "희미한 빛", "경계 없는 어둠", "천천히 가라앉는 먼지", "멀고 먼 색"],
+        "memory_keywords": ["먼지", "입자", "희미", "어둠", "흐름"],
+    },
+
+    # ── Stellar ─────────────────────────────────────────────────────
+    "moonlight": {
+        "id": "moonlight",
+        "category": "stellar",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "달빛", "en": "Moonlight"},
+        "seo": {"ko": "달빛 수면음악", "en": "Moonlight Sleep Music"},
+        "color": "#D8DDE8",
+        "pexels_queries": ["full moon night sky 4k", "moonlight landscape night", "moon reflection lake"],
+        "mood_pool": ["포근함", "은은함", "달빛", "정적", "따뜻함"],
+        "sensory_pool": ["달빛", "창문 너머의 빛", "조용한 반사", "밤의 하얀 빛", "부드러운 그림자"],
+        "memory_keywords": ["달", "빛", "밤", "반사", "창문"],
+    },
+    "stardust": {
+        "id": "stardust",
+        "category": "stellar",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "우주먼지", "en": "Stardust"},
+        "seo": {"ko": "우주먼지 수면음악", "en": "Stardust Sleep Music"},
+        "color": "#D8DDE8",
+        "pexels_queries": ["stardust night sky 4k", "stars night timelapse", "star trail night"],
+        "mood_pool": ["반짝임", "아득함", "고요함", "부유감", "별빛"],
+        "sensory_pool": ["흩날리는 빛", "희미한 반짝임", "떠도는 먼지", "조용한 빛", "멀고 먼 빛"],
+        "memory_keywords": ["별", "먼지", "빛", "반짝임", "밤"],
+    },
+    "meteor_shower": {
+        "id": "meteor_shower",
+        "category": "stellar",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "유성우", "en": "Meteor Shower"},
+        "seo": {"ko": "유성우 수면음악", "en": "Meteor Shower Sleep Music"},
+        "color": "#D8DDE8",
+        "pexels_queries": ["meteor shower night sky", "shooting stars timelapse", "meteor night stars 4k"],
+        "mood_pool": ["찰나", "아득함", "고요함", "빛의 흔적", "순간"],
+        "sensory_pool": ["빠르게 지나가는 빛", "잠깐의 밝음", "다시 어두워지는 하늘", "손끝의 차가움", "지나간 자리"],
+        "memory_keywords": ["유성", "빛", "순간", "지나감", "하늘"],
+    },
+    "constellation": {
+        "id": "constellation",
+        "category": "stellar",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "별자리", "en": "Constellation"},
+        "seo": {"ko": "별자리 수면음악", "en": "Constellation Sleep Music"},
+        "color": "#D8DDE8",
+        "pexels_queries": ["constellation night sky 4k", "star pattern night sky", "stars dark sky timelapse"],
+        "mood_pool": ["고요함", "패턴", "아득함", "연결", "별빛"],
+        "sensory_pool": ["이어진 빛의 선", "오래된 이름들", "조용한 하늘", "별과 별 사이", "깊은 밤"],
+        "memory_keywords": ["별자리", "선", "빛", "패턴", "밤"],
+    },
+    "starlight": {
+        "id": "starlight",
+        "category": "stellar",
+        "enabled": True,
+        "priority": 1.0,
+        "display_name": {"ko": "별빛", "en": "Starlight"},
+        "seo": {"ko": "별빛 수면음악", "en": "Starlight Sleep Music"},
+        "color": "#D8DDE8",
+        "pexels_queries": ["starlight night sky 4k", "clear night stars landscape", "stars field night"],
+        "mood_pool": ["고요함", "아득함", "반짝임", "포근함", "별빛"],
+        "sensory_pool": ["점점이 박힌 빛", "멀고 먼 빛", "조용한 밤", "보이지 않는 바람", "별의 온기"],
+        "memory_keywords": ["별빛", "빛", "고요", "밤", "온기"],
+    },
+}
+
+
+# ── 헬퍼 함수 ──────────────────────────────────────────────────────────────
+
+def get_by_id(sc_id: str) -> dict | None:
+    return SUBCONCEPTS.get(sc_id)
+
+
+def get_by_category(category: str) -> list[dict]:
+    return [sc for sc in SUBCONCEPTS.values() if sc["category"] == category]
+
+
+def get_enabled(category: str | None = None) -> list[dict]:
+    pool = SUBCONCEPTS.values() if category is None else get_by_category(category)
+    return [sc for sc in pool if sc.get("enabled", True)]

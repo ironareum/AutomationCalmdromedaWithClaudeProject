@@ -1,0 +1,128 @@
+# ================================================================
+# Cosmic Longform Pipeline (토·화 오전 9시 KST → 월·목 21:05 공개)
+# ================================================================
+# 토 00:00 UTC → 토 9am KST 실행 → 월 21:05 KST 예약 공개
+# 화 00:00 UTC → 화 9am KST 실행 → 목 21:05 KST 예약 공개
+# ================================================================
+
+name: Cosmic Longform Pipeline
+
+on:
+  schedule:
+    - cron: '0 0 * * 6,2'  # 토(6)·화(2) UTC 00:00 = KST 09:00
+  workflow_dispatch:
+
+jobs:
+  run-cosmic-longform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout master branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Fetch data files
+        run: |
+          git fetch origin data 2>/dev/null || echo "data 브랜치 없음 — 첫 실행"
+          if git show origin/data:used_assets.json 2>/dev/null > used_assets.json && [ -s used_assets.json ]; then
+            echo "used_assets.json 복원됨"
+          else
+            rm -f used_assets.json
+            echo "used_assets.json 없음 — 새로 시작"
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version | head -1
+
+      - name: Install and configure rclone
+        env:
+          RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+          mkdir -p ~/.config/rclone
+          if [ -z "$RCLONE_CONF" ]; then
+            echo "::error::RCLONE_CONF 시크릿이 비어 있습니다."
+            exit 1
+          fi
+          echo "$RCLONE_CONF" > ~/.config/rclone/rclone.conf
+          if ! rclone listremotes | grep -q "^gdrive:"; then
+            echo "::error::rclone.conf에 'gdrive' 리모트가 없습니다."
+            exit 1
+          fi
+          echo "rclone 설정 완료"
+
+      - name: Restore credentials
+        env:
+          YOUTUBE_TOKEN_JSON:        ${{ secrets.YOUTUBE_TOKEN_JSON }}
+          GOOGLE_CLIENT_SECRET_JSON: ${{ secrets.GOOGLE_CLIENT_SECRET_JSON }}
+        run: |
+          mkdir -p credentials
+          echo "$YOUTUBE_TOKEN_JSON"        > credentials/token.json
+          echo "$GOOGLE_CLIENT_SECRET_JSON" > credentials/client_secret.json
+
+      - name: Run Cosmic Longform Pipeline
+        env:
+          JAMENDO_CLIENT_ID:      ${{ secrets.JAMENDO_CLIENT_ID }}
+          PEXELS_API_KEY:         ${{ secrets.PEXELS_API_KEY }}
+          ANTHROPIC_API_KEY:      ${{ secrets.ANTHROPIC_API_KEY }}
+          UPLOAD_ENABLED:         "true"
+          UPLOAD_HOUR_KST:        "21"
+          UPLOAD_MINUTE_KST:      "5"
+          UPLOAD_DAYS_AHEAD:      "2"
+          YOUTUBE_TOKEN:          "credentials/token.json"
+          YOUTUBE_CLIENT_SECRET:  "credentials/client_secret.json"
+        run: python pipeline_cosmic.py --mode both
+
+      - name: Commit data files
+        if: always()
+        run: |
+          [ -f used_assets.json ] && cp used_assets.json /tmp/used_assets.json || true
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin data 2>/dev/null || true
+          rm -f used_assets.json
+          if git ls-remote --heads origin data | grep -q data; then
+            git checkout -B data origin/data
+          else
+            git checkout --orphan data
+            git rm -rf . --quiet 2>/dev/null || true
+          fi
+          [ -f /tmp/used_assets.json ] && cp /tmp/used_assets.json used_assets.json || true
+          [ -f used_assets.json ] && git add used_assets.json || true
+          TODAY=$(date -u '+%Y-%m-%d %H:%M UTC')
+          git diff --cached --quiet || git commit -m "data(cosmic-longform): ${TODAY}"
+          git push origin data
+
+      - name: Upload pipeline artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmic-longform-${{ github.run_id }}
+          path: |
+            output/**/thumbnails/
+            output/**/pipeline_cosmic.log
+            output/**/metadata.json
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Cleanup sensitive files
+        if: always()
+        run: |
+          rm -rf output/
+          rm -f credentials/token.json credentials/client_secret.json
+          rm -f used_assets.json
+          echo "정리 완료"

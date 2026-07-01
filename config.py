@@ -81,6 +81,7 @@ class Config:
     # Thumbnail
     thumbnail_size: tuple = (1280, 720)
     thumbnail_font_size: int = 52
+    thumbnail_cosmic_overlay_alpha: int = 60  # 코스믹 썸네일 오버레이 투명도 (0=투명, 255=불투명)
 
     # Upload 설정
     upload_enabled: bool = os.getenv("UPLOAD_ENABLED", "true").lower() == "true"
@@ -88,6 +89,7 @@ class Config:
     upload_minute_kst: int = int(os.getenv("UPLOAD_MINUTE_KST", "30"))       # 30분
     shorts_upload_hour_kst: int = int(os.getenv("SHORTS_UPLOAD_HOUR_KST", "18"))    # 숏폼 오후 6시 KST
     shorts_upload_minute_kst: int = int(os.getenv("SHORTS_UPLOAD_MINUTE_KST", "30"))  # 30분
+    upload_days_ahead: int = int(os.getenv("UPLOAD_DAYS_AHEAD", "2"))              # 예약 공개까지 일수
     youtube_token_path: str = os.getenv("YOUTUBE_TOKEN", "credentials/token.json")
 
     # [미사용] Instagram 설정

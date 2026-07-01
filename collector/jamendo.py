@@ -39,6 +39,8 @@ class JamendoCollector:
             return set()
         used_ids: set[str] = set()
         for session in data.values():
+            if not isinstance(session, dict) or "sounds" not in session:
+                continue
             for fname in session.get("sounds", []):
                 # fname 형식: jamendo_{id}_{name}.mp3
                 if fname.startswith("jamendo_"):
@@ -106,6 +108,13 @@ class JamendoCollector:
             # 제외 태그: 전체 태그에 하나라도 있으면 제외
             if exclude_tags and any(ex in all_tags for ex in exclude_tags):
                 log.debug(f"skip (excluded): {track.get('name')}")
+                continue
+
+            # 상업적 라이선스 화이트리스트: BY / BY-SA 만 허용
+            license_url = (track.get("license_ccurl") or "").lower()
+            allowed = ["/licenses/by/", "/licenses/by-sa/"]
+            if not license_url or not any(p in license_url for p in allowed):
+                log.debug(f"skip (비허용 라이선스): {track.get('name')} — {license_url}")
                 continue
 
             filtered.append(track)
