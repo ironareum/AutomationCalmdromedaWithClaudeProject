@@ -16,11 +16,8 @@
 name: Daily Calmdromeda Pipeline
 
 on:
-  schedule:
-    # 매주 화·목 오전 9시 KST (= UTC 00:00) 실행
-    # 화 실행 → 롱폼 D+1(수) 19:30, 숏폼 D+2(목) 18:30
-    # 목 실행 → 롱폼 D+1(금) 19:30, 숏폼 D+2(토) 18:30
-    - cron: '0 0 * * 2,4'
+  # schedule:  # 비활성화 — 코스믹 파이프라인으로 전환
+  #   - cron: '0 0 * * 2,4'
   workflow_dispatch:  # 수동 실행 버튼 (테스트용)
 
 jobs:

@@ -101,14 +101,14 @@ CATEGORY_TO_LOCAL_DIR = {
 }
 
 
-def load_used_assets() -> dict:
+def load_used_assets(path: Path = USED_ASSETS_FILE) -> dict:
     """
     used_assets.json 로드
     구조: { "20260329_005810": { "title": "...", "created_at": "...",
                                   "sounds": [...], "videos": [...] }, ... }
     """
-    if USED_ASSETS_FILE.exists():
-        content = USED_ASSETS_FILE.read_text(encoding="utf-8").strip()
+    if path.exists():
+        content = path.read_text(encoding="utf-8").strip()
         if content:
             return json.loads(content)
     return {}
@@ -136,8 +136,8 @@ def save_blacklist(names: set):
     log.info(f"블랙리스트 업데이트: {len(merged)}개 ({len(names - existing)}개 신규)")
 
 
-def save_used_assets(data: dict):
-    USED_ASSETS_FILE.write_text(
+def save_used_assets(data: dict, path: Path = USED_ASSETS_FILE):
+    path.write_text(
         json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
@@ -147,14 +147,15 @@ def register_used_session(session_id: str, title: str,
                            category: str = "",
                            audio_lufs: float | None = None,
                            source_lufs: dict | None = None,
-                           excluded_sources: dict | None = None):
+                           excluded_sources: dict | None = None,
+                           path: Path = USED_ASSETS_FILE):
     """
     파이프라인 완료 후 실제 사용한 소스를 used_assets.json에 등록
     키: session_id (output 폴더명과 동일)
     """
     from datetime import datetime
 
-    data = load_used_assets()
+    data = load_used_assets(path)
 
     data[session_id] = {
         "title":            title,
@@ -167,7 +168,7 @@ def register_used_session(session_id: str, title: str,
         "source_lufs":      source_lufs or {},
         "excluded_sources": excluded_sources or {},
     }
-    save_used_assets(data)
+    save_used_assets(data, path)
     lufs_str = f"{audio_lufs} LUFS" if audio_lufs is not None else "측정없음"
     excl_str = f", 제외={list(excluded_sources.keys())}" if excluded_sources else ""
     log.info(f"used_assets 등록: [{session_id}] sounds={len(sound_files)}, videos={len(video_files)}, {lufs_str}{excl_str}")
@@ -176,7 +177,11 @@ def register_used_session(session_id: str, title: str,
 def is_sound_used(filename: str) -> bool:
     """파일명이 이미 사용된 소스인지 확인"""
     data = load_used_assets()
-    return any(filename in entry.get("sounds", []) for entry in data.values())
+    return any(
+        filename in entry.get("sounds", [])
+        for entry in data.values()
+        if isinstance(entry, dict) and "sounds" in entry
+    )
 
 
 def is_video_used(video_id: str) -> bool:
@@ -185,6 +190,7 @@ def is_video_used(video_id: str) -> bool:
     return any(
         any(video_id in fname for fname in entry.get("videos", []))
         for entry in data.values()
+        if isinstance(entry, dict) and "videos" in entry
     )
 
 

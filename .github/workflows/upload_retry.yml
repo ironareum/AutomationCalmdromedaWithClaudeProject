@@ -1,0 +1,68 @@
+# ================================================================
+# Cosmic Shorts Upload Retry — 업로드 실패 시 수동 재수행
+# ================================================================
+# run_id: 재업로드할 cosmic-shorts 워크플로 실행 run_id
+# session_dir: 세션 폴더명 (예: cosmic_20260701_090000)
+# ================================================================
+
+name: Cosmic Shorts Upload Retry
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: '재업로드할 cosmic-shorts 실행 run_id'
+        required: true
+      session_dir:
+        description: '세션 폴더명 (예: cosmic_20260701_090000)'
+        required: true
+
+jobs:
+  retry-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout master branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore credentials
+        env:
+          YOUTUBE_TOKEN_JSON:        ${{ secrets.YOUTUBE_TOKEN_JSON }}
+          GOOGLE_CLIENT_SECRET_JSON: ${{ secrets.GOOGLE_CLIENT_SECRET_JSON }}
+        run: |
+          mkdir -p credentials
+          echo "$YOUTUBE_TOKEN_JSON"        > credentials/token.json
+          echo "$GOOGLE_CLIENT_SECRET_JSON" > credentials/client_secret.json
+
+      - name: Download shorts artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cosmic-shorts-${{ inputs.run_id }}
+          path: output/${{ inputs.session_dir }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.run_id }}
+
+      - name: Run upload-only
+        env:
+          UPLOAD_ENABLED:        "true"
+          YOUTUBE_TOKEN:         "credentials/token.json"
+          YOUTUBE_CLIENT_SECRET: "credentials/client_secret.json"
+        run: python pipeline_cosmic.py --mode shorts --upload-only output/${{ inputs.session_dir }}
+
+      - name: Cleanup sensitive files
+        if: always()
+        run: |
+          rm -f credentials/token.json credentials/client_secret.json
+          echo "정리 완료"
