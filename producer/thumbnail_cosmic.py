@@ -92,15 +92,11 @@ def _extract_frame(video: Path, out: Path, sec: int = 3) -> bool:
 
 
 def _draw_styled_text(draw, text, x, y, font, shadow_offset=3, outline_w=2):
-    """그림자(rgba(0,0,0,0.6)) → 외곽선(#3A2A0D) → 본문(#D4AF37) 순으로 그린다."""
+    """그림자(rgba(0,0,0,0.6)) → 외곽선(stroke) → 본문(#D4AF37) 순으로 그린다."""
     draw.text((x + shadow_offset, y + shadow_offset), text, font=font,
               fill=(*SHADOW, SHADOW_ALPHA))
-    for dx in range(-outline_w, outline_w + 1):
-        for dy in range(-outline_w, outline_w + 1):
-            if dx == 0 and dy == 0:
-                continue
-            draw.text((x + dx, y + dy), text, font=font, fill=(*OUTLINE, 255))
-    draw.text((x, y), text, font=font, fill=(*GOLD, 255))
+    draw.text((x, y), text, font=font, fill=(*GOLD, 255),
+              stroke_width=outline_w, stroke_fill=(*OUTLINE, 255))
 
 
 def _draw_sparkle(draw, cx: int, cy: int, size: int):
@@ -267,6 +263,6 @@ class CosmicThumbnailGenerator:
         slug = emotion_copy.replace(" ", "_")[:20]
         fname = output_name or f"thumb_cosmic_{slug}_{random.randint(1000, 9999)}.jpg"
         out = self.thumb_dir / fname
-        base.convert("RGB").save(out, "JPEG", quality=95)
+        base.convert("RGB").save(out, "JPEG", quality=98)
         log.info(f"Thumbnail saved: {out.name} / emotion: {emotion_copy}")
         return out
