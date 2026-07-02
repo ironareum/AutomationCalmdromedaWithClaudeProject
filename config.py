@@ -91,6 +91,13 @@ class Config:
     shorts_upload_minute_kst: int = int(os.getenv("SHORTS_UPLOAD_MINUTE_KST", "30"))  # 30분
     upload_days_ahead: int = int(os.getenv("UPLOAD_DAYS_AHEAD", "2"))              # 예약 공개까지 일수
     youtube_token_path: str = os.getenv("YOUTUBE_TOKEN", "credentials/token.json")
+    youtube_playlists: dict = {
+        "galaxy":  "PLIOVgArMPmb0",
+        "stellar": "PLKST_AfWRbt4",
+        "nebula":  "PLUU9knyY7JT8",
+        "aurora":  "PLZAtlN_NoUmM",
+        "all":     "PLGHq11qDauLg",
+    }
 
     # [미사용] Instagram 설정
     # instagram_enabled: bool = os.getenv("INSTAGRAM_ENABLED", "true").lower() == "true"
