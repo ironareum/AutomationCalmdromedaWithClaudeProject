@@ -263,3 +263,25 @@ class YouTubeUploader:
                 return False
 
         return True
+
+    def add_to_playlist(self, video_id: str, playlist_id: str) -> bool:
+        """업로드된 영상을 재생목록에 추가"""
+        service = self._get_service()
+        try:
+            service.playlistItems().insert(
+                part="snippet",
+                body={
+                    "snippet": {
+                        "playlistId": playlist_id,
+                        "resourceId": {
+                            "kind":    "youtube#video",
+                            "videoId": video_id,
+                        },
+                    }
+                },
+            ).execute()
+            log.info(f"재생목록 추가: {video_id} → {playlist_id}")
+            return True
+        except Exception as e:
+            log.warning(f"재생목록 추가 실패 ({playlist_id}): {e}")
+            return False
