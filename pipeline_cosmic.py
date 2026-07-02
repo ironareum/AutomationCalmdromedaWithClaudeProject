@@ -724,6 +724,21 @@ def _save_shorts_metadata(
 
 # ── 업로드 재시도 래퍼 ────────────────────────────────────────────────────
 
+def _add_to_playlists(video_id: str, category: str, cfg: Config):
+    """롱폼 업로드 후 카테고리 재생목록 + 전체 재생목록에 추가"""
+    playlists = cfg.youtube_playlists
+    target_ids = [pid for key, pid in playlists.items()
+                  if key == category or key == "all"]
+    if not target_ids:
+        return
+    uploader = YouTubeUploader(
+        client_secret_path=Path(cfg.youtube_client_secret_path),
+        token_path=Path(cfg.youtube_token_path),
+    )
+    for pid in target_ids:
+        uploader.add_to_playlist(video_id, pid)
+
+
 def _upload_with_retry(
     video_path: Path,
     concept: dict,
@@ -985,6 +1000,7 @@ def main():
             )
             if yt:
                 log.info(f"롱폼 YouTube: {yt['url']} (공개: {yt['publish_at']})")
+                _add_to_playlists(yt["video_id"], concept["category"], cfg)
 
         # ── 숏폼 단독 모드 (--mode shorts) ───────────────────────────────
         if args.mode == "shorts":
