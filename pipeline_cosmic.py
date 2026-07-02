@@ -1063,6 +1063,7 @@ def main():
 
     except Exception as e:
         log.exception(f"예외 발생: {e}")
+        raise
     finally:
         logging.getLogger().removeHandler(fh)
         fh.close()
