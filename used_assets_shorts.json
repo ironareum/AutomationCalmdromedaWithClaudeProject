@@ -1,0 +1,24 @@
+{
+  "category_index": 1,
+  "used_subconcepts": [
+    "deep_space"
+  ],
+  "statistics": {
+    "deep_space": {
+      "used": 1
+    }
+  },
+  "cosmic_20260703_015355": {
+    "title": "우주의 가장 깊은 곳에서 잠든 밤",
+    "category": "galaxy",
+    "created_at": "2026-07-03 01:54:56",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_12336960_720p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  }
+}
