@@ -1,10 +1,11 @@
 {
-  "category_index": 4,
+  "category_index": 5,
   "used_subconcepts": [
     "deep_space",
     "aurora",
     "nebula",
-    "meteor_shower"
+    "meteor_shower",
+    "cosmic_ocean"
   ],
   "statistics": {
     "deep_space": {
@@ -17,6 +18,9 @@
       "used": 1
     },
     "meteor_shower": {
+      "used": 1
+    },
+    "cosmic_ocean": {
       "used": 1
     }
   },
@@ -67,6 +71,19 @@
     "sounds": [],
     "videos": [
       "pexels_5167233_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260709_015350": {
+    "title": "우주 바다에 떠내려가다 깨어난 영상",
+    "category": "galaxy",
+    "created_at": "2026-07-09 01:55:14",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_35977122_1080p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
