@@ -163,7 +163,7 @@ jobs:
             output/**/thumbnails/
             output/**/pipeline.log
             output/**/metadata.json
-          retention-days: 30
+          retention-days: 1
           if-no-files-found: warn
 
       # ── 11. 민감 파일 정리 ───────────────────────────────────────────
