@@ -197,7 +197,7 @@ jobs:
             output/**/thumbnails/
             output/**/pipeline.log
             output/**/metadata.json
-          retention-days: 30  # 30일 보관
+          retention-days: 1   # 1일 후 자동 삭제
           if-no-files-found: warn
 
       # ── 11. 민감 파일 정리 ───────────────────────────────────────────
