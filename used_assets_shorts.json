@@ -1,11 +1,12 @@
 {
-  "category_index": 5,
+  "category_index": 6,
   "used_subconcepts": [
     "deep_space",
     "aurora",
     "nebula",
     "meteor_shower",
-    "cosmic_ocean"
+    "cosmic_ocean",
+    "cosmic_cloud"
   ],
   "statistics": {
     "deep_space": {
@@ -21,6 +22,9 @@
       "used": 1
     },
     "cosmic_ocean": {
+      "used": 1
+    },
+    "cosmic_cloud": {
       "used": 1
     }
   },
@@ -84,6 +88,19 @@
     "sounds": [],
     "videos": [
       "pexels_35977122_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260710_015233": {
+    "title": "우주 구름을 헤치다 사라졌다",
+    "category": "nebula",
+    "created_at": "2026-07-10 01:53:19",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_27680151_1080p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
