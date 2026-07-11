@@ -153,20 +153,7 @@ jobs:
           git diff --cached --quiet || git commit -m "data(shorts): ${TODAY}"
           git push origin data
 
-      # ── 10. Artifacts 저장 ───────────────────────────────────────────
-      - name: Upload pipeline artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: shorts-output-${{ github.run_id }}
-          path: |
-            output/**/thumbnails/
-            output/**/pipeline.log
-            output/**/metadata.json
-          retention-days: 1
-          if-no-files-found: warn
-
-      # ── 11. 민감 파일 정리 ───────────────────────────────────────────
+      # ── 10. 민감 파일 정리 ───────────────────────────────────────────
       - name: Cleanup sensitive files
         if: always()
         run: |
