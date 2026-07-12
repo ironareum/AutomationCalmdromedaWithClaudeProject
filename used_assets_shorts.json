@@ -1,5 +1,5 @@
 {
-  "category_index": 7,
+  "category_index": 8,
   "used_subconcepts": [
     "deep_space",
     "aurora",
@@ -7,7 +7,8 @@
     "meteor_shower",
     "cosmic_ocean",
     "cosmic_cloud",
-    "stardust"
+    "stardust",
+    "milky_way"
   ],
   "statistics": {
     "deep_space": {
@@ -29,6 +30,9 @@
       "used": 1
     },
     "stardust": {
+      "used": 1
+    },
+    "milky_way": {
       "used": 1
     }
   },
@@ -118,6 +122,19 @@
     "sounds": [],
     "videos": [
       "pexels_36610776_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260712_014356": {
+    "title": "별들 사이에서 시간을 잃었어",
+    "category": "galaxy",
+    "created_at": "2026-07-12 01:45:15",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_9341049_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
