@@ -1,5 +1,5 @@
 {
-  "category_index": 8,
+  "category_index": 0,
   "used_subconcepts": [
     "deep_space",
     "aurora",
@@ -8,7 +8,8 @@
     "cosmic_ocean",
     "cosmic_cloud",
     "stardust",
-    "milky_way"
+    "milky_way",
+    "constellation"
   ],
   "statistics": {
     "deep_space": {
@@ -33,6 +34,9 @@
       "used": 1
     },
     "milky_way": {
+      "used": 1
+    },
+    "constellation": {
       "used": 1
     }
   },
@@ -135,6 +139,19 @@
     "sounds": [],
     "videos": [
       "pexels_9341049_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260715_012005": {
+    "title": "별들이 선을 그으며 사라지는 밤",
+    "category": "stellar",
+    "created_at": "2026-07-15 01:21:11",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_5380054_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
