@@ -1,5 +1,5 @@
 {
-  "category_index": 0,
+  "category_index": 1,
   "used_subconcepts": [
     "deep_space",
     "aurora",
@@ -9,7 +9,8 @@
     "cosmic_cloud",
     "stardust",
     "milky_way",
-    "constellation"
+    "constellation",
+    "spiral_galaxy"
   ],
   "statistics": {
     "deep_space": {
@@ -37,6 +38,9 @@
       "used": 1
     },
     "constellation": {
+      "used": 1
+    },
+    "spiral_galaxy": {
       "used": 1
     }
   },
@@ -152,6 +156,19 @@
     "sounds": [],
     "videos": [
       "pexels_5380054_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260716_013004": {
+    "title": "나선을 따라 내려가다 깨어났다",
+    "category": "galaxy",
+    "created_at": "2026-07-16 01:31:02",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_32876270_1080p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
