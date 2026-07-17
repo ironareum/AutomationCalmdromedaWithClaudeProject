@@ -155,7 +155,7 @@ jobs:
 
       # ── 10. Artifacts 저장 ───────────────────────────────────────────
       - name: Upload pipeline artifacts
-        if: always()
+        if: false  # 2026-07-15 GHA 스토리지 Quota 초과 대응 — 원복 시 if: false 제거
         uses: actions/upload-artifact@v4
         with:
           name: shorts-output-${{ github.run_id }}

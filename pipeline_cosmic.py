@@ -126,7 +126,7 @@ def _build_metadata(
         "jamendo_track":     jamendo_meta or {},
         "video_path":        str(longform_path),
         "thumbnail_path":    str(thumbnail) if thumbnail else "",
-        "shorts_overlay_text": concept.get("shorts_intro", ""),
+        # "shorts_overlay_text": concept.get("shorts_intro", ""),  # 2026-07-15 B안: 텍스트 오버레이 제거
         "created_at":        datetime.now().isoformat(),
         "used_sounds":       [f.name for f in used_sounds],
         "used_videos":       [video_file.name],
@@ -1008,9 +1008,10 @@ def main():
             log.info("[숏폼 단독] 15s 제작 시작")
             shorts_path = produce_shorts(sound_files, video_file, concept, work_dir)
             if shorts_path:
-                intro = concept.get("shorts_intro", "")
-                if intro:
-                    shorts_path = _overlay_intro_text(shorts_path, intro, work_dir) or shorts_path
+                # 2026-07-15 B안: 텍스트 오버레이 제거 — 영상 자체가 훅이 되는 쇼츠 실험
+                # intro = concept.get("shorts_intro", "")
+                # if intro:
+                #     shorts_path = _overlay_intro_text(shorts_path, intro, work_dir) or shorts_path
                 desc_s = _make_shorts_description(concept, jamendo_meta)
                 log.info("=== Upload Phase ===")
                 yt_s = _upload_with_retry(
@@ -1053,9 +1054,10 @@ def main():
                 clip_index=1,
             )
             if sp:
-                intro = concept.get("shorts_intro", "")
-                if intro:
-                    sp = _overlay_intro_text(sp, intro, work_dir) or sp
+                # 2026-07-15 B안: 텍스트 오버레이 제거 — 영상 자체가 훅이 되는 쇼츠 실험
+                # intro = concept.get("shorts_intro", "")
+                # if intro:
+                #     sp = _overlay_intro_text(sp, intro, work_dir) or sp
                 desc_shorts = _make_shorts_description(concept, jamendo_meta)
                 yt_s = _upload_with_retry(
                     sp, concept, cfg,
