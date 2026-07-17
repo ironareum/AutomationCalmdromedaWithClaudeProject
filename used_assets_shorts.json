@@ -1,7 +1,6 @@
 {
-  "category_index": 1,
+  "category_index": 2,
   "used_subconcepts": [
-    "deep_space",
     "aurora",
     "nebula",
     "meteor_shower",
@@ -10,7 +9,8 @@
     "stardust",
     "milky_way",
     "constellation",
-    "spiral_galaxy"
+    "spiral_galaxy",
+    "northern_lights"
   ],
   "statistics": {
     "deep_space": {
@@ -41,6 +41,9 @@
       "used": 1
     },
     "spiral_galaxy": {
+      "used": 1
+    },
+    "northern_lights": {
       "used": 1
     }
   },
