@@ -218,7 +218,7 @@ JSON만 응답:
         "title":                    title,
         "longform_emotional":       ai.get("longform_emotional", f"{sc_ko}"),
         "shorts_title":             ai.get("shorts_title", ""),
-        "shorts_intro":             shorts_intro,
+        "shorts_intro":             "",  # 2026-07-15 B안: 텍스트 오버레이 비활성화
         "description_ko":           ai.get("description_ko", ""),
         "tags":                     merged_tags,
         "jamendo_tags":             JAMENDO_SEARCH_TAGS,
