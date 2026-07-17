@@ -135,8 +135,10 @@ Sub Concept: {sc_en} ({sc_ko})
 
 longform_emotional: 롱폼 썸네일용 감성 문구 (20자 이내, 한국어, 잠들기 전 기억처럼 담백하게, 독자에게 말 걸기 금지)
   예시: "오로라 따라가다 그냥 잠들었어요" / "별빛이 손가락 사이로 흘렀다" / "우주 끝에서 눈이 감겼다"
-shorts_title: 유튜브 쇼츠 제목 (30자 이내, 한국어, 감성적, longform_emotional과 다른 문장, 독자에게 직접 말 걸기 금지)
-  예시: "우주 틀었다가 깨보니 새벽이었던 영상"
+shorts_title: YouTube Shorts title (English only, 10 words or fewer, states a fact or property of the universe without emotion or invitation)
+  No hashtags, no emojis, no exclamation marks. Do not address the viewer directly.
+  The sentence should feel like an observation, not a feeling.
+  예시: "The Universe Doesn't Need Words." / "30 Seconds in Space" / "A Place Where Sound Cannot Exist" / "Light That Left Before You Were Born"
 # 2026-07-15 B안: shorts_intro 프롬프트 비활성화 — 텍스트 오버레이 제거 실험
 # shorts_intro: 쇼츠 영상 텍스트 오버레이용, 정확히 4줄 (한국어) — 우주를 여행하다 잠든 사람이 다음 날 희미하게 기억나는 장면을 메모장에 4줄만 적는 느낌
 #   줄마다 8~15자 정도로 짧게 씁니다.
@@ -183,7 +185,7 @@ JSON만 응답:
         log.error(f"Claude API 오류: {e} — 기본 콘셉트 사용")
         ai = {
             "longform_emotional": f"{sc_ko} 따라가다 그냥 잠들었어요",
-            "shorts_title":       "잠이 안 와서 틀었다가 잠든 영상",
+            "shorts_title":       "A Place Where Sound Cannot Exist",
             # "shorts_intro": "몇 시였는지 모른다.\n눈을 떴는지 감았는지도 몰랐다.\n다만 어딘가 아주 조용한 곳에 있었다.\n별이 많았다.",  # 2026-07-15 B안: 비활성화
             "description_ko":     f"말없이 {sc_ko} 속으로 빠져드는 시간이었어요. 생각이 하나둘 사라지고, 어느새 깊은 곳에 있었어요.",
             "tags": [],
