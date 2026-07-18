@@ -1,7 +1,6 @@
 {
-  "category_index": 4,
+  "category_index": 5,
   "used_subconcepts": [
-    "meteor_shower",
     "cosmic_ocean",
     "cosmic_cloud",
     "stardust",
@@ -10,11 +9,12 @@
     "spiral_galaxy",
     "northern_lights",
     "crimson_nebula",
-    "moonlight"
+    "moonlight",
+    "deep_space"
   ],
   "statistics": {
     "deep_space": {
-      "used": 1
+      "used": 2
     },
     "aurora": {
       "used": 1
@@ -191,6 +191,19 @@
     "sounds": [],
     "videos": [
       "pexels_11600016_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260718_012436": {
+    "title": "Space Has No Bottom",
+    "category": "galaxy",
+    "created_at": "2026-07-18 01:25:09",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_12336960_720p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
