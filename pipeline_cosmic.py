@@ -647,6 +647,10 @@ def _make_shorts_description(concept: dict, jamendo_meta: dict | None = None) ->
             "Source: Jamendo (jamendo.com)",
             "─────────────────────────",
         ]
+    lines += [
+        "",
+        "#SleepMusic #AmbientMusic #DeepSleep #RelaxingMusic #SpaceAmbient #MeditationMusic #CosmicAmbient #Shorts",
+    ]
     return "\n".join(lines)
 
 
