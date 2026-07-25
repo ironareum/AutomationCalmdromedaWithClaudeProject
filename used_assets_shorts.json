@@ -1,7 +1,6 @@
 {
-  "category_index": 0,
+  "category_index": 1,
   "used_subconcepts": [
-    "constellation",
     "spiral_galaxy",
     "northern_lights",
     "crimson_nebula",
@@ -10,7 +9,8 @@
     "nebula",
     "starlight",
     "cosmic_ocean",
-    "stardust"
+    "stardust",
+    "milky_way"
   ],
   "statistics": {
     "deep_space": {
@@ -35,7 +35,7 @@
       "used": 2
     },
     "milky_way": {
-      "used": 1
+      "used": 2
     },
     "constellation": {
       "used": 1
@@ -259,6 +259,19 @@
     "sounds": [],
     "videos": [
       "pexels_36610776_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260725_014453": {
+    "title": "Sleep Music | Milky Way Takes 8,000 Years to Cross the Sky",
+    "category": "galaxy",
+    "created_at": "2026-07-25 01:45:29",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_9341049_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
