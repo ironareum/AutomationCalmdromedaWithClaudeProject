@@ -1,7 +1,6 @@
 {
-  "category_index": 1,
+  "category_index": 2,
   "used_subconcepts": [
-    "spiral_galaxy",
     "northern_lights",
     "crimson_nebula",
     "moonlight",
@@ -10,7 +9,8 @@
     "starlight",
     "cosmic_ocean",
     "stardust",
-    "milky_way"
+    "milky_way",
+    "northern_lights"
   ],
   "statistics": {
     "deep_space": {
@@ -44,7 +44,7 @@
       "used": 1
     },
     "northern_lights": {
-      "used": 1
+      "used": 2
     },
     "crimson_nebula": {
       "used": 1
@@ -272,6 +272,19 @@
     "sounds": [],
     "videos": [
       "pexels_9341049_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260726_014735": {
+    "title": "Sleep Music | Light That Moves Across the Frozen Sky",
+    "category": "aurora",
+    "created_at": "2026-07-26 01:48:16",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_5600929_1080p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
