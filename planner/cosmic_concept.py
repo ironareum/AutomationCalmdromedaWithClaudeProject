@@ -25,12 +25,10 @@ TITLE_BACK_FIXED = "1 Hour Ambient Sound"
 
 # ── Jamendo 설정 ───────────────────────────────────────────────────────────
 
-JAMENDO_SEARCH_TAGS = ["ambient", "sleep", "lullaby", "meditation", "relaxing", "atmospheric"]
+JAMENDO_SEARCH_TAGS = ["piano", "ambient", "sleep", "meditation", "relaxing"]
 
 _VARTAGS_BASE = [
-    "ambient", "space", "atmospheric", "slow", "cinematic",
-    "sleep", "calm", "meditation", "dreamy", "relax", "relaxing",
-    "ethereal", "floating",
+    "piano", "ambient", "space", "cinematic", "dreamy",
 ]
 JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
     "galaxy":  _VARTAGS_BASE,
@@ -39,7 +37,14 @@ JAMENDO_REQUIRED_VARTAGS_BY_CATEGORY = {
     "nebula":  _VARTAGS_BASE,
 }
 
-JAMENDO_EXCLUDE_TAGS = ["rock", "pop", "dance", "metal", "punk", "horror", "industrial", "noise", "experimental", "dark", "eerie", "jazz"]
+JAMENDO_EXCLUDE_TAGS = [
+    # 장르 — 무서운/격한 계열
+    "rock", "pop", "dance", "metal", "punk", "horror", "industrial",
+    "noise", "experimental", "dark", "eerie", "jazz",
+    "dramatic", "orchestral", "electronic", "soundtrack", "intense", "tense",
+    # 보컬/사람 목소리
+    "vocal", "vocals", "voice", "spoken", "singing", "singer", "lyrics", "choir",
+]
 
 # ── 공통 태그 ─────────────────────────────────────────────────────────────
 
