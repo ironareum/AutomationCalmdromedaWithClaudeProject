@@ -1,7 +1,6 @@
 {
-  "category_index": 6,
+  "category_index": 7,
   "used_subconcepts": [
-    "nebula",
     "starlight",
     "cosmic_ocean",
     "stardust",
@@ -10,7 +9,8 @@
     "cosmic_cloud",
     "meteor_shower",
     "silent_orbit",
-    "crimson_nebula"
+    "crimson_nebula",
+    "constellation"
   ],
   "statistics": {
     "deep_space": {
@@ -38,7 +38,7 @@
       "used": 2
     },
     "constellation": {
-      "used": 1
+      "used": 2
     },
     "spiral_galaxy": {
       "used": 1
@@ -340,6 +340,19 @@
     "sounds": [],
     "videos": [
       "pexels_34791391_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260802_014613": {
+    "title": "Sleep Music | Constellations Exist Before Memory",
+    "category": "stellar",
+    "created_at": "2026-08-02 01:46:53",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_5380054_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
