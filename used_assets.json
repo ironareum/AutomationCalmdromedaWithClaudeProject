@@ -1606,13 +1606,14 @@
     },
     "excluded_sources": {}
   },
-  "category_index": 5,
+  "category_index": 6,
   "used_subconcepts": [
     "silent_orbit",
     "aurora",
     "nebula",
     "moonlight",
-    "cosmic_ocean"
+    "cosmic_ocean",
+    "cosmic_cloud"
   ],
   "statistics": {
     "silent_orbit": {
@@ -1628,6 +1629,9 @@
       "used": 1
     },
     "cosmic_ocean": {
+      "used": 1
+    },
+    "cosmic_cloud": {
       "used": 1
     }
   },
@@ -1649,7 +1653,7 @@
     "excluded_sources": {}
   },
   "series": {
-    "longform": 4,
+    "longform": 5,
     "shorts": 0
   },
   "cosmic_20260713_033302": {
@@ -1700,6 +1704,23 @@
     "audio_lufs": -10.6,
     "source_lufs": {
       "jamendo_1531133_Prelude_To_Mind_Control.mp3": -10.6
+    },
+    "excluded_sources": {}
+  },
+  "cosmic_20260803_033141": {
+    "title": "우주 구름 수면음악 | Cosmic Cloud Sleep Music | 1 Hour Ambient Sound",
+    "category": "nebula",
+    "created_at": "2026-08-03 03:57:35",
+    "quality": "pending",
+    "sounds": [
+      "jamendo_1531126_So_Gently_We_Go.mp3"
+    ],
+    "videos": [
+      "pexels_27680151_1080p.mp4"
+    ],
+    "audio_lufs": -15.5,
+    "source_lufs": {
+      "jamendo_1531126_So_Gently_We_Go.mp3": -15.5
     },
     "excluded_sources": {}
   }
