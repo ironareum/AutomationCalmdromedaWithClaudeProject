@@ -1,7 +1,6 @@
 {
-  "category_index": 7,
+  "category_index": 8,
   "used_subconcepts": [
-    "starlight",
     "cosmic_ocean",
     "stardust",
     "milky_way",
@@ -10,11 +9,12 @@
     "meteor_shower",
     "silent_orbit",
     "crimson_nebula",
-    "constellation"
+    "constellation",
+    "deep_space"
   ],
   "statistics": {
     "deep_space": {
-      "used": 2
+      "used": 3
     },
     "aurora": {
       "used": 1
@@ -353,6 +353,19 @@
     "sounds": [],
     "videos": [
       "pexels_5380054_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260805_012950": {
+    "title": "Sleep Music | Space Has No Sound But You Can Feel It",
+    "category": "galaxy",
+    "created_at": "2026-08-05 01:30:34",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_12336960_720p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
