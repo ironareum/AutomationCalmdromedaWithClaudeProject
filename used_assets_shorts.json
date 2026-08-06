@@ -1,7 +1,6 @@
 {
-  "category_index": 8,
+  "category_index": 0,
   "used_subconcepts": [
-    "cosmic_ocean",
     "stardust",
     "milky_way",
     "northern_lights",
@@ -10,7 +9,8 @@
     "silent_orbit",
     "crimson_nebula",
     "constellation",
-    "deep_space"
+    "deep_space",
+    "starlight"
   ],
   "statistics": {
     "deep_space": {
@@ -53,7 +53,7 @@
       "used": 1
     },
     "starlight": {
-      "used": 1
+      "used": 2
     },
     "silent_orbit": {
       "used": 1
@@ -366,6 +366,19 @@
     "sounds": [],
     "videos": [
       "pexels_12336960_720p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260806_012932": {
+    "title": "Sleep Music | Light That Traveled Millions of Years",
+    "category": "stellar",
+    "created_at": "2026-08-06 01:30:15",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_38749550_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
