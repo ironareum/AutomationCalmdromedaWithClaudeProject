@@ -1,7 +1,6 @@
 {
-  "category_index": 0,
+  "category_index": 1,
   "used_subconcepts": [
-    "stardust",
     "milky_way",
     "northern_lights",
     "cosmic_cloud",
@@ -10,7 +9,8 @@
     "crimson_nebula",
     "constellation",
     "deep_space",
-    "starlight"
+    "starlight",
+    "spiral_galaxy"
   ],
   "statistics": {
     "deep_space": {
@@ -41,7 +41,7 @@
       "used": 2
     },
     "spiral_galaxy": {
-      "used": 1
+      "used": 2
     },
     "northern_lights": {
       "used": 2
@@ -379,6 +379,19 @@
     "sounds": [],
     "videos": [
       "pexels_38749550_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260807_020550": {
+    "title": "Sleep Music | Spiral Galaxies Rotate for Billions of Years",
+    "category": "galaxy",
+    "created_at": "2026-08-07 02:06:17",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_10966656_1080p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
