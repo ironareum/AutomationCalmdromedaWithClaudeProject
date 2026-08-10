@@ -1606,14 +1606,15 @@
     },
     "excluded_sources": {}
   },
-  "category_index": 6,
+  "category_index": 7,
   "used_subconcepts": [
     "silent_orbit",
     "aurora",
     "nebula",
     "moonlight",
     "cosmic_ocean",
-    "cosmic_cloud"
+    "cosmic_cloud",
+    "stardust"
   ],
   "statistics": {
     "silent_orbit": {
@@ -1632,6 +1633,9 @@
       "used": 1
     },
     "cosmic_cloud": {
+      "used": 1
+    },
+    "stardust": {
       "used": 1
     }
   },
@@ -1653,7 +1657,7 @@
     "excluded_sources": {}
   },
   "series": {
-    "longform": 5,
+    "longform": 6,
     "shorts": 0
   },
   "cosmic_20260713_033302": {
@@ -1721,6 +1725,23 @@
     "audio_lufs": -15.5,
     "source_lufs": {
       "jamendo_1531126_So_Gently_We_Go.mp3": -15.5
+    },
+    "excluded_sources": {}
+  },
+  "cosmic_20260810_021139": {
+    "title": "우주먼지 수면음악 | Stardust Sleep Music | 1 Hour Ambient Sound",
+    "category": "stellar",
+    "created_at": "2026-08-10 02:40:25",
+    "quality": "pending",
+    "sounds": [
+      "jamendo_1530806_We_Are_Temporary_And_We_Are_Be.mp3"
+    ],
+    "videos": [
+      "pexels_36610776_1080p.mp4"
+    ],
+    "audio_lufs": -18.3,
+    "source_lufs": {
+      "jamendo_1530806_We_Are_Temporary_And_We_Are_Be.mp3": -18.3
     },
     "excluded_sources": {}
   }
