@@ -1,7 +1,6 @@
 {
-  "category_index": 4,
+  "category_index": 5,
   "used_subconcepts": [
-    "meteor_shower",
     "silent_orbit",
     "crimson_nebula",
     "constellation",
@@ -10,7 +9,8 @@
     "spiral_galaxy",
     "aurora",
     "crimson_nebula",
-    "moonlight"
+    "moonlight",
+    "milky_way"
   ],
   "statistics": {
     "deep_space": {
@@ -35,7 +35,7 @@
       "used": 2
     },
     "milky_way": {
-      "used": 2
+      "used": 3
     },
     "constellation": {
       "used": 2
@@ -431,6 +431,19 @@
     "sounds": [],
     "videos": [
       "pexels_30785084_1440p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260813_010240": {
+    "title": "Sleep Music | The Milky Way Takes 100,000 Years to Cross",
+    "category": "galaxy",
+    "created_at": "2026-08-13 01:03:15",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_9341049_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
