@@ -1,7 +1,6 @@
 {
-  "category_index": 6,
+  "category_index": 7,
   "used_subconcepts": [
-    "crimson_nebula",
     "constellation",
     "deep_space",
     "starlight",
@@ -10,7 +9,8 @@
     "crimson_nebula",
     "moonlight",
     "milky_way",
-    "nebula"
+    "nebula",
+    "meteor_shower"
   ],
   "statistics": {
     "deep_space": {
@@ -23,7 +23,7 @@
       "used": 3
     },
     "meteor_shower": {
-      "used": 2
+      "used": 3
     },
     "cosmic_ocean": {
       "used": 2
@@ -457,6 +457,19 @@
     "sounds": [],
     "videos": [
       "pexels_34791391_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260815_003718": {
+    "title": "Sleep Music | Meteors Fall While You Sleep",
+    "category": "stellar",
+    "created_at": "2026-08-15 00:37:56",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_5167233_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
