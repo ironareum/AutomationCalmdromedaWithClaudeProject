@@ -1,7 +1,6 @@
 {
-  "category_index": 7,
+  "category_index": 8,
   "used_subconcepts": [
-    "constellation",
     "deep_space",
     "starlight",
     "spiral_galaxy",
@@ -10,7 +9,8 @@
     "moonlight",
     "milky_way",
     "nebula",
-    "meteor_shower"
+    "meteor_shower",
+    "silent_orbit"
   ],
   "statistics": {
     "deep_space": {
@@ -56,7 +56,7 @@
       "used": 2
     },
     "silent_orbit": {
-      "used": 1
+      "used": 2
     }
   },
   "cosmic_20260703_015355": {
@@ -470,6 +470,19 @@
     "sounds": [],
     "videos": [
       "pexels_5167233_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260816_003849": {
+    "title": "Sleep Music | Stars Hold Still in the Absence of Sound",
+    "category": "galaxy",
+    "created_at": "2026-08-16 00:39:28",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_12336960_720p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
