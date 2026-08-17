@@ -1606,7 +1606,7 @@
     },
     "excluded_sources": {}
   },
-  "category_index": 7,
+  "category_index": 8,
   "used_subconcepts": [
     "silent_orbit",
     "aurora",
@@ -1614,7 +1614,8 @@
     "moonlight",
     "cosmic_ocean",
     "cosmic_cloud",
-    "stardust"
+    "stardust",
+    "deep_space"
   ],
   "statistics": {
     "silent_orbit": {
@@ -1637,6 +1638,9 @@
     },
     "stardust": {
       "used": 1
+    },
+    "deep_space": {
+      "used": 1
     }
   },
   "cosmic_20260706_040600": {
@@ -1657,7 +1661,7 @@
     "excluded_sources": {}
   },
   "series": {
-    "longform": 6,
+    "longform": 7,
     "shorts": 0
   },
   "cosmic_20260713_033302": {
@@ -1742,6 +1746,23 @@
     "audio_lufs": -18.3,
     "source_lufs": {
       "jamendo_1530806_We_Are_Temporary_And_We_Are_Be.mp3": -18.3
+    },
+    "excluded_sources": {}
+  },
+  "cosmic_20260817_014029": {
+    "title": "딥스페이스 수면음악 | Deep Space Sleep Music | 1 Hour Ambient Sound",
+    "category": "galaxy",
+    "created_at": "2026-08-17 02:09:49",
+    "quality": "pending",
+    "sounds": [
+      "jamendo_1530545_The_Dream_Is_Now.mp3"
+    ],
+    "videos": [
+      "pexels_12336960_720p.mp4"
+    ],
+    "audio_lufs": -15.5,
+    "source_lufs": {
+      "jamendo_1530545_The_Dream_Is_Now.mp3": -15.5
     },
     "excluded_sources": {}
   }
