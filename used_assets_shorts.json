@@ -1,7 +1,6 @@
 {
-  "category_index": 4,
+  "category_index": 5,
   "used_subconcepts": [
-    "moonlight",
     "milky_way",
     "nebula",
     "meteor_shower",
@@ -10,7 +9,8 @@
     "milky_way",
     "northern_lights",
     "crimson_nebula",
-    "starlight"
+    "starlight",
+    "cosmic_ocean"
   ],
   "statistics": {
     "deep_space": {
@@ -26,7 +26,7 @@
       "used": 3
     },
     "cosmic_ocean": {
-      "used": 2
+      "used": 3
     },
     "cosmic_cloud": {
       "used": 2
@@ -548,6 +548,19 @@
     "sounds": [],
     "videos": [
       "pexels_38749550_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260826_003905": {
+    "title": "Sleep Music | The Ocean Has No Surface or Floor",
+    "category": "galaxy",
+    "created_at": "2026-08-26 00:39:34",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_35712611_1080p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
