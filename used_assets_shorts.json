@@ -1,7 +1,6 @@
 {
-  "category_index": 5,
+  "category_index": 6,
   "used_subconcepts": [
-    "milky_way",
     "nebula",
     "meteor_shower",
     "silent_orbit",
@@ -10,7 +9,8 @@
     "northern_lights",
     "crimson_nebula",
     "starlight",
-    "cosmic_ocean"
+    "cosmic_ocean",
+    "cosmic_cloud"
   ],
   "statistics": {
     "deep_space": {
@@ -29,7 +29,7 @@
       "used": 3
     },
     "cosmic_cloud": {
-      "used": 2
+      "used": 3
     },
     "stardust": {
       "used": 2
@@ -561,6 +561,19 @@
     "sounds": [],
     "videos": [
       "pexels_35712611_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260827_053907": {
+    "title": "Sleep Music | Clouds Float Where Gravity Means Nothing",
+    "category": "nebula",
+    "created_at": "2026-08-27 05:39:50",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_31084223_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
