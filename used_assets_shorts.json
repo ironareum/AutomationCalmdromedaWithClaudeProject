@@ -1,7 +1,6 @@
 {
-  "category_index": 8,
+  "category_index": 0,
   "used_subconcepts": [
-    "silent_orbit",
     "constellation",
     "milky_way",
     "northern_lights",
@@ -10,7 +9,8 @@
     "cosmic_ocean",
     "cosmic_cloud",
     "moonlight",
-    "spiral_galaxy"
+    "spiral_galaxy",
+    "meteor_shower"
   ],
   "statistics": {
     "deep_space": {
@@ -23,7 +23,7 @@
       "used": 3
     },
     "meteor_shower": {
-      "used": 3
+      "used": 4
     },
     "cosmic_ocean": {
       "used": 3
@@ -600,6 +600,19 @@
     "sounds": [],
     "videos": [
       "pexels_10966656_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260830_021731": {
+    "title": "Sleep Music | Meteors Fall Without Sound or Reason",
+    "category": "stellar",
+    "created_at": "2026-08-30 02:18:09",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_8644866_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
