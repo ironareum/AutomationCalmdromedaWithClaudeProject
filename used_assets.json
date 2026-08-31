@@ -1606,7 +1606,7 @@
     },
     "excluded_sources": {}
   },
-  "category_index": 0,
+  "category_index": 1,
   "used_subconcepts": [
     "silent_orbit",
     "aurora",
@@ -1616,7 +1616,8 @@
     "cosmic_cloud",
     "stardust",
     "deep_space",
-    "meteor_shower"
+    "meteor_shower",
+    "milky_way"
   ],
   "statistics": {
     "silent_orbit": {
@@ -1645,6 +1646,9 @@
     },
     "meteor_shower": {
       "used": 1
+    },
+    "milky_way": {
+      "used": 1
     }
   },
   "cosmic_20260706_040600": {
@@ -1665,7 +1669,7 @@
     "excluded_sources": {}
   },
   "series": {
-    "longform": 8,
+    "longform": 9,
     "shorts": 0
   },
   "cosmic_20260713_033302": {
@@ -1784,6 +1788,23 @@
     "audio_lufs": -15.8,
     "source_lufs": {
       "jamendo_1530842_There.mp3": -15.8
+    },
+    "excluded_sources": {}
+  },
+  "cosmic_20260831_090625": {
+    "title": "은하수 수면음악 | Milky Way Sleep Music | 1 Hour Ambient Sound",
+    "category": "galaxy",
+    "created_at": "2026-08-31 09:29:13",
+    "quality": "pending",
+    "sounds": [
+      "jamendo_1121870_Dritter_Teil.mp3"
+    ],
+    "videos": [
+      "pexels_9341049_2160p.mp4"
+    ],
+    "audio_lufs": -22.8,
+    "source_lufs": {
+      "jamendo_1121870_Dritter_Teil.mp3": -22.8
     },
     "excluded_sources": {}
   }
