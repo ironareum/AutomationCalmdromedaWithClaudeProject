@@ -1,7 +1,6 @@
 {
-  "category_index": 4,
+  "category_index": 5,
   "used_subconcepts": [
-    "starlight",
     "cosmic_ocean",
     "cosmic_cloud",
     "moonlight",
@@ -10,7 +9,8 @@
     "silent_orbit",
     "aurora",
     "nebula",
-    "constellation"
+    "constellation",
+    "silent_orbit"
   ],
   "statistics": {
     "deep_space": {
@@ -56,7 +56,7 @@
       "used": 3
     },
     "silent_orbit": {
-      "used": 3
+      "used": 4
     }
   },
   "cosmic_20260703_015355": {
@@ -665,6 +665,19 @@
     "sounds": [],
     "videos": [
       "pexels_5380054_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260906_014941": {
+    "title": "Sleep Music | Orbits Exist Without Sound",
+    "category": "galaxy",
+    "created_at": "2026-09-06 01:50:27",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_9564201_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
