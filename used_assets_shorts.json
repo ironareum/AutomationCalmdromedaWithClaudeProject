@@ -1,7 +1,6 @@
 {
-  "category_index": 5,
+  "category_index": 6,
   "used_subconcepts": [
-    "cosmic_ocean",
     "cosmic_cloud",
     "moonlight",
     "spiral_galaxy",
@@ -10,7 +9,8 @@
     "aurora",
     "nebula",
     "constellation",
-    "silent_orbit"
+    "silent_orbit",
+    "crimson_nebula"
   ],
   "statistics": {
     "deep_space": {
@@ -47,7 +47,7 @@
       "used": 3
     },
     "crimson_nebula": {
-      "used": 4
+      "used": 5
     },
     "moonlight": {
       "used": 3
@@ -678,6 +678,19 @@
     "sounds": [],
     "videos": [
       "pexels_9564201_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260909_020259": {
+    "title": "Sleep Music | Red Dust Suspended in Darkness for Millions of Years",
+    "category": "nebula",
+    "created_at": "2026-09-09 02:03:31",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_27406880_1080p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
