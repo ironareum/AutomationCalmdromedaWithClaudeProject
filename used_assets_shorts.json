@@ -1,7 +1,6 @@
 {
-  "category_index": 7,
+  "category_index": 8,
   "used_subconcepts": [
-    "moonlight",
     "spiral_galaxy",
     "meteor_shower",
     "silent_orbit",
@@ -10,7 +9,8 @@
     "constellation",
     "silent_orbit",
     "crimson_nebula",
-    "starlight"
+    "starlight",
+    "cosmic_ocean"
   ],
   "statistics": {
     "deep_space": {
@@ -26,7 +26,7 @@
       "used": 4
     },
     "cosmic_ocean": {
-      "used": 3
+      "used": 4
     },
     "cosmic_cloud": {
       "used": 3
@@ -691,6 +691,19 @@
     "sounds": [],
     "videos": [
       "pexels_27406880_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260911_015831": {
+    "title": "Sleep Music | The Ocean Has No Surface in Space",
+    "category": "galaxy",
+    "created_at": "2026-09-11 01:59:05",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_39449411_1080p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
