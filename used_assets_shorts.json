@@ -1,7 +1,6 @@
 {
-  "category_index": 8,
+  "category_index": 0,
   "used_subconcepts": [
-    "cosmic_ocean",
     "stardust",
     "spiral_galaxy",
     "aurora",
@@ -10,7 +9,8 @@
     "deep_space",
     "nebula",
     "meteor_shower",
-    "silent_orbit"
+    "silent_orbit",
+    "starlight"
   ],
   "statistics": {
     "deep_space": {
@@ -53,7 +53,7 @@
       "used": 4
     },
     "starlight": {
-      "used": 4
+      "used": 5
     },
     "silent_orbit": {
       "used": 5
@@ -821,6 +821,19 @@
     "sounds": [],
     "videos": [
       "pexels_9564201_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260925_022418": {
+    "title": "Sleep Music | Light Travels Farther Than Memory",
+    "category": "stellar",
+    "created_at": "2026-09-25 02:25:01",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_27426486_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
