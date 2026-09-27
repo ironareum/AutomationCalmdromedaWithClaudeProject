@@ -1,7 +1,6 @@
 {
-  "category_index": 1,
+  "category_index": 2,
   "used_subconcepts": [
-    "spiral_galaxy",
     "aurora",
     "cosmic_cloud",
     "moonlight",
@@ -10,14 +9,15 @@
     "meteor_shower",
     "silent_orbit",
     "starlight",
-    "cosmic_ocean"
+    "cosmic_ocean",
+    "aurora"
   ],
   "statistics": {
     "deep_space": {
       "used": 4
     },
     "aurora": {
-      "used": 4
+      "used": 5
     },
     "nebula": {
       "used": 5
@@ -847,6 +847,19 @@
     "sounds": [],
     "videos": [
       "pexels_39449411_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20260927_022437": {
+    "title": "Sleep Music | Light That Moves Without Sound",
+    "category": "aurora",
+    "created_at": "2026-09-27 02:25:11",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_5700940_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
