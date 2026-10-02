@@ -1,7 +1,6 @@
 {
-  "category_index": 4,
+  "category_index": 5,
   "used_subconcepts": [
-    "moonlight",
     "deep_space",
     "nebula",
     "meteor_shower",
@@ -10,7 +9,8 @@
     "cosmic_ocean",
     "aurora",
     "cosmic_cloud",
-    "stardust"
+    "stardust",
+    "spiral_galaxy"
   ],
   "statistics": {
     "deep_space": {
@@ -41,7 +41,7 @@
       "used": 4
     },
     "spiral_galaxy": {
-      "used": 4
+      "used": 5
     },
     "northern_lights": {
       "used": 3
@@ -886,6 +886,19 @@
     "sounds": [],
     "videos": [
       "pexels_35115646_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20261002_030243": {
+    "title": "Sleep Music | Spiral Galaxy Rotates for Billions of Years",
+    "category": "galaxy",
+    "created_at": "2026-10-02 03:03:05",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_10966656_1080p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
