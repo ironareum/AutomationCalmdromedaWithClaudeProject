@@ -1,7 +1,6 @@
 {
-  "category_index": 5,
+  "category_index": 6,
   "used_subconcepts": [
-    "deep_space",
     "nebula",
     "meteor_shower",
     "silent_orbit",
@@ -10,7 +9,8 @@
     "aurora",
     "cosmic_cloud",
     "stardust",
-    "spiral_galaxy"
+    "spiral_galaxy",
+    "nebula"
   ],
   "statistics": {
     "deep_space": {
@@ -20,7 +20,7 @@
       "used": 5
     },
     "nebula": {
-      "used": 5
+      "used": 6
     },
     "meteor_shower": {
       "used": 5
@@ -899,6 +899,19 @@
     "sounds": [],
     "videos": [
       "pexels_10966656_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20261003_024918": {
+    "title": "Sleep Music | Nebula Dust Moves Slower Than Time",
+    "category": "nebula",
+    "created_at": "2026-10-03 02:49:48",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_27406880_1080p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
