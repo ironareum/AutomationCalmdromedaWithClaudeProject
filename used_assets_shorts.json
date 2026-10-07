@@ -1,7 +1,6 @@
 {
-  "category_index": 7,
+  "category_index": 8,
   "used_subconcepts": [
-    "meteor_shower",
     "silent_orbit",
     "starlight",
     "cosmic_ocean",
@@ -10,11 +9,12 @@
     "stardust",
     "spiral_galaxy",
     "nebula",
-    "moonlight"
+    "moonlight",
+    "deep_space"
   ],
   "statistics": {
     "deep_space": {
-      "used": 4
+      "used": 5
     },
     "aurora": {
       "used": 5
@@ -925,6 +925,19 @@
     "sounds": [],
     "videos": [
       "pexels_30785084_1440p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20261007_031303": {
+    "title": "Sleep Music | Light Takes Millions of Years to Reach Here",
+    "category": "galaxy",
+    "created_at": "2026-10-07 03:13:33",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_9564201_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
