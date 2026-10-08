@@ -1,7 +1,6 @@
 {
-  "category_index": 8,
+  "category_index": 0,
   "used_subconcepts": [
-    "silent_orbit",
     "starlight",
     "cosmic_ocean",
     "aurora",
@@ -10,7 +9,8 @@
     "spiral_galaxy",
     "nebula",
     "moonlight",
-    "deep_space"
+    "deep_space",
+    "meteor_shower"
   ],
   "statistics": {
     "deep_space": {
@@ -23,7 +23,7 @@
       "used": 6
     },
     "meteor_shower": {
-      "used": 5
+      "used": 6
     },
     "cosmic_ocean": {
       "used": 5
@@ -938,6 +938,19 @@
     "sounds": [],
     "videos": [
       "pexels_9564201_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20261008_032857": {
+    "title": "Sleep Music | Meteors Fall Every 33 Seconds in the Night Sky",
+    "category": "stellar",
+    "created_at": "2026-10-08 03:29:45",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_39346070_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
