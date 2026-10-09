@@ -1,7 +1,6 @@
 {
-  "category_index": 0,
+  "category_index": 1,
   "used_subconcepts": [
-    "starlight",
     "cosmic_ocean",
     "aurora",
     "cosmic_cloud",
@@ -10,7 +9,8 @@
     "nebula",
     "moonlight",
     "deep_space",
-    "meteor_shower"
+    "meteor_shower",
+    "silent_orbit"
   ],
   "statistics": {
     "deep_space": {
@@ -56,7 +56,7 @@
       "used": 5
     },
     "silent_orbit": {
-      "used": 5
+      "used": 6
     }
   },
   "cosmic_20260703_015355": {
@@ -951,6 +951,19 @@
     "sounds": [],
     "videos": [
       "pexels_39346070_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20261009_033405": {
+    "title": "Sleep Music | Gravity Pulls Everything Into Stillness",
+    "category": "galaxy",
+    "created_at": "2026-10-09 03:34:43",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_9564201_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
