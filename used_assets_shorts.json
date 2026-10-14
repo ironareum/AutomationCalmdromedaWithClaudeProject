@@ -1,7 +1,6 @@
 {
-  "category_index": 3,
+  "category_index": 4,
   "used_subconcepts": [
-    "cosmic_cloud",
     "stardust",
     "spiral_galaxy",
     "nebula",
@@ -10,7 +9,8 @@
     "meteor_shower",
     "silent_orbit",
     "northern_lights",
-    "crimson_nebula"
+    "crimson_nebula",
+    "starlight"
   ],
   "statistics": {
     "deep_space": {
@@ -53,7 +53,7 @@
       "used": 5
     },
     "starlight": {
-      "used": 5
+      "used": 6
     },
     "silent_orbit": {
       "used": 6
