@@ -1,7 +1,6 @@
 {
-  "category_index": 4,
+  "category_index": 5,
   "used_subconcepts": [
-    "stardust",
     "spiral_galaxy",
     "nebula",
     "moonlight",
@@ -10,7 +9,8 @@
     "silent_orbit",
     "northern_lights",
     "crimson_nebula",
-    "starlight"
+    "starlight",
+    "milky_way"
   ],
   "statistics": {
     "deep_space": {
@@ -35,7 +35,7 @@
       "used": 4
     },
     "milky_way": {
-      "used": 4
+      "used": 5
     },
     "constellation": {
       "used": 4
@@ -990,6 +990,19 @@
     "sounds": [],
     "videos": [
       "pexels_27406880_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20261015_021653": {
+    "title": "Sleep Music | The Milky Way Moves Across the Sky Every Night",
+    "category": "galaxy",
+    "created_at": "2026-10-15 02:17:26",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_13322952_2160p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
