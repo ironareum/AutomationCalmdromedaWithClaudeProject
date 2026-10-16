@@ -1,7 +1,6 @@
 {
-  "category_index": 5,
+  "category_index": 6,
   "used_subconcepts": [
-    "spiral_galaxy",
     "nebula",
     "moonlight",
     "deep_space",
@@ -10,7 +9,8 @@
     "northern_lights",
     "crimson_nebula",
     "starlight",
-    "milky_way"
+    "milky_way",
+    "cosmic_cloud"
   ],
   "statistics": {
     "deep_space": {
@@ -29,7 +29,7 @@
       "used": 5
     },
     "cosmic_cloud": {
-      "used": 5
+      "used": 6
     },
     "stardust": {
       "used": 4
@@ -1003,6 +1003,19 @@
     "sounds": [],
     "videos": [
       "pexels_13322952_2160p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20261016_020829": {
+    "title": "Sleep Music | Clouds That Float Deeper Than Space",
+    "category": "nebula",
+    "created_at": "2026-10-16 02:08:56",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_38875366_1080p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
