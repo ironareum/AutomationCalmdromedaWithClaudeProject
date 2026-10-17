@@ -1,7 +1,6 @@
 {
-  "category_index": 6,
+  "category_index": 7,
   "used_subconcepts": [
-    "nebula",
     "moonlight",
     "deep_space",
     "meteor_shower",
@@ -10,7 +9,8 @@
     "crimson_nebula",
     "starlight",
     "milky_way",
-    "cosmic_cloud"
+    "cosmic_cloud",
+    "stardust"
   ],
   "statistics": {
     "deep_space": {
@@ -32,7 +32,7 @@
       "used": 6
     },
     "stardust": {
-      "used": 4
+      "used": 5
     },
     "milky_way": {
       "used": 5
@@ -1016,6 +1016,19 @@
     "sounds": [],
     "videos": [
       "pexels_38875366_1080p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20261017_020212": {
+    "title": "Sleep Music | Stardust Moves Slower Than Light",
+    "category": "stellar",
+    "created_at": "2026-10-17 02:02:53",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_35115646_1080p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
