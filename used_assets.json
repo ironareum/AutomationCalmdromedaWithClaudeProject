@@ -1606,9 +1606,8 @@
     },
     "excluded_sources": {}
   },
-  "category_index": 5,
+  "category_index": 6,
   "used_subconcepts": [
-    "cosmic_ocean",
     "cosmic_cloud",
     "stardust",
     "deep_space",
@@ -1617,7 +1616,8 @@
     "northern_lights",
     "crimson_nebula",
     "constellation",
-    "silent_orbit"
+    "silent_orbit",
+    "nebula"
   ],
   "statistics": {
     "silent_orbit": {
@@ -1627,7 +1627,7 @@
       "used": 1
     },
     "nebula": {
-      "used": 1
+      "used": 2
     },
     "moonlight": {
       "used": 1
@@ -1678,7 +1678,7 @@
     "excluded_sources": {}
   },
   "series": {
-    "longform": 13,
+    "longform": 14,
     "shorts": 0
   },
   "cosmic_20260713_033302": {
@@ -1882,6 +1882,23 @@
     "audio_lufs": -16.1,
     "source_lufs": {
       "jamendo_1919606_Silence.mp3": -16.1
+    },
+    "excluded_sources": {}
+  },
+  "cosmic_20261019_040731": {
+    "title": "성운 수면음악 | Nebula Sleep Music | 1 Hour Ambient Sound",
+    "category": "nebula",
+    "created_at": "2026-10-19 04:29:51",
+    "quality": "pending",
+    "sounds": [
+      "jamendo_1530863_Old_Photographs.mp3"
+    ],
+    "videos": [
+      "pexels_27406880_1080p.mp4"
+    ],
+    "audio_lufs": -23.0,
+    "source_lufs": {
+      "jamendo_1530863_Old_Photographs.mp3": -23.0
     },
     "excluded_sources": {}
   }
