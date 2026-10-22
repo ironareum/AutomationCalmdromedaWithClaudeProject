@@ -1,7 +1,6 @@
 {
-  "category_index": 0,
+  "category_index": 1,
   "used_subconcepts": [
-    "meteor_shower",
     "silent_orbit",
     "northern_lights",
     "crimson_nebula",
@@ -10,11 +9,12 @@
     "cosmic_cloud",
     "stardust",
     "cosmic_ocean",
-    "moonlight"
+    "moonlight",
+    "deep_space"
   ],
   "statistics": {
     "deep_space": {
-      "used": 5
+      "used": 6
     },
     "aurora": {
       "used": 5
@@ -1055,6 +1055,19 @@
     "sounds": [],
     "videos": [
       "pexels_30785084_1440p.mp4"
+    ],
+    "audio_lufs": null,
+    "source_lufs": {},
+    "excluded_sources": {}
+  },
+  "cosmic_20261022_022219": {
+    "title": "Sleep Music | Sound Cannot Travel Through Empty Space",
+    "category": "galaxy",
+    "created_at": "2026-10-22 02:23:03",
+    "quality": "pending",
+    "sounds": [],
+    "videos": [
+      "pexels_12336972_720p.mp4"
     ],
     "audio_lufs": null,
     "source_lufs": {},
