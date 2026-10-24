@@ -1,7 +1,6 @@
 {
-  "category_index": 2,
+  "category_index": 3,
   "used_subconcepts": [
-    "northern_lights",
     "crimson_nebula",
     "starlight",
     "milky_way",
@@ -10,7 +9,8 @@
     "cosmic_ocean",
     "moonlight",
     "deep_space",
-    "aurora"
+    "aurora",
+    "cosmic_cloud"
   ],
   "statistics": {
     "deep_space": {
@@ -29,7 +29,7 @@
       "used": 6
     },
     "cosmic_cloud": {
-      "used": 6
+      "used": 7
     },
     "stardust": {
       "used": 5
